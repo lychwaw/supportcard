@@ -49,13 +49,13 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const { data, error } = await supabase
-        .from('user_roles')
+        .from('user_roles' as any)
         .select('role')
         .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
-      setRole(data.role as AppRole);
+      setRole((data as any)?.role as AppRole);
     } catch (error) {
       console.error('Error fetching role:', error);
       setRole(null);
@@ -69,12 +69,12 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const { data, error } = await supabase
-        .from('children')
+        .from('children' as any)
         .select('id, name, user_id')
         .eq('parent_id', user.id);
 
       if (error) throw error;
-      setChildrenList(data || []);
+      setChildrenList((data as unknown as Child[]) || []);
     } catch (error) {
       console.error('Error fetching children:', error);
     }

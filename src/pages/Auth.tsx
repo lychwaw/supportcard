@@ -79,11 +79,11 @@ const Auth = () => {
       } else if (data.user) {
         // Assign parent role to new user
         const { error: roleError } = await supabase
-          .from('user_roles')
+          .from('user_roles' as any)
           .insert({
             user_id: data.user.id,
             role: 'parent',
-          });
+          } as any);
 
         if (roleError) {
           console.error('Error assigning role:', roleError);
