@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRole } from '@/contexts/RoleContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Receipt } from 'lucide-react';
 import { format } from 'date-fns';
+import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 interface Transaction {
   id: string;
@@ -18,6 +20,7 @@ interface Transaction {
 
 const Transactions = () => {
   const { user } = useAuth();
+  const { activeChildId, children } = useRole();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -26,10 +29,20 @@ const Transactions = () => {
       if (!user) return;
 
       try {
+        // Determine which user_id to query
+        const queryUserId = activeChildId 
+          ? children.find(c => c.id === activeChildId)?.user_id 
+          : user.id;
+
+        if (!queryUserId) {
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from('transactions')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', queryUserId)
           .order('transaction_date', { ascending: false });
 
         if (error) throw error;
@@ -42,7 +55,7 @@ const Transactions = () => {
     };
 
     fetchTransactions();
-  }, [user]);
+  }, [user, activeChildId, children]);
 
   const getCategoryColor = (category: string) => {
     const colors: Record<string, string> = {
@@ -71,6 +84,8 @@ const Transactions = () => {
           <p className="text-muted-foreground">View all your payment activity</p>
         </div>
       </div>
+
+      <AccountSwitcher />
 
       <Card className="shadow-soft">
         <CardHeader>

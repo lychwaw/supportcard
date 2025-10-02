@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRole } from '@/contexts/RoleContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CreditCard, Plus, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
+import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 interface VirtualCard {
   id: string;
@@ -20,6 +22,7 @@ interface VirtualCard {
 
 const Cards = () => {
   const { user } = useAuth();
+  const { activeChildId, children, isParent } = useRole();
   const [cards, setCards] = useState<VirtualCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -28,16 +31,26 @@ const Cards = () => {
 
   useEffect(() => {
     fetchCards();
-  }, [user]);
+  }, [user, activeChildId, children]);
 
   const fetchCards = async () => {
     if (!user) return;
 
     try {
+      // Determine which user_id to query
+      const queryUserId = activeChildId 
+        ? children.find(c => c.id === activeChildId)?.user_id 
+        : user.id;
+
+      if (!queryUserId) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('virtual_cards')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', queryUserId);
 
       if (error) throw error;
       if (data) setCards(data);
@@ -104,6 +117,7 @@ const Cards = () => {
             <p className="text-muted-foreground">Manage your payment cards</p>
           </div>
         </div>
+        {isParent && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -145,7 +159,10 @@ const Cards = () => {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
+
+      <AccountSwitcher />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {cards.length === 0 ? (

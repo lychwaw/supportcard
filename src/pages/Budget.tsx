@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRole } from '@/contexts/RoleContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TrendingUp, Plus } from 'lucide-react';
 import { toast } from 'sonner';
+import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 interface BudgetCategory {
   id: string;
@@ -20,6 +22,7 @@ interface BudgetCategory {
 
 const Budget = () => {
   const { user } = useAuth();
+  const { activeChildId, children, isParent } = useRole();
   const [budgets, setBudgets] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -30,16 +33,26 @@ const Budget = () => {
 
   useEffect(() => {
     fetchBudgets();
-  }, [user]);
+  }, [user, activeChildId, children]);
 
   const fetchBudgets = async () => {
     if (!user) return;
 
     try {
+      // Determine which user_id to query
+      const queryUserId = activeChildId 
+        ? children.find(c => c.id === activeChildId)?.user_id 
+        : user.id;
+
+      if (!queryUserId) {
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase
         .from('budget_categories')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', queryUserId);
 
       if (error) throw error;
       if (data) setBudgets(data);
@@ -97,6 +110,7 @@ const Budget = () => {
             <p className="text-muted-foreground">Track spending by category</p>
           </div>
         </div>
+        {isParent && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -141,7 +155,10 @@ const Budget = () => {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
+
+      <AccountSwitcher />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {budgets.length === 0 ? (

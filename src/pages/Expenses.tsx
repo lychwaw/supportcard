@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRole } from '@/contexts/RoleContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +10,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Plus, Check, X } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 interface ExpenseRequest {
   id: string;
@@ -24,6 +26,7 @@ interface ExpenseRequest {
 
 const Expenses = () => {
   const { user } = useAuth();
+  const { isChild } = useRole();
   const [expenses, setExpenses] = useState<ExpenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -114,6 +117,7 @@ const Expenses = () => {
             <p className="text-muted-foreground">Submit and track expense approvals</p>
           </div>
         </div>
+        {isChild && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -168,7 +172,10 @@ const Expenses = () => {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
+
+      <AccountSwitcher />
 
       <div className="grid gap-4">
         {expenses.length === 0 ? (
