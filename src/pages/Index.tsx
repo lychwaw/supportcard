@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { useRole } from '@/contexts/RoleContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Wallet } from 'lucide-react';
+import { ChildManagement } from '@/components/ChildManagement';
+import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 interface Child {
   id: string;
@@ -22,6 +25,7 @@ interface Transaction {
 
 const Index = () => {
   const { user } = useAuth();
+  const { activeChildId, isParent, children: roleChildren } = useRole();
   const [children, setChildren] = useState<Child[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
@@ -33,19 +37,41 @@ const Index = () => {
       if (!user) return;
 
       try {
-        // Fetch children
-        const { data: childrenData } = await supabase
-          .from('children')
-          .select('*')
-          .eq('parent_id', user.id);
+        // Determine which user_id to query based on role
+        const queryUserId = activeChildId ? roleChildren.find(c => c.id === activeChildId)?.user_id : user.id;
         
-        if (childrenData) setChildren(childrenData);
+        if (!queryUserId) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch children (only for parents)
+        if (isParent) {
+          const { data: childrenData } = await supabase
+            .from('children')
+            .select('*')
+            .eq('parent_id', user.id);
+          
+          if (childrenData) setChildren(childrenData);
+        } else {
+          // For child view, show only the active child
+          const child = roleChildren.find(c => c.id === activeChildId);
+          if (child) {
+            const { data: childData } = await supabase
+              .from('children')
+              .select('*')
+              .eq('id', child.id)
+              .single();
+            
+            if (childData) setChildren([childData]);
+          }
+        }
 
         // Fetch recent transactions
         const { data: transactionsData } = await supabase
           .from('transactions')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('user_id', queryUserId)
           .order('transaction_date', { ascending: false })
           .limit(5);
         
@@ -55,7 +81,7 @@ const Index = () => {
         const { data: cardsData } = await supabase
           .from('virtual_cards')
           .select('balance')
-          .eq('user_id', user.id);
+          .eq('user_id', queryUserId);
         
         if (cardsData) {
           const total = cardsData.reduce((sum, card) => sum + Number(card.balance), 0);
@@ -70,7 +96,7 @@ const Index = () => {
         const { data: monthlyData } = await supabase
           .from('transactions')
           .select('amount')
-          .eq('user_id', user.id)
+          .eq('user_id', queryUserId)
           .gte('transaction_date', startOfMonth.toISOString());
         
         if (monthlyData) {
@@ -85,7 +111,7 @@ const Index = () => {
     };
 
     fetchDashboardData();
-  }, [user]);
+  }, [user, activeChildId, isParent, roleChildren]);
 
   if (loading) {
     return (
@@ -101,6 +127,8 @@ const Index = () => {
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Welcome back to SupportCard</p>
       </div>
+
+      <AccountSwitcher />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card className="shadow-soft">
@@ -149,35 +177,39 @@ const Index = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="shadow-soft">
-          <CardHeader>
-            <CardTitle>Children & Support Targets</CardTitle>
-            <CardDescription>Track child support payment progress</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {children.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No children added yet</p>
-            ) : (
-              children.map((child) => {
-                const progress = (child.current_amount / child.target_amount) * 100;
-                return (
-                  <div key={child.id} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{child.name}</span>
-                      <span className="text-sm text-muted-foreground">
-                        ${child.current_amount.toFixed(2)} / ${child.target_amount.toFixed(2)}
-                      </span>
+        {isParent ? (
+          <ChildManagement />
+        ) : (
+          <Card className="shadow-soft">
+            <CardHeader>
+              <CardTitle>Support Target</CardTitle>
+              <CardDescription>Track your support payment progress</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {children.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No data available</p>
+              ) : (
+                children.map((child) => {
+                  const progress = (child.current_amount / child.target_amount) * 100;
+                  return (
+                    <div key={child.id} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{child.name}</span>
+                        <span className="text-sm text-muted-foreground">
+                          ${child.current_amount.toFixed(2)} / ${child.target_amount.toFixed(2)}
+                        </span>
+                      </div>
+                      <Progress value={progress} className="h-2" />
+                      <p className="text-xs text-muted-foreground">
+                        {progress >= 100 ? 'Target fully paid' : `${progress.toFixed(0)}% complete`}
+                      </p>
                     </div>
-                    <Progress value={progress} className="h-2" />
-                    <p className="text-xs text-muted-foreground">
-                      {progress >= 100 ? 'Target fully paid' : `${progress.toFixed(0)}% complete`}
-                    </p>
-                  </div>
-                );
-              })
-            )}
-          </CardContent>
-        </Card>
+                  );
+                })
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         <Card className="shadow-soft">
           <CardHeader>

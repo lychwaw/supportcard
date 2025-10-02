@@ -63,7 +63,7 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
         options: {
@@ -76,7 +76,19 @@ const Auth = () => {
 
       if (error) {
         toast.error(error.message);
-      } else {
+      } else if (data.user) {
+        // Assign parent role to new user
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: 'parent',
+          });
+
+        if (roleError) {
+          console.error('Error assigning role:', roleError);
+        }
+        
         toast.success('Account created successfully!');
         navigate('/');
       }
