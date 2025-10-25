@@ -168,7 +168,7 @@ const Settings = () => {
 
       if (error) throw error;
 
-      toast.success(`Subscription changed to ${tier} tier. Payment integration coming soon!`);
+      toast.success(`Successfully updated to ${tier} tier!`);
       if (profile) {
         setProfile({ ...profile, subscription_tier: tier } as Profile);
       }
@@ -269,12 +269,6 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="subscription" className="space-y-6">
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertDescription>
-              Payment integration is coming soon. You can change your subscription tier now, but no payment will be processed yet.
-            </AlertDescription>
-          </Alert>
           <Card>
             <CardHeader>
               <CardTitle>Subscription Management</CardTitle>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ interface BudgetCategory {
 const Budget = () => {
   const { user } = useAuth();
   const { activeChildId, children, isParent } = useRole();
+  const { canManageBudgets } = usePermissions();
   const [budgets, setBudgets] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -64,6 +66,11 @@ const Budget = () => {
   };
 
   const handleAddBudget = async () => {
+    if (!canManageBudgets) {
+      toast.error('Only parents can manage budgets');
+      return;
+    }
+
     if (!user || !newCategory || !newLimit) {
       toast.error('Please fill in all fields');
       return;

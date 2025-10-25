@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,8 +27,10 @@ interface ExpenseRequest {
 
 const Expenses = () => {
   const { user } = useAuth();
-  const { isChild } = useRole();
+  const { isChild, isParent } = useRole();
+  const { canApproveExpenses, canCreateExpenseRequests } = usePermissions();
   const [expenses, setExpenses] = useState<ExpenseRequest[]>([]);
+  const [allExpenses, setAllExpenses] = useState<ExpenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [amount, setAmount] = useState('');
@@ -44,14 +47,32 @@ const Expenses = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('expense_requests')
-        .select('*')
-        .eq('requester_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      if (data) setExpenses(data);
+      if (isParent) {
+        // Parents see all expense requests (for approval)
+        const { data, error } = await supabase
+          .from('expense_requests')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        if (data) {
+          setAllExpenses(data);
+          setExpenses(data.filter(e => e.status === 'pending'));
+        }
+      } else {
+        // Children see only their own requests
+        const { data, error } = await supabase
+          .from('expense_requests')
+          .select('*')
+          .eq('requester_id', user.id)
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        if (data) {
+          setExpenses(data);
+          setAllExpenses(data);
+        }
+      }
     } catch (error) {
       console.error('Error fetching expenses:', error);
     } finally {
@@ -60,6 +81,11 @@ const Expenses = () => {
   };
 
   const handleSubmitRequest = async () => {
+    if (!canCreateExpenseRequests) {
+      toast.error('You do not have permission to create expense requests');
+      return;
+    }
+
     if (!user || !amount || !category || !description) {
       toast.error('Please fill in all fields');
       return;
@@ -86,6 +112,50 @@ const Expenses = () => {
       fetchExpenses();
     } catch (error) {
       toast.error('Failed to submit request');
+      console.error(error);
+    }
+  };
+
+  const handleApproveExpense = async (expenseId: string) => {
+    if (!canApproveExpenses) {
+      toast.error('Only parents can approve expenses');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('expense_requests')
+        .update({ status: 'approved' })
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      toast.success('Expense request approved');
+      fetchExpenses();
+    } catch (error) {
+      toast.error('Failed to approve request');
+      console.error(error);
+    }
+  };
+
+  const handleRejectExpense = async (expenseId: string) => {
+    if (!canApproveExpenses) {
+      toast.error('Only parents can reject expenses');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('expense_requests')
+        .update({ status: 'rejected' })
+        .eq('id', expenseId);
+
+      if (error) throw error;
+
+      toast.success('Expense request rejected');
+      fetchExpenses();
+    } catch (error) {
+      toast.error('Failed to reject request');
       console.error(error);
     }
   };
@@ -117,7 +187,7 @@ const Expenses = () => {
             <p className="text-muted-foreground">Submit and track expense approvals</p>
           </div>
         </div>
-        {isChild && (
+        {canCreateExpenseRequests && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -205,9 +275,28 @@ const Expenses = () => {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-2">{expense.description}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground mb-3">
                   Submitted {format(new Date(expense.created_at), 'MMM dd, yyyy')}
                 </p>
+                {isParent && expense.status === 'pending' && (
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleApproveExpense(expense.id)}
+                      className="flex-1"
+                    >
+                      Approve
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => handleRejectExpense(expense.id)}
+                      className="flex-1"
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))

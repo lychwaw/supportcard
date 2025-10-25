@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +24,7 @@ interface VirtualCard {
 const Cards = () => {
   const { user } = useAuth();
   const { activeChildId, children, isParent } = useRole();
+  const { canManageCards } = usePermissions();
   const [cards, setCards] = useState<VirtualCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -70,6 +72,11 @@ const Cards = () => {
   };
 
   const handleAddCard = async () => {
+    if (!canManageCards) {
+      toast.error('Only parents can add cards');
+      return;
+    }
+
     if (!user || !initialBalance) {
       toast.error('Please enter an initial balance');
       return;
@@ -117,7 +124,7 @@ const Cards = () => {
             <p className="text-muted-foreground">Manage your payment cards</p>
           </div>
         </div>
-        {isParent && (
+        {canManageCards && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
