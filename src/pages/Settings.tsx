@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check } from 'lucide-react';
+import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check, Info } from 'lucide-react';
 
 interface Profile {
   full_name: string;
@@ -23,6 +25,7 @@ interface Profile {
 
 const Settings = () => {
   const { user } = useAuth();
+  const { canManageSettings, canManageSubscription } = usePermissions();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -146,8 +149,14 @@ const Settings = () => {
   };
 
   const handleUpgradeSubscription = async (tier: string) => {
+    if (!canManageSubscription) {
+      toast.error('Only parents can manage subscriptions');
+      return;
+    }
+
     if (!user) return;
 
+    // Placeholder implementation - will integrate with payment system
     try {
       const { error } = await supabase
         .from('profiles')
@@ -159,7 +168,7 @@ const Settings = () => {
 
       if (error) throw error;
 
-      toast.success(`Upgraded to ${tier} plan!`);
+      toast.success(`Subscription changed to ${tier} tier. Payment integration coming soon!`);
       if (profile) {
         setProfile({ ...profile, subscription_tier: tier } as Profile);
       }
@@ -170,6 +179,19 @@ const Settings = () => {
 
   if (isLoading) {
     return <div className="p-6">Loading...</div>;
+  }
+
+  if (!canManageSettings) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Alert className="max-w-md">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Settings are only available for parent accounts.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
   }
 
   return (
@@ -247,6 +269,12 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="subscription" className="space-y-6">
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Payment integration is coming soon. You can change your subscription tier now, but no payment will be processed yet.
+            </AlertDescription>
+          </Alert>
           <Card>
             <CardHeader>
               <CardTitle>Subscription Management</CardTitle>
