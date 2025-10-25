@@ -5,75 +5,122 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { Settings as SettingsIcon, CreditCard, Plus } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check } from 'lucide-react';
 
-interface PaymentMethod {
-  id: string;
-  method_type: string;
-  last_four: string;
-  is_default: boolean;
+interface Profile {
+  full_name: string;
+  email: string;
+  phone: string;
+  avatar_url: string;
+  preferred_currency: string;
+  id_verified: boolean;
+  subscription_tier: string;
 }
 
 const Settings = () => {
   const { user } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [currency, setCurrency] = useState('USD');
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+
+  const subscriptionTiers = [
+    {
+      tier: 'Free',
+      price: 'R0',
+      features: [
+        'Basic wallet',
+        'Transactions',
+        'Shared expenses',
+        'Basic notifications'
+      ],
+      icon: User,
+      color: 'bg-muted'
+    },
+    {
+      tier: 'Premium',
+      price: 'R99-R149',
+      features: [
+        'Advanced expense analytics & AI insights',
+        'Court-ready exportable reports',
+        'Smart notifications & category tracking',
+        'Goal-based saving pockets',
+        'Priority support & calendar sync',
+        'Custom virtual card designs'
+      ],
+      icon: Crown,
+      color: 'bg-yellow-500'
+    },
+    {
+      tier: 'Legal',
+      price: 'R299-R499',
+      features: [
+        'Multi-client dashboard',
+        'Exportable client reports',
+        'Secure document storage',
+        'Legal portal integration',
+        'Digital signing of agreements',
+        'All Premium features'
+      ],
+      icon: Scale,
+      color: 'bg-purple-500'
+    },
+    {
+      tier: 'Family+',
+      price: 'R199',
+      features: [
+        'Multiple child wallets',
+        'Guardian viewing access',
+        'International transfer discounts',
+        'Individual child insights',
+        'Advanced spending analytics',
+        'All Premium features'
+      ],
+      icon: Users,
+      color: 'bg-blue-500'
+    }
+  ];
 
   useEffect(() => {
+    const fetchProfile = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          setProfile(data);
+          setFullName(data.full_name || '');
+          setPhone(data.phone || '');
+          setCurrency(data.preferred_currency || 'USD');
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+        toast.error('Failed to load profile');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     fetchProfile();
-    fetchPaymentMethods();
   }, [user]);
 
-  const fetchProfile = async () => {
+  const handleSaveProfile = async () => {
     if (!user) return;
 
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (data) {
-        setFullName(data.full_name || '');
-        setEmail(data.email || user.email || '');
-        setPhone(data.phone || '');
-        setCurrency(data.preferred_currency || 'USD');
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchPaymentMethods = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('payment_methods')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      if (data) setPaymentMethods(data);
-    } catch (error) {
-      console.error('Error fetching payment methods:', error);
-    }
-  };
-
-  const handleUpdateProfile = async () => {
-    if (!user) return;
-
+    setIsSaving(true);
     try {
       const { error } = await supabase
         .from('profiles')
@@ -81,165 +128,211 @@ const Settings = () => {
           full_name: fullName,
           phone: phone,
           preferred_currency: currency,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
 
       if (error) throw error;
 
       toast.success('Profile updated successfully');
+      if (profile) {
+        setProfile({ ...profile, full_name: fullName, phone: phone, preferred_currency: currency });
+      }
     } catch (error) {
       toast.error('Failed to update profile');
-      console.error(error);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleAddPaymentMethod = async () => {
+  const handleUpgradeSubscription = async (tier: string) => {
     if (!user) return;
 
     try {
-      const lastFour = Math.floor(1000 + Math.random() * 9000).toString();
       const { error } = await supabase
-        .from('payment_methods')
-        .insert({
-          user_id: user.id,
-          method_type: 'Credit Card',
-          last_four: lastFour,
-          is_default: paymentMethods.length === 0,
-        });
+        .from('profiles')
+        .update({
+          subscription_tier: tier,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
 
       if (error) throw error;
 
-      toast.success('Payment method added');
-      fetchPaymentMethods();
+      toast.success(`Upgraded to ${tier} plan!`);
+      if (profile) {
+        setProfile({ ...profile, subscription_tier: tier } as Profile);
+      }
     } catch (error) {
-      toast.error('Failed to add payment method');
-      console.error(error);
+      toast.error('Failed to update subscription');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (isLoading) {
+    return <div className="p-6">Loading...</div>;
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <SettingsIcon className="w-8 h-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Manage your account and preferences</p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Settings</h1>
+        <p className="text-muted-foreground">Manage your account and subscription preferences</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card className="shadow-soft">
-          <CardHeader>
-            <CardTitle>Profile Information</CardTitle>
-            <CardDescription>Update your personal details</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                disabled
-                className="opacity-50"
-              />
-              <p className="text-xs text-muted-foreground">Email cannot be changed</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="+1 234 567 8900"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currency">Preferred Currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="ZAR">ZAR (R)</SelectItem>
-                  <SelectItem value="CAD">CAD ($)</SelectItem>
-                  <SelectItem value="AUD">AUD ($)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={handleUpdateProfile} className="w-full">
-              Save Changes
-            </Button>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="profile" className="w-full">
+        <TabsList>
+          <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="subscription">Subscription</TabsTrigger>
+          <TabsTrigger value="verification">Verification</TabsTrigger>
+        </TabsList>
 
-        <Card className="shadow-soft">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Payment Methods</CardTitle>
-                <CardDescription>Manage your payment options</CardDescription>
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Information</CardTitle>
+              <CardDescription>Update your personal details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4 mb-6">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={profile?.avatar_url} />
+                  <AvatarFallback>
+                    {profile?.full_name?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold">{profile?.full_name || 'User'}</h3>
+                  <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                </div>
               </div>
-              <Button variant="outline" size="icon" onClick={handleAddPaymentMethod}>
-                <Plus className="w-4 h-4" />
+
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Full Name</Label>
+                <Input
+                  id="full_name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="currency">Preferred Currency</Label>
+                <select
+                  id="currency"
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                >
+                  <option value="ZAR">ZAR (South African Rand)</option>
+                  <option value="USD">USD (US Dollar)</option>
+                  <option value="EUR">EUR (Euro)</option>
+                  <option value="GBP">GBP (British Pound)</option>
+                </select>
+              </div>
+
+              <Button onClick={handleSaveProfile} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {paymentMethods.length === 0 ? (
-              <div className="text-center py-8">
-                <CreditCard className="w-12 h-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground mb-4">No payment methods added</p>
-                <Button onClick={handleAddPaymentMethod}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Payment Method
-                </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="subscription" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Management</CardTitle>
+              <CardDescription>Choose the plan that best fits your needs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                {subscriptionTiers.map((plan) => {
+                  const Icon = plan.icon;
+                  const isCurrentPlan = profile?.subscription_tier?.toLowerCase() === plan.tier.toLowerCase();
+                  
+                  return (
+                    <Card key={plan.tier} className={isCurrentPlan ? 'border-primary' : ''}>
+                      <CardHeader>
+                        <div className={`${plan.color} w-12 h-12 rounded-lg flex items-center justify-center mb-2`}>
+                          <Icon className="w-6 h-6 text-white" />
+                        </div>
+                        <CardTitle className="text-xl">{plan.tier}</CardTitle>
+                        <div className="text-2xl font-bold">{plan.price}</div>
+                        <p className="text-sm text-muted-foreground">per month</p>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-2 mb-4">
+                          {plan.features.map((feature, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm">
+                              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              <span>{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        {isCurrentPlan ? (
+                          <Badge variant="outline" className="w-full justify-center">Current Plan</Badge>
+                        ) : (
+                          <Button
+                            className="w-full"
+                            onClick={() => handleUpgradeSubscription(plan.tier)}
+                          >
+                            {plan.tier === 'Free' ? 'Downgrade' : 'Upgrade'}
+                          </Button>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
-            ) : (
-              paymentMethods.map((method) => (
-                <div key={method.id}>
-                  <div className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <CreditCard className="w-5 h-5 text-primary" />
-                      <div>
-                        <p className="font-medium">{method.method_type}</p>
-                        <p className="text-sm text-muted-foreground">
-                          •••• {method.last_four}
-                        </p>
-                      </div>
-                    </div>
-                    {method.is_default && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                        Default
-                      </span>
-                    )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="verification" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>ID Verification Status</CardTitle>
+              <CardDescription>Your identity verification status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {profile?.id_verified ? (
+                <div className="flex items-center gap-3 text-green-600">
+                  <Check className="w-6 h-6" />
+                  <div>
+                    <p className="font-semibold">Verified</p>
+                    <p className="text-sm text-muted-foreground">Your identity has been verified</p>
                   </div>
                 </div>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 text-yellow-600">
+                    <div className="w-6 h-6 rounded-full border-2 border-yellow-600 border-t-transparent animate-spin" />
+                    <div>
+                      <p className="font-semibold">Pending Verification</p>
+                      <p className="text-sm text-muted-foreground">Your ID verification is under review</p>
+                    </div>
+                  </div>
+                  {profile?.id_verification_url && (
+                    <Button variant="outline" asChild>
+                      <a href={profile.id_verification_url} target="_blank" rel="noopener noreferrer">
+                        View Uploaded ID
+                      </a>
+                    </Button>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
