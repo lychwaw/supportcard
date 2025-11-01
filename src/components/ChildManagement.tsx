@@ -113,7 +113,7 @@ export const ChildManagement = () => {
             <UserCircle className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground">No children added yet</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Click "Add Child" to get started
+              Tap "Add Child" above to begin
             </p>
           </div>
         ) : (
