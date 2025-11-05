@@ -151,10 +151,22 @@ CREATE TRIGGER on_profile_updated_update_role
 -- ============================================
 -- CREATE MISSING ROLE FOR EXISTING USERS
 -- ============================================
+-- Ensure user_id has unique constraint (if not already exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'user_roles_user_id_key' 
+    AND conrelid = 'public.user_roles'::regclass
+  ) THEN
+    ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_user_id_key UNIQUE (user_id);
+  END IF;
+END $$;
+
 -- For users who already signed up but don't have a role
 INSERT INTO public.user_roles (user_id, role)
 SELECT id, 'parent'
 FROM public.profiles
-WHERE id NOT IN (SELECT user_id FROM public.user_roles)
+WHERE id NOT IN (SELECT user_id FROM public.user_roles WHERE user_id IS NOT NULL)
 ON CONFLICT (user_id) DO NOTHING;
 
