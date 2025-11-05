@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ interface Profile {
 const Settings = () => {
   const { user } = useAuth();
   const { canManageSettings, canManageSubscription } = usePermissions();
+  const { refreshCurrency } = useCurrency();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -149,6 +151,8 @@ const Settings = () => {
       if (profile) {
         setProfile({ ...profile, full_name: fullName, phone: phone, preferred_currency: currency });
       }
+      // Refresh currency context so it updates across the app
+      await refreshCurrency();
     } catch (error) {
       toast.error('Failed to update profile');
     } finally {
