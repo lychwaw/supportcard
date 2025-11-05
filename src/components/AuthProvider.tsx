@@ -27,18 +27,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
-    // Handle OAuth callback - check for hash fragments first
-    const handleOAuthCallback = async () => {
-      // Check if we have hash fragments from OAuth redirect
-      const hash = window.location.hash;
-      if (hash && hash.includes('access_token')) {
-        console.log('OAuth callback detected, processing...');
-        // Supabase will automatically process the hash and trigger onAuthStateChange
-        // But we need to wait a bit for it to process
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    };
-
     // Set up auth state listener FIRST (before checking session)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -64,9 +52,68 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     );
 
-    // Handle OAuth callback if present
-    handleOAuthCallback().then(() => {
-      // Then check for existing session
+    // Check for OAuth callback hash fragments and process them
+    const hash = window.location.hash;
+    if (hash && (hash.includes('access_token') || hash.includes('error'))) {
+      console.log('OAuth callback detected, processing hash fragments...');
+      console.log('Hash:', hash.substring(0, 100) + '...'); // Log first 100 chars
+      
+      // Check for error in hash
+      if (hash.includes('error=')) {
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const error = hashParams.get('error');
+        const errorDescription = hashParams.get('error_description');
+        console.error('OAuth error in callback:', error, errorDescription);
+        setLoading(false);
+        return;
+      }
+      
+      // Parse hash fragments manually and set session
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      
+      console.log('Tokens found:', { 
+        hasAccessToken: !!accessToken, 
+        hasRefreshToken: !!refreshToken,
+        tokenLength: accessToken?.length 
+      });
+      
+      if (accessToken && refreshToken) {
+        // Exchange the tokens for a session
+        const { data: { session }, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        
+        if (error) {
+          console.error('Error setting session from OAuth:', error);
+          setLoading(false);
+        } else if (session) {
+          console.log('Session set successfully from OAuth:', session.user.email);
+          // The onAuthStateChange will be triggered automatically
+        } else {
+          console.warn('No session returned after setSession');
+          setLoading(false);
+        }
+      } else {
+        console.warn('Missing tokens in hash, trying automatic processing...');
+        // Let Supabase handle it automatically - it should process hash on init
+        // Wait a bit for Supabase to process the hash
+        setTimeout(async () => {
+          const { data: { session }, error } = await supabase.auth.getSession();
+          if (error) {
+            console.error('Error getting session after OAuth:', error);
+          } else if (session) {
+            console.log('Session retrieved after OAuth callback:', session.user.email);
+          } else {
+            console.warn('No session found after OAuth callback');
+          }
+          setLoading(false);
+        }, 1000);
+      }
+    } else {
+      // No OAuth callback, just check for existing session
       supabase.auth.getSession().then(({ data: { session }, error }) => {
         if (error) {
           console.error('Error getting session:', error);
@@ -78,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         setLoading(false);
       });
-    });
+    }
 
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);
