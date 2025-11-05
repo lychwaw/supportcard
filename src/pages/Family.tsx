@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,6 +62,7 @@ interface FamilyMember {
 const Family = () => {
   const { user } = useAuth();
   const { refreshChildren, isParent } = useRole();
+  const { currency } = useCurrency();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [childName, setChildName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -335,7 +338,7 @@ const Family = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="target-amount">Monthly Support Target ($) *</Label>
+                  <Label htmlFor="target-amount">Monthly Support Target ({getCurrencySymbol(currency)}) *</Label>
                   <Input
                     id="target-amount"
                     type="number"
@@ -495,7 +498,7 @@ const Family = () => {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs font-medium text-muted-foreground">Support Progress</span>
                         <span className="text-xs font-bold text-primary">
-                          ${child.current_amount.toFixed(2)} / ${child.target_amount.toFixed(2)}
+                          {formatCurrency(child.current_amount, currency)} / {formatCurrency(child.target_amount, currency)}
                         </span>
                       </div>
                       <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">

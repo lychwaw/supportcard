@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +22,7 @@ interface Notification {
 
 export const Notifications = () => {
   const { user } = useAuth();
+  const { currency } = useCurrency();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -118,7 +121,7 @@ export const Notifications = () => {
           id: `txn_${t.id}`,
           type: 'transaction',
           title: 'New Transaction',
-          message: `$${Number(t.amount).toFixed(2)} at ${t.merchant_name || 'Merchant'}`,
+          message: `${formatCurrency(Number(t.amount), currency)} at ${t.merchant_name || 'Merchant'}`,
           read: false,
           created_at: t.transaction_date,
           data: t,
@@ -131,7 +134,7 @@ export const Notifications = () => {
           id: `expense_${e.id}`,
           type: 'expense_request',
           title: e.requester_id === user.id ? 'Expense Request Submitted' : 'New Expense Request',
-          message: `$${Number(e.amount).toFixed(2)} for ${e.category}`,
+          message: `${formatCurrency(Number(e.amount), currency)} for ${e.category}`,
           read: false,
           created_at: e.created_at || '',
           data: e,

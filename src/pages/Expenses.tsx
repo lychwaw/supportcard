@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,7 @@ const Expenses = () => {
   const { user } = useAuth();
   const { isChild, isParent, children } = useRole();
   const { canApproveExpenses, canCreateExpenseRequests } = usePermissions();
+  const { currency } = useCurrency();
   const [expenses, setExpenses] = useState<ExpenseRequest[]>([]);
   const [allExpenses, setAllExpenses] = useState<ExpenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -391,7 +394,7 @@ const Expenses = () => {
                 </div>
               )}
               <div className="space-y-2">
-                <Label htmlFor="amount">Amount ($)</Label>
+                <Label htmlFor="amount">Amount ({getCurrencySymbol(currency)})</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -402,7 +405,7 @@ const Expenses = () => {
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Enter a positive amount up to $100,000</p>
+                <p className="text-xs text-muted-foreground">Enter a positive amount up to {formatCurrency(100000, currency)}</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
@@ -463,7 +466,7 @@ const Expenses = () => {
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <CardTitle className="text-2xl">${expense.amount.toFixed(2)}</CardTitle>
+                      <CardTitle className="text-2xl">{formatCurrency(expense.amount, currency)}</CardTitle>
                       <CardDescription className="mt-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Badge variant="outline">{expense.category}</Badge>

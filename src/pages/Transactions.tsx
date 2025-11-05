@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/lib/currency';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +23,7 @@ interface Transaction {
 const Transactions = () => {
   const { user } = useAuth();
   const { activeChildId, children } = useRole();
+  const { currency } = useCurrency();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -136,7 +139,7 @@ const Transactions = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <span className="font-semibold text-destructive">
-                        -${transaction.amount.toFixed(2)}
+                        -{formatCurrency(transaction.amount, currency)}
                       </span>
                     </TableCell>
                   </TableRow>

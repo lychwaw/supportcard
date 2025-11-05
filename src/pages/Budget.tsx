@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -26,6 +28,7 @@ const Budget = () => {
   const { user } = useAuth();
   const { activeChildId, children, isParent } = useRole();
   const { canManageBudgets } = usePermissions();
+  const { currency } = useCurrency();
   const [budgets, setBudgets] = useState<BudgetCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -148,7 +151,7 @@ const Budget = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="limit">Monthly Limit ($)</Label>
+                <Label htmlFor="limit">Monthly Limit ({getCurrencySymbol(currency)})</Label>
                 <Input
                   id="limit"
                   type="number"
@@ -217,9 +220,9 @@ const Budget = () => {
                     </div>
                   </CardTitle>
                   <CardDescription className="flex items-center justify-between mt-2">
-                    <span>${budget.current_spent.toFixed(2)} of ${budget.monthly_limit.toFixed(2)}</span>
+                    <span>{formatCurrency(budget.current_spent, currency)} of {formatCurrency(budget.monthly_limit, currency)}</span>
                     <span className={`text-xs font-medium ${isOverBudget ? 'text-destructive' : 'text-muted-foreground'}`}>
-                      ${remaining >= 0 ? remaining.toFixed(2) : (Math.abs(remaining)).toFixed(2)} {isOverBudget ? 'over' : 'remaining'}
+                      {formatCurrency(remaining >= 0 ? remaining : Math.abs(remaining), currency)} {isOverBudget ? 'over' : 'remaining'}
                     </span>
                   </CardDescription>
                 </CardHeader>
@@ -234,7 +237,7 @@ const Budget = () => {
                     <span className="text-muted-foreground">{percentage.toFixed(0)}% used</span>
                     {isOverBudget && (
                       <span className="text-destructive font-medium">
-                        Exceeded by ${Math.abs(remaining).toFixed(2)}
+                        Exceeded by {formatCurrency(Math.abs(remaining), currency)}
                       </span>
                     )}
                   </div>

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency } from '@/lib/currency';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ArrowUpRight, ArrowDownRight, TrendingUp, Wallet, Tag } from 'lucide-react';
@@ -34,6 +36,7 @@ interface CategorySpending {
 const Index = () => {
   const { user } = useAuth();
   const { activeChildId, isParent, children: roleChildren } = useRole();
+  const { currency } = useCurrency();
   const [children, setChildren] = useState<Child[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
@@ -202,7 +205,7 @@ const Index = () => {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalBalance.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(totalBalance, currency)}</div>
             <p className="text-xs text-muted-foreground">Across all cards</p>
           </CardContent>
         </Card>
@@ -213,7 +216,7 @@ const Index = () => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${monthlySpending.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{formatCurrency(monthlySpending, currency)}</div>
             <p className="text-xs text-muted-foreground">This month</p>
           </CardContent>
         </Card>
@@ -261,7 +264,7 @@ const Index = () => {
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{child.name}</span>
                         <span className="text-sm text-muted-foreground">
-                          ${child.current_amount.toFixed(2)} / ${child.target_amount.toFixed(2)}
+                          {formatCurrency(child.current_amount, currency)} / {formatCurrency(child.target_amount, currency)}
                         </span>
                       </div>
                       <Progress value={progress} className="h-2" />
@@ -307,7 +310,7 @@ const Index = () => {
                       </div>
                     </div>
                     <span className="font-semibold text-destructive ml-2">
-                      -${transaction.amount.toFixed(2)}
+                      -{formatCurrency(transaction.amount, currency)}
                     </span>
                   </div>
                 ))}
@@ -345,7 +348,7 @@ const Index = () => {
                           </Badge>
                         </div>
                         <div className="text-right">
-                          <span className="text-sm font-semibold">${item.amount.toFixed(2)}</span>
+                          <span className="text-sm font-semibold">{formatCurrency(item.amount, currency)}</span>
                           <span className="text-xs text-muted-foreground ml-2">
                             ({percentage.toFixed(0)}%)
                           </span>

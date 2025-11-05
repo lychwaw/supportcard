@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { getCurrencySymbol } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +32,7 @@ interface ChildWithCoParent {
 export const ChildManagement = () => {
   const { user } = useAuth();
   const { children, refreshChildren } = useRole();
+  const { currency } = useCurrency();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [childName, setChildName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -152,7 +155,7 @@ export const ChildManagement = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="target-amount">Monthly Support Target</Label>
+                  <Label htmlFor="target-amount">Monthly Support Target ({getCurrencySymbol(currency)})</Label>
                   <Input
                     id="target-amount"
                     type="number"

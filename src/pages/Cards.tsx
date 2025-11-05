@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
+import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +33,7 @@ const Cards = () => {
   const { user } = useAuth();
   const { activeChildId, children, isParent } = useRole();
   const { canManageCards } = usePermissions();
+  const { currency } = useCurrency();
   const [cards, setCards] = useState<VirtualCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -242,7 +245,7 @@ const Cards = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="balance">Initial Balance ($)</Label>
+                <Label htmlFor="balance">Initial Balance ({getCurrencySymbol(currency)})</Label>
                 <Input
                   id="balance"
                   type="number"
@@ -320,7 +323,7 @@ const Cards = () => {
                     <span className="text-sm">Balance</span>
                   </div>
                   <span className="text-xl font-bold">
-                    ${card.balance.toFixed(2)}
+                    {formatCurrency(card.balance, currency)}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-white/20">
@@ -375,7 +378,7 @@ const Cards = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs opacity-80 mb-1">Balance</p>
-                    <p className="text-2xl font-bold">${selectedCard.balance.toFixed(2)}</p>
+                    <p className="text-2xl font-bold">{formatCurrency(selectedCard.balance, currency)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs opacity-80 mb-1">Type</p>
