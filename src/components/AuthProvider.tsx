@@ -27,21 +27,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
+    let mounted = true;
+
     // Set up auth state listener FIRST (before checking session)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!mounted) return;
+        
         console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.log('User signed in, session:', session?.user?.email);
           // Clean up hash fragments after successful sign-in
           if (window.location.hash) {
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
           }
           
           if (location.pathname === '/auth') {
+            console.log('Redirecting from /auth to / after sign-in');
             navigate('/', { replace: true });
           }
         }
@@ -57,7 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const hash = window.location.hash;
       if (hash && (hash.includes('access_token') || hash.includes('error'))) {
         console.log('OAuth callback detected, processing hash fragments...');
-        console.log('Hash:', hash.substring(0, 100) + '...'); // Log first 100 chars
+        console.log('Hash:', hash.substring(0, 100) + '...');
         
         // Check for error in hash
         if (hash.includes('error=')) {
@@ -91,22 +97,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.error('Error setting session from OAuth:', error);
             setLoading(false);
           } else if (session) {
-            console.log('Session set successfully from OAuth:', session.user.email);
-            // The onAuthStateChange will be triggered automatically
+            console.log('✅ Session set successfully from OAuth:', session.user.email);
+            // Force update state immediately
+            setSession(session);
+            setUser(session.user);
+            setLoading(false);
+            // The onAuthStateChange will also be triggered
           } else {
             console.warn('No session returned after setSession');
             setLoading(false);
           }
         } else {
           console.warn('Missing tokens in hash, trying automatic processing...');
-          // Let Supabase handle it automatically - it should process hash on init
-          // Wait a bit for Supabase to process the hash
+          // Let Supabase handle it automatically
           setTimeout(async () => {
+            if (!mounted) return;
             const { data: { session }, error } = await supabase.auth.getSession();
             if (error) {
               console.error('Error getting session after OAuth:', error);
             } else if (session) {
-              console.log('Session retrieved after OAuth callback:', session.user.email);
+              console.log('✅ Session retrieved after OAuth callback:', session.user.email);
+              setSession(session);
+              setUser(session.user);
             } else {
               console.warn('No session found after OAuth callback');
             }
@@ -114,25 +126,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }, 1000);
         }
       } else {
-        // No OAuth callback, just check for existing session
-        supabase.auth.getSession().then(({ data: { session }, error }) => {
-          if (error) {
-            console.error('Error getting session:', error);
-          }
-          
-          if (session) {
-            setSession(session);
-            setUser(session.user);
-          }
-          setLoading(false);
-        });
+        // No OAuth callback, check for existing session from localStorage
+        console.log('No OAuth callback, checking for existing session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+        } else if (session) {
+          console.log('✅ Existing session found:', session.user.email);
+          setSession(session);
+          setUser(session.user);
+        } else {
+          console.log('No existing session found');
+        }
+        setLoading(false);
       }
     };
 
     // Call the async function
     handleOAuthCallback();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [navigate, location.pathname]);
 
   const signOut = async () => {
