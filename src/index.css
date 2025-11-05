@@ -8,6 +8,7 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
+    /* SupportCard Brand Colors - Blue & White */
     --background: 210 100% 97%;
     --foreground: 215 25% 15%;
 
@@ -44,13 +45,16 @@ All colors MUST be HSL.
     --input: 214 32% 91%;
     --ring: 217 91% 60%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
+    /* Enhanced Blue Gradients - More Unique */
     --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%));
+    --gradient-blue-deep: linear-gradient(135deg, hsl(217 91% 50%), hsl(217 91% 70%));
+    --gradient-ocean: linear-gradient(135deg, hsl(199 89% 48%), hsl(180 70% 52%));
     --gradient-subtle: linear-gradient(180deg, hsl(210 100% 97%), hsl(214 95% 93%));
-    --shadow-soft: 0 2px 8px -2px hsl(217 91% 60% / 0.1);
-    --shadow-medium: 0 4px 16px -4px hsl(217 91% 60% / 0.2);
-    --shadow-strong: 0 8px 32px -8px hsl(217 91% 60% / 0.3);
+    --shadow-soft: 0 4px 12px -2px hsl(217 91% 60% / 0.15);
+    --shadow-medium: 0 8px 24px -4px hsl(217 91% 60% / 0.25);
+    --shadow-strong: 0 16px 48px -8px hsl(217 91% 60% / 0.35);
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 215 25% 15%;
@@ -123,5 +127,119 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* Custom Brand Utilities - Blue Theme */
+@layer utilities {
+  .bg-gradient-brand {
+    background: var(--gradient-primary);
+  }
+  
+  .bg-gradient-blue-deep {
+    background: var(--gradient-blue-deep);
+  }
+  
+  .bg-gradient-ocean {
+    background: var(--gradient-ocean);
+  }
+
+  .text-gradient-brand {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .shadow-brand {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-brand-lg {
+    box-shadow: var(--shadow-strong);
+  }
+
+  /* Unique card styles */
+  .card-brand {
+    @apply bg-card border border-border/50 rounded-2xl;
+    background: linear-gradient(to bottom, hsl(var(--card)), hsl(var(--card)) 98%, hsl(var(--secondary)/0.3) 100%);
+    box-shadow: var(--shadow-soft);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .card-brand:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    border-color: hsl(var(--primary) / 0.3);
+  }
+
+  /* Custom button styles */
+  .btn-brand {
+    background: var(--gradient-primary);
+    border: none;
+    box-shadow: var(--shadow-soft);
+    transition: all 0.3s ease;
+  }
+
+  .btn-brand:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-medium);
+  }
+
+  /* Unique accent borders */
+  .border-accent-brand {
+    border-image: var(--gradient-primary) 1;
+  }
+
+  /* Pattern overlays - Blue themed */
+  .pattern-dots {
+    background-image: radial-gradient(circle, hsl(var(--primary) / 0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .pattern-grid {
+    background-image: 
+      linear-gradient(hsl(var(--primary) / 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--primary) / 0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Unique glass morphism effect */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Animated gradient border */
+  .gradient-border {
+    position: relative;
+    background: white;
+    border-radius: var(--radius);
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    padding: 2px;
+    background: var(--gradient-primary);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 }

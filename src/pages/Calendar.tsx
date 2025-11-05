@@ -35,14 +35,36 @@ const Calendar = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('event_date', { ascending: true });
+      // Get user's children (shared with co-parent)
+      const { data: myChildren } = await supabase
+        .from('children')
+        .select('id')
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
+      
+      const childIds = myChildren?.map(c => c.id) || [];
 
-      if (error) throw error;
-      if (data) setEvents(data);
+      // Fetch events for user OR for their children (co-parenting events)
+      if (childIds.length > 0) {
+        // Fetch events created by user OR events for their children
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .or(`user_id.eq.${user.id}${childIds.map(id => `,child_id.eq.${id}`).join('')}`)
+          .order('event_date', { ascending: true });
+        
+        if (error) throw error;
+        if (data) setEvents(data);
+      } else {
+        // Only user's own events
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('event_date', { ascending: true });
+        
+        if (error) throw error;
+        if (data) setEvents(data);
+      }
     } catch (error) {
       console.error('Error fetching events:', error);
     } finally {

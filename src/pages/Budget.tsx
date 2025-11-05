@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TrendingUp, Plus } from 'lucide-react';
+import { TrendingUp, Plus, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
 
@@ -183,28 +184,60 @@ const Budget = () => {
           budgets.map((budget) => {
             const percentage = (budget.current_spent / budget.monthly_limit) * 100;
             const isOverBudget = percentage > 100;
+            const isNearLimit = percentage > 80 && !isOverBudget;
+            const remaining = budget.monthly_limit - budget.current_spent;
 
             return (
-              <Card key={budget.id} className="shadow-soft">
+              <Card 
+                key={budget.id} 
+                className={`shadow-soft hover:shadow-lg transition-all duration-300 ${
+                  isOverBudget ? 'border-destructive/50' : isNearLimit ? 'border-warning/50' : 'border-border'
+                }`}
+              >
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <span>{budget.category}</span>
-                    {isOverBudget && (
-                      <span className="text-xs font-normal text-destructive">Over Budget</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isOverBudget ? (
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Over Budget
+                        </Badge>
+                      ) : isNearLimit ? (
+                        <Badge variant="outline" className="border-warning text-warning flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          Warning
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-success text-success flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          On Track
+                        </Badge>
+                      )}
+                    </div>
                   </CardTitle>
-                  <CardDescription>
-                    ${budget.current_spent.toFixed(2)} of ${budget.monthly_limit.toFixed(2)}
+                  <CardDescription className="flex items-center justify-between mt-2">
+                    <span>${budget.current_spent.toFixed(2)} of ${budget.monthly_limit.toFixed(2)}</span>
+                    <span className={`text-xs font-medium ${isOverBudget ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      ${remaining >= 0 ? remaining.toFixed(2) : (Math.abs(remaining)).toFixed(2)} {isOverBudget ? 'over' : 'remaining'}
+                    </span>
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="space-y-3">
                   <Progress
                     value={Math.min(percentage, 100)}
-                    className="h-2"
+                    className={`h-3 ${
+                      isOverBudget ? 'bg-destructive/20' : isNearLimit ? 'bg-warning/20' : ''
+                    }`}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {percentage.toFixed(0)}% used
-                  </p>
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{percentage.toFixed(0)}% used</span>
+                    {isOverBudget && (
+                      <span className="text-destructive font-medium">
+                        Exceeded by ${Math.abs(remaining).toFixed(2)}
+                      </span>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );

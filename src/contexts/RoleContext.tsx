@@ -68,13 +68,22 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
+      // Fetch children where user is parent (co_parent_id support added later)
       const { data, error } = await supabase
         .from('children' as any)
-        .select('id, name, user_id')
+        .select('id, name, user_id, parent_id')
         .eq('parent_id', user.id);
 
       if (error) throw error;
-      setChildrenList((data as unknown as Child[]) || []);
+      
+      // Transform to Child interface format
+      const childrenData = (data || []).map((c: any) => ({
+        id: c.id,
+        name: c.name,
+        user_id: c.user_id,
+      }));
+      
+      setChildrenList((childrenData as unknown as Child[]) || []);
     } catch (error) {
       console.error('Error fetching children:', error);
     }

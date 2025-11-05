@@ -111,9 +111,17 @@ const Transactions = () => {
               </TableHeader>
               <TableBody>
                 {transactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
+                  <TableRow 
+                    key={transaction.id}
+                    className="transition-colors hover:bg-muted/50 cursor-pointer"
+                  >
                     <TableCell>
-                      {format(new Date(transaction.transaction_date), 'MMM dd, yyyy')}
+                      <div className="flex flex-col">
+                        <span>{format(new Date(transaction.transaction_date), 'MMM dd, yyyy')}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {format(new Date(transaction.transaction_date), 'h:mm a')}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="font-medium">
                       {transaction.merchant_name || 'Unknown'}
@@ -126,8 +134,10 @@ const Transactions = () => {
                     <TableCell className="text-muted-foreground">
                       {transaction.location || '-'}
                     </TableCell>
-                    <TableCell className="text-right font-semibold text-destructive">
-                      -${transaction.amount.toFixed(2)}
+                    <TableCell className="text-right">
+                      <span className="font-semibold text-destructive">
+                        -${transaction.amount.toFixed(2)}
+                      </span>
                     </TableCell>
                   </TableRow>
                 ))}

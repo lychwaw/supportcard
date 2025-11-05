@@ -172,30 +172,45 @@ const Contacts = () => {
           </Card>
         ) : (
           contacts.map((contact) => (
-            <Card key={contact.id} className="shadow-soft">
+            <Card 
+              key={contact.id} 
+              className="shadow-soft hover:shadow-lg transition-all duration-300 hover:border-primary/20 group"
+            >
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-primary" />
-                  {contact.name}
+                  <div className="p-2 rounded-full bg-primary/10 group-hover:bg-primary/20 transition-colors">
+                    <User className="w-5 h-5 text-primary" />
+                  </div>
+                  <span className="group-hover:text-primary transition-colors">{contact.name}</span>
                 </CardTitle>
                 {contact.relationship && (
-                  <CardDescription>{contact.relationship}</CardDescription>
+                  <CardDescription className="mt-1">{contact.relationship}</CardDescription>
                 )}
               </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <PhoneCall className="w-4 h-4 text-muted-foreground" />
-                  <a href={`tel:${contact.phone}`} className="hover:underline">
-                    {contact.phone}
-                  </a>
-                </div>
-                {contact.email && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Mail className="w-4 h-4 text-muted-foreground" />
-                    <a href={`mailto:${contact.email}`} className="hover:underline">
-                      {contact.email}
-                    </a>
+              <CardContent className="space-y-3">
+                <a 
+                  href={`tel:${contact.phone}`} 
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group/contact"
+                >
+                  <div className="p-1.5 rounded-full bg-primary/10 group-hover/contact:bg-primary/20 transition-colors">
+                    <PhoneCall className="w-4 h-4 text-primary" />
                   </div>
+                  <span className="text-sm font-medium group-hover/contact:text-primary transition-colors">
+                    {contact.phone}
+                  </span>
+                </a>
+                {contact.email && (
+                  <a 
+                    href={`mailto:${contact.email}`} 
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors group/contact"
+                  >
+                    <div className="p-1.5 rounded-full bg-primary/10 group-hover/contact:bg-primary/20 transition-colors">
+                      <Mail className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium group-hover/contact:text-primary transition-colors truncate">
+                      {contact.email}
+                    </span>
+                  </a>
                 )}
               </CardContent>
             </Card>

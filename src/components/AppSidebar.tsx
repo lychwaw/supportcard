@@ -10,6 +10,7 @@ import {
   TrendingUp,
   FileText,
   LogOut,
+  Users,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -28,6 +29,7 @@ import { Button } from '@/components/ui/button';
 
 const navigationItems = [
   { title: 'Dashboard', url: '/', icon: Home },
+  { title: 'Family', url: '/family', icon: Users },
   { title: 'Transactions', url: '/transactions', icon: Receipt },
   { title: 'Budget', url: '/budget', icon: TrendingUp },
   { title: 'Expense Requests', url: '/expenses', icon: FileText },
@@ -43,14 +45,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="border-b border-sidebar-border p-4">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-primary flex items-center justify-center">
-            <CreditCard className="w-5 h-5 text-primary-foreground" />
+      <SidebarHeader className="border-b border-sidebar-border p-4 bg-gradient-to-br from-primary/5 via-white to-secondary/30">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-primary flex items-center justify-center shadow-brand ring-2 ring-primary/20">
+            <CreditCard className="w-6 h-6 text-primary-foreground" />
           </div>
           <div className="flex flex-col">
-            <span className="font-semibold text-sm">SupportCard</span>
-            <span className="text-xs text-muted-foreground">SouthSphere.co</span>
+            <span className="font-bold text-sm text-gradient-brand">
+              SupportCard
+            </span>
+            <span className="text-xs text-muted-foreground font-medium">SouthSphere.co</span>
           </div>
         </div>
       </SidebarHeader>

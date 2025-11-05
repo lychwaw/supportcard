@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check, Info } from 'lucide-react';
+import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check, Info, Upload, FileCheck, Shield, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
 
 interface Profile {
   full_name: string;
@@ -32,6 +32,9 @@ const Settings = () => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [currency, setCurrency] = useState('USD');
+  const [idFile, setIdFile] = useState<File | null>(null);
+  const [idPreview, setIdPreview] = useState<string | null>(null);
+  const [isUploadingId, setIsUploadingId] = useState(false);
 
   const subscriptionTiers = [
     {
@@ -108,6 +111,11 @@ const Settings = () => {
           setFullName(data.full_name || '');
           setPhone(data.phone || '');
           setCurrency(data.preferred_currency || 'USD');
+          
+          // If there's an existing ID verification URL, set it as preview
+          if (data.id_verification_url && !data.id_verified) {
+            setIdPreview(data.id_verification_url);
+          }
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -146,6 +154,139 @@ const Settings = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('File size must be less than 10MB');
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Only JPEG, PNG, and PDF files are allowed');
+        return;
+      }
+      
+      setIdFile(file);
+      
+      // Create preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setIdPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        setIdPreview(null);
+      }
+    }
+  };
+
+  const uploadIdVerification = async (userId: string, file: File): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}_${Date.now()}.${fileExt}`;
+      const filePath = `id-verifications/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('id-verifications')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        // If file exists, try to overwrite
+        if (uploadError.message.includes('already exists')) {
+          const { error: deleteError } = await supabase.storage
+            .from('id-verifications')
+            .remove([filePath]);
+          
+          if (!deleteError) {
+            const { error: retryError } = await supabase.storage
+              .from('id-verifications')
+              .upload(filePath, file);
+            
+            if (retryError) {
+              toast.error('Failed to upload ID verification');
+              return null;
+            }
+          }
+        } else {
+          toast.error('Failed to upload ID verification');
+          return null;
+        }
+      }
+
+      const { data } = supabase.storage
+        .from('id-verifications')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast.error('Failed to upload ID verification');
+      return null;
+    }
+  };
+
+  const handleUploadId = async () => {
+    if (!user || !idFile) {
+      toast.error('Please select a file to upload');
+      return;
+    }
+
+    setIsUploadingId(true);
+    try {
+      const idUrl = await uploadIdVerification(user.id, idFile);
+      
+      if (!idUrl) {
+        setIsUploadingId(false);
+        return;
+      }
+
+      // Update profile with verification URL and reset verification status
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          id_verification_url: idUrl,
+          id_verified: false, // Reset to false so admin can review
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success('ID verification uploaded successfully! Your verification is pending review.');
+      
+      // Refresh profile
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (updatedProfile) {
+        setProfile(updatedProfile as Profile);
+        setIdPreview(idUrl);
+        setIdFile(null);
+      }
+    } catch (error) {
+      console.error('Error uploading ID:', error);
+      toast.error('Failed to upload ID verification');
+    } finally {
+      setIsUploadingId(false);
+    }
+  };
+
+  const removeIdFile = () => {
+    setIdFile(null);
+    setIdPreview(null);
   };
 
   const handleUpgradeSubscription = async (tier: string) => {
@@ -319,38 +460,178 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="verification" className="space-y-6">
-          <Card>
+          <Card className="hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
-              <CardTitle>ID Verification Status</CardTitle>
-              <CardDescription>Your identity verification status</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                ID Verification Status
+              </CardTitle>
+              <CardDescription>Verify your identity with a government-issued ID</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Status Display */}
               {profile?.id_verified ? (
-                <div className="flex items-center gap-3 text-green-600">
-                  <Check className="w-6 h-6" />
-                  <div>
-                    <p className="font-semibold">Verified</p>
-                    <p className="text-sm text-muted-foreground">Your identity has been verified</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 text-yellow-600">
-                    <div className="w-6 h-6 rounded-full border-2 border-yellow-600 border-t-transparent animate-spin" />
-                    <div>
-                      <p className="font-semibold">Pending Verification</p>
-                      <p className="text-sm text-muted-foreground">Your ID verification is under review</p>
+                <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-green-100 dark:bg-green-900/40">
+                      <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-green-900 dark:text-green-100">Verified</p>
+                      <p className="text-sm text-green-700 dark:text-green-300">Your identity has been verified</p>
                     </div>
                   </div>
                   {profile?.id_verification_url && (
-                    <Button variant="outline" asChild>
-                      <a href={profile.id_verification_url} target="_blank" rel="noopener noreferrer">
-                        View Uploaded ID
-                      </a>
+                    <div className="mt-4">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={profile.id_verification_url} target="_blank" rel="noopener noreferrer">
+                          <FileCheck className="w-4 h-4 mr-2" />
+                          View Verified ID
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : profile?.id_verification_url ? (
+                <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-full bg-yellow-100 dark:bg-yellow-900/40">
+                      <div className="w-5 h-5 rounded-full border-2 border-yellow-600 dark:border-yellow-400 border-t-transparent animate-spin" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-yellow-900 dark:text-yellow-100">Pending Verification</p>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                        Your ID verification is under review. This usually takes 24-48 hours.
+                      </p>
+                    </div>
+                  </div>
+                  {idPreview && (
+                    <div className="mt-4">
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={profile.id_verification_url} target="_blank" rel="noopener noreferrer">
+                          <FileCheck className="w-4 h-4 mr-2" />
+                          View Uploaded ID
+                        </a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-blue-900 dark:text-blue-100">Verification Required</p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        Upload a government-issued ID to verify your identity
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Upload Section */}
+              <div className="space-y-4 border-t pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="id-upload" className="text-base font-semibold">
+                    {profile?.id_verification_url ? 'Update ID Verification' : 'Upload ID Document'}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Accepted formats: JPEG, PNG, or PDF (max 10MB)
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Acceptable IDs: National ID, Passport, Driver's License
+                  </p>
+                </div>
+
+                {/* File Input */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-4">
+                    <Input
+                      id="id-upload"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.pdf"
+                      onChange={handleFileChange}
+                      className="flex-1"
+                      disabled={isUploadingId || profile?.id_verified}
+                    />
+                    {idFile && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeIdFile}
+                        disabled={isUploadingId}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Preview */}
+                  {(idPreview || profile?.id_verification_url) && (
+                    <div className="relative border rounded-lg p-4 bg-muted/50">
+                      <div className="flex items-start gap-4">
+                        {idPreview && idPreview.startsWith('data:image') ? (
+                          <img
+                            src={idPreview}
+                            alt="ID Preview"
+                            className="w-32 h-20 object-cover rounded border"
+                          />
+                        ) : profile?.id_verification_url ? (
+                          <div className="w-32 h-20 bg-muted rounded border flex items-center justify-center">
+                            <FileCheck className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        ) : (
+                          <div className="w-32 h-20 bg-muted rounded border flex items-center justify-center">
+                            <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">
+                            {idFile ? idFile.name : 'Previously uploaded ID'}
+                          </p>
+                          {idFile && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {(idFile.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  {idFile && !profile?.id_verified && (
+                    <Button
+                      onClick={handleUploadId}
+                      disabled={isUploadingId}
+                      className="w-full"
+                    >
+                      {isUploadingId ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload ID for Verification
+                        </>
+                      )}
                     </Button>
                   )}
                 </div>
-              )}
+
+                {/* Info Alert */}
+                <Alert className="mt-4">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">
+                    <strong>Security:</strong> Your ID document is stored securely and encrypted. 
+                    Verification is reviewed by our team within 24-48 hours. Once verified, 
+                    you'll gain full access to all platform features.
+                  </AlertDescription>
+                </Alert>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

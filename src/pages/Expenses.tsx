@@ -11,13 +11,15 @@ import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Plus } from 'lucide-react';
+import { FileText, Plus, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
 
 interface ExpenseRequest {
   id: string;
+  requester_id: string;
+  child_id: string | null;
   amount: number;
   category: string;
   description: string;
@@ -27,7 +29,7 @@ interface ExpenseRequest {
 
 const Expenses = () => {
   const { user } = useAuth();
-  const { isChild, isParent } = useRole();
+  const { isChild, isParent, children } = useRole();
   const { canApproveExpenses, canCreateExpenseRequests } = usePermissions();
   const [expenses, setExpenses] = useState<ExpenseRequest[]>([]);
   const [allExpenses, setAllExpenses] = useState<ExpenseRequest[]>([]);
@@ -36,28 +38,90 @@ const Expenses = () => {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [selectedChildId, setSelectedChildId] = useState<string>('');
+  const [childrenList, setChildrenList] = useState<any[]>([]);
 
   const categories = ['Food', 'Clothing', 'School', 'Activities', 'Healthcare', 'Transportation'];
 
   useEffect(() => {
-    fetchExpenses();
+    if (user) {
+      fetchChildrenList();
+      fetchExpenses();
+    }
   }, [user]);
+
+  const fetchChildrenList = async () => {
+    if (!user) return;
+    
+    try {
+      // Fetch children where user is parent OR co-parent
+      const { data: childrenData, error } = await supabase
+        .from('children')
+        .select('id, name, parent_id, co_parent_id')
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
+      
+      if (error) {
+        console.error('Error fetching children:', error);
+        return;
+      }
+      
+      if (childrenData && childrenData.length > 0) {
+        setChildrenList(childrenData);
+        // Set first child as default if none selected
+        if (!selectedChildId && childrenData.length > 0 && !isParent) {
+          setSelectedChildId(childrenData[0].id);
+        }
+      } else {
+        // No children found - set empty list
+        setChildrenList([]);
+      }
+    } catch (error) {
+      console.error('Error fetching children:', error);
+      setChildrenList([]);
+    }
+  };
 
   const fetchExpenses = async () => {
     if (!user) return;
 
     try {
       if (isParent) {
-        // Parents see all expense requests (for approval)
+        // Parents see expense requests for their children ONLY (not all expenses)
+        // Get all children where user is parent or co-parent
+        const { data: myChildren } = await supabase
+          .from('children')
+          .select('id')
+          .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
+        
+        const childIds = myChildren?.map(c => c.id) || [];
+        
+        if (childIds.length === 0) {
+          setExpenses([]);
+          setAllExpenses([]);
+          setLoading(false);
+          return;
+        }
+
+        // Fetch expenses for these children only, with child and requester info
         const { data, error } = await supabase
           .from('expense_requests')
-          .select('*')
+          .select(`
+            *,
+            children:child_id(name),
+            profiles:requester_id(full_name, email)
+          `)
+          .in('child_id', childIds)
           .order('created_at', { ascending: false });
         
         if (error) throw error;
         if (data) {
-          setAllExpenses(data);
-          setExpenses(data.filter(e => e.status === 'pending'));
+          const expensesWithDetails = data.map((e: any) => ({
+            ...e,
+            child: e.children,
+            requester: e.profiles,
+          }));
+          setAllExpenses(expensesWithDetails);
+          setExpenses(expensesWithDetails.filter((e: any) => e.status === 'pending'));
         }
       } else {
         // Children see only their own requests
@@ -91,12 +155,43 @@ const Expenses = () => {
       return;
     }
 
+    // Validate amount
+    const amountNum = parseFloat(amount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      toast.error('Amount must be a positive number');
+      return;
+    }
+
+    if (amountNum > 100000) {
+      toast.error('Amount is too large. Maximum is $100,000');
+      return;
+    }
+
+    // For parents, require child selection
+    if (isParent) {
+      if (childrenList.length === 0) {
+        toast.error('Please add a child first before creating expense requests');
+        return;
+      }
+      if (!selectedChildId) {
+        toast.error('Please select a child for this expense');
+        return;
+      }
+    }
+
+    // For children, use their associated child_id if available
+    let childId = selectedChildId;
+    if (!childId && !isParent && children.length > 0) {
+      childId = children[0].id;
+    }
+
     try {
       const { error } = await supabase
         .from('expense_requests')
         .insert({
           requester_id: user.id,
-          amount: parseFloat(amount),
+          child_id: childId || null,
+          amount: amountNum,
           category,
           description,
           status: 'pending',
@@ -109,6 +204,7 @@ const Expenses = () => {
       setAmount('');
       setCategory('');
       setDescription('');
+      setSelectedChildId('');
       fetchExpenses();
     } catch (error) {
       toast.error('Failed to submit request');
@@ -116,9 +212,57 @@ const Expenses = () => {
     }
   };
 
+  const canUserApproveExpense = async (expense: ExpenseRequest): Promise<boolean> => {
+    if (!user || !canApproveExpenses) return false;
+
+    // CRITICAL: Prevent self-approval
+    if (expense.requester_id === user.id) {
+      return false;
+    }
+
+    // User must be parent or co-parent of the child
+    if (!expense.child_id) return false;
+
+    try {
+      const { data: child } = await supabase
+        .from('children')
+        .select('parent_id, co_parent_id')
+        .eq('id', expense.child_id)
+        .single();
+
+      if (!child) return false;
+
+      // Check if user is parent or co-parent
+      return child.parent_id === user.id || child.co_parent_id === user.id;
+    } catch (error) {
+      console.error('Error checking approval permission:', error);
+      return false;
+    }
+  };
+
   const handleApproveExpense = async (expenseId: string) => {
     if (!canApproveExpenses) {
       toast.error('Only parents can approve expenses');
+      return;
+    }
+
+    // Get expense to validate
+    const expense = expenses.find(e => e.id === expenseId) || allExpenses.find(e => e.id === expenseId);
+    if (!expense) {
+      toast.error('Expense request not found');
+      return;
+    }
+
+    // CRITICAL: Prevent self-approval
+    if (expense.requester_id === user?.id) {
+      toast.error('You cannot approve your own expense request');
+      return;
+    }
+
+    // Verify user can approve (is parent/co-parent of child)
+    const canApprove = await canUserApproveExpense(expense);
+    if (!canApprove) {
+      toast.error('You can only approve expenses for your children');
       return;
     }
 
@@ -141,6 +285,26 @@ const Expenses = () => {
   const handleRejectExpense = async (expenseId: string) => {
     if (!canApproveExpenses) {
       toast.error('Only parents can reject expenses');
+      return;
+    }
+
+    // Get expense to validate
+    const expense = expenses.find(e => e.id === expenseId) || allExpenses.find(e => e.id === expenseId);
+    if (!expense) {
+      toast.error('Expense request not found');
+      return;
+    }
+
+    // CRITICAL: Prevent self-rejection (though less critical, still good to prevent)
+    if (expense.requester_id === user?.id) {
+      toast.error('You cannot reject your own expense request');
+      return;
+    }
+
+    // Verify user can reject (is parent/co-parent of child)
+    const canReject = await canUserApproveExpense(expense);
+    if (!canReject) {
+      toast.error('You can only reject expenses for your children');
       return;
     }
 
@@ -201,15 +365,44 @@ const Expenses = () => {
               <DialogDescription>Request approval for a child-related expense</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              {isParent && (
+                <div className="space-y-2">
+                  <Label htmlFor="child">Child *</Label>
+                  {childrenList.length > 0 ? (
+                    <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select child" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {childrenList.map((child) => (
+                          <SelectItem key={child.id} value={child.id}>
+                            {child.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-dashed bg-muted/50">
+                      <p className="text-sm text-muted-foreground text-center">
+                        No children added yet. Please add a child first from the Dashboard.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount ($)</Label>
                 <Input
                   id="amount"
                   type="number"
+                  step="0.01"
+                  min="0.01"
+                  max="100000"
                   placeholder="0.00"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
                 />
+                <p className="text-xs text-muted-foreground">Enter a positive amount up to $100,000</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
@@ -236,7 +429,7 @@ const Expenses = () => {
                   rows={4}
                 />
               </div>
-              <Button onClick={handleSubmitRequest} className="w-full">
+              <Button onClick={handleSubmitRequest} className="w-full" disabled={isParent && !selectedChildId}>
                 Submit Request
               </Button>
             </div>
@@ -260,46 +453,73 @@ const Expenses = () => {
             </CardContent>
           </Card>
         ) : (
-          expenses.map((expense) => (
-            <Card key={expense.id} className="shadow-soft">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle>${expense.amount.toFixed(2)}</CardTitle>
-                    <CardDescription>{expense.category}</CardDescription>
+          expenses.map((expense) => {
+            const canApprove = isParent && expense.status === 'pending' && expense.requester_id !== user?.id;
+            return (
+              <Card 
+                key={expense.id} 
+                className="shadow-soft transition-all duration-300 hover:shadow-lg hover:border-primary/20"
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-2xl">${expense.amount.toFixed(2)}</CardTitle>
+                      <CardDescription className="mt-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Badge variant="outline">{expense.category}</Badge>
+                          {expense.child?.name && (
+                            <Badge variant="secondary" className="flex items-center gap-1">
+                              <User className="w-3 h-3" />
+                              {expense.child.name}
+                            </Badge>
+                          )}
+                        </div>
+                      </CardDescription>
+                      {expense.requester && expense.requester_id !== user?.id && (
+                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                          <span>Requested by:</span>
+                          <span className="font-medium">
+                            {expense.requester.full_name || expense.requester.email || 'Unknown'}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                    <Badge className={getStatusBadge(expense.status)}>
+                      {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
+                    </Badge>
                   </div>
-                  <Badge className={getStatusBadge(expense.status)}>
-                    {expense.status.charAt(0).toUpperCase() + expense.status.slice(1)}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-2">{expense.description}</p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Submitted {format(new Date(expense.created_at), 'MMM dd, yyyy')}
-                </p>
-                {isParent && expense.status === 'pending' && (
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleApproveExpense(expense.id)}
-                      className="flex-1"
-                    >
-                      Approve
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      onClick={() => handleRejectExpense(expense.id)}
-                      className="flex-1"
-                    >
-                      Reject
-                    </Button>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-3 leading-relaxed">{expense.description}</p>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <span>Submitted {format(new Date(expense.created_at), 'MMM dd, yyyy')}</span>
+                    {expense.status === 'pending' && expense.requester_id === user?.id && (
+                      <span className="text-warning">⏳ Waiting for approval</span>
+                    )}
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))
+                  {canApprove && (
+                    <div className="flex gap-2 pt-2 border-t">
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleApproveExpense(expense.id)}
+                        className="flex-1"
+                      >
+                        ✓ Approve
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="destructive"
+                        onClick={() => handleRejectExpense(expense.id)}
+                        className="flex-1"
+                      >
+                        ✗ Reject
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
         )}
       </div>
     </div>

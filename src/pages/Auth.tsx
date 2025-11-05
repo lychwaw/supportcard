@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { CreditCard, Shield, Upload, FileCheck } from 'lucide-react';
+import { CreditCard, Shield, Upload, FileCheck, UserCheck, Wallet } from 'lucide-react';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupFullName, setSignupFullName] = useState('');
+  const [parentRole, setParentRole] = useState<'payer' | 'receiver' | 'both'>('payer');
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState('');
 
@@ -148,6 +150,10 @@ const Auth = () => {
     setIsLoading(true);
     
     try {
+      // Check for invitation token in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const inviteToken = urlParams.get('token');
+
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
         password: signupPassword,
@@ -165,19 +171,66 @@ const Auth = () => {
         // Upload ID verification
         const idUrl = await uploadIdVerification(data.user.id, idFile);
         
-        if (idUrl) {
-          // Update profile with ID verification status
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ 
-              id_verification_url: idUrl,
-              id_verified: false 
-            } as any)
-            .eq('id', data.user.id);
+        // Generate family_id (unique for new families, or use existing from invite)
+        let familyId = `family_${data.user.id}_${Date.now()}`;
+        let childId: string | null = null;
 
-          if (updateError) {
-            console.error('Error updating profile:', updateError);
+        // If accepting an invite, get family_id and child_id from invite
+        if (inviteToken) {
+          const { data: inviteData } = await supabase
+            .from('parent_invites')
+            .select('*')
+            .eq('token', inviteToken)
+            .eq('status', 'pending')
+            .single();
+
+          if (inviteData) {
+            // Get family_id from the inviter's profile
+            const { data: inviterProfile } = await supabase
+              .from('profiles')
+              .select('family_id')
+              .eq('id', inviteData.inviter_id)
+              .single();
+
+            if (inviterProfile?.family_id) {
+              familyId = inviterProfile.family_id;
+            }
+            childId = inviteData.child_id;
+
+            // Update invite status
+            await supabase
+              .from('parent_invites')
+              .update({ 
+                status: 'accepted',
+                accepted_at: new Date().toISOString()
+              })
+              .eq('id', inviteData.id);
           }
+        }
+        
+        // Update profile with ID verification, parent_role, and family_id
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            id_verification_url: idUrl || null,
+            id_verified: false,
+            parent_role: parentRole,
+            family_id: familyId,
+            email: signupEmail,
+            full_name: signupFullName
+          } as any)
+          .eq('id', data.user.id);
+
+        if (updateError) {
+          console.error('Error updating profile:', updateError);
+        }
+
+        // If accepting invite, link child to this co-parent
+        if (childId) {
+          await supabase
+            .from('children')
+            .update({ co_parent_id: data.user.id })
+            .eq('id', childId);
         }
 
         // Assign parent role to new user
@@ -192,7 +245,9 @@ const Auth = () => {
           console.error('Error assigning role:', roleError);
         }
         
-        toast.success('Account created successfully! Please check your email to verify your account.');
+        toast.success(inviteToken 
+          ? 'Account created! You are now connected to the child profile.' 
+          : 'Account created successfully! Please check your email to verify your account.');
         navigate('/');
       }
     } catch (error) {
@@ -339,6 +394,50 @@ const Auth = () => {
                       onChange={(e) => setSignupPassword(e.target.value)}
                       disabled={isLoading}
                     />
+                  </div>
+
+                  <div className="space-y-3">
+                    <Label className="text-base font-medium">Your Role</Label>
+                    <RadioGroup
+                      value={parentRole}
+                      onValueChange={(value) => setParentRole(value as 'payer' | 'receiver' | 'both')}
+                      disabled={isLoading}
+                      className="grid grid-cols-3 gap-3"
+                    >
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="payer" id="payer" className="mt-0" />
+                        <Label htmlFor="payer" className="cursor-pointer flex-1 flex flex-col">
+                          <span className="font-medium flex items-center gap-1">
+                            <Wallet className="w-4 h-4" />
+                            Payer
+                          </span>
+                          <span className="text-xs text-muted-foreground">Send money</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="receiver" id="receiver" className="mt-0" />
+                        <Label htmlFor="receiver" className="cursor-pointer flex-1 flex flex-col">
+                          <span className="font-medium flex items-center gap-1">
+                            <UserCheck className="w-4 h-4" />
+                            Receiver
+                          </span>
+                          <span className="text-xs text-muted-foreground">Manage spending</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="both" id="both" className="mt-0" />
+                        <Label htmlFor="both" className="cursor-pointer flex-1 flex flex-col">
+                          <span className="font-medium flex items-center gap-1">
+                            <CreditCard className="w-4 h-4" />
+                            Both
+                          </span>
+                          <span className="text-xs text-muted-foreground">Send & receive</span>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                    <p className="text-xs text-muted-foreground">
+                      Select your role: Payer sends money, Receiver manages spending
+                    </p>
                   </div>
 
                   <div className="space-y-2">

@@ -18,6 +18,7 @@ import Calendar from "./pages/Calendar";
 import Messages from "./pages/Messages";
 import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
+import Family from "./pages/Family";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -132,6 +133,16 @@ const App = () => (
                 <ProtectedRoute>
                   <AppLayout>
                     <Settings />
+                  </AppLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/family"
+              element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <Family />
                   </AppLayout>
                 </ProtectedRoute>
               }
