@@ -1,0 +1,20 @@
+URGENT: Fix Your .env File
+
+Your API key in .env is WRONG - it starts with "eeyJ" (has extra 'e')
+
+Steps to fix:
+1. Open your .env file
+2. Find this line: VITE_SUPABASE_PUBLISHABLE_KEY="eeyJ...
+3. Go to https://app.supabase.com → Settings → API
+4. Copy the CORRECT anon public key (starts with "eyJ" - one 'e')
+5. Replace the ENTIRE value in .env
+6. Save the file
+7. STOP your dev server (Ctrl+C)
+8. RESTART: npm run dev
+9. Test again
+
+The key should look like:
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93d3hmaWZkdWV4Y2Foc3Z0eXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MzU4MTYsImV4cCI6MjA3NjAxMTgxNn0.QXOtdswltExUM9YtMluhHGgrXUmu_D_D_adSaGc4HXk
+
+(That's the correct format - starts with eyJ, not eeyJ)
+

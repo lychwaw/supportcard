@@ -18,6 +18,7 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupFullName, setSignupFullName] = useState('');
+  const [signupAge, setSignupAge] = useState<number | ''>('');
   const [parentRole, setParentRole] = useState<'payer' | 'receiver' | 'both'>('payer');
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState('');
@@ -143,8 +144,13 @@ const Auth = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!signupEmail || !signupPassword || !signupFullName) {
+    if (!signupEmail || !signupPassword || !signupFullName || !signupAge) {
       toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (typeof signupAge !== 'number' || signupAge < 13 || signupAge > 120) {
+      toast.error('Please enter a valid age (13-120)');
       return;
     }
 
@@ -219,7 +225,7 @@ const Auth = () => {
           }
         }
         
-        // Update profile with ID verification, parent_role, and family_id
+        // Update profile with ID verification, parent_role, family_id, and age
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ 
@@ -228,7 +234,8 @@ const Auth = () => {
             parent_role: parentRole,
             family_id: familyId,
             email: signupEmail,
-            full_name: signupFullName
+            full_name: signupFullName,
+            age: signupAge
           } as any)
           .eq('id', data.user.id);
 
@@ -405,6 +412,26 @@ const Auth = () => {
                       onChange={(e) => setSignupPassword(e.target.value)}
                       disabled={isLoading}
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-age">Age</Label>
+                    <Input
+                      id="signup-age"
+                      type="number"
+                      min="13"
+                      max="120"
+                      placeholder="Enter your age"
+                      value={signupAge}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setSignupAge(value === '' ? '' : parseInt(value, 10));
+                      }}
+                      disabled={isLoading}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Required for role assignment. Age under 18 will be assigned child role.
+                    </p>
                   </div>
 
                   <div className="space-y-3">
