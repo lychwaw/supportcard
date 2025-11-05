@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -37,15 +38,27 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
   </SidebarProvider>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <RoleProvider>
-            <Routes>
+const App = () => {
+  // Handle OAuth callback hash fragments
+  React.useEffect(() => {
+    // Supabase handles hash fragments automatically, but we ensure they're processed
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token')) {
+      // Let Supabase handle the hash - it will trigger onAuthStateChange
+      // Just clean up the URL
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  }, []);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <RoleProvider>
+              <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route
               path="/"

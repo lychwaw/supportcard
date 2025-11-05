@@ -27,25 +27,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
 
   useEffect(() => {
+    // Handle OAuth callback - check for hash fragments in URL
+    const handleAuthCallback = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Error getting session:', error);
+      }
+      
+      if (session) {
+        setSession(session);
+        setUser(session.user);
+        setLoading(false);
+        
+        // If we're on /auth and have a session, redirect to home
+        if (location.pathname === '/auth') {
+          navigate('/', { replace: true });
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        if (event === 'SIGNED_IN' && location.pathname === '/auth') {
-          navigate('/');
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (location.pathname === '/auth') {
+            navigate('/', { replace: true });
+          }
+        }
+
+        if (event === 'SIGNED_OUT') {
+          navigate('/auth', { replace: true });
         }
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // Initial session check
+    handleAuthCallback();
 
     return () => subscription.unsubscribe();
   }, [navigate, location.pathname]);

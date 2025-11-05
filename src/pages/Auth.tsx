@@ -25,19 +25,30 @@ const Auth = () => {
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
+      // Use the full URL for redirect to ensure proper callback handling
+      const redirectUrl = `${window.location.origin}/`;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
       if (error) {
-        toast.error(error.message);
+        console.error('Google OAuth error:', error);
+        toast.error(error.message || 'Failed to sign in with Google');
+        setIsLoading(false);
       }
+      // Note: Don't set loading to false here - the redirect will happen
+      // Loading will be reset when component unmounts or user returns
     } catch (error) {
+      console.error('Unexpected error:', error);
       toast.error('An unexpected error occurred');
-    } finally {
       setIsLoading(false);
     }
   };
