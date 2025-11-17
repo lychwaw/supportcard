@@ -109,7 +109,10 @@ const Settings = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!user) return;
+      if (!user) {
+        setIsLoading(false);
+        return;
+      }
 
       try {
         const { data, error } = await supabase
@@ -118,9 +121,30 @@ const Settings = () => {
           .eq('id', user.id)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          // If profile doesn't exist, create a default one
+          if (error.code === 'PGRST116') {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: user.id,
+                email: user.email,
+                full_name: user.user_metadata?.full_name || '',
+              })
+              .select()
+              .single();
 
-        if (data) {
+            if (createError) throw createError;
+            if (newProfile) {
+              setProfile(newProfile as Profile);
+              setFullName(newProfile.full_name || '');
+              setPhone(newProfile.phone || '');
+              setCurrency(newProfile.preferred_currency || 'USD');
+            }
+          } else {
+            throw error;
+          }
+        } else if (data) {
           setProfile(data);
           setFullName(data.full_name || '');
           setPhone(data.phone || '');
@@ -133,7 +157,17 @@ const Settings = () => {
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        toast.error('Failed to load profile');
+        toast.error('Failed to load profile. Please refresh the page.');
+        // Set a default empty profile so UI doesn't break
+        setProfile({
+          full_name: '',
+          email: user.email || '',
+          phone: '',
+          avatar_url: '',
+          preferred_currency: 'USD',
+          id_verified: false,
+          subscription_tier: 'Free',
+        } as Profile);
       } finally {
         setIsLoading(false);
       }
@@ -329,40 +363,38 @@ const Settings = () => {
         .from('id-verifications')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
+          upsert: true
         });
 
       if (uploadError) {
-        // If file exists, try to overwrite
-        if (uploadError.message.includes('already exists')) {
-          const { error: deleteError } = await supabase.storage
-            .from('id-verifications')
-            .remove([filePath]);
-          
-          if (!deleteError) {
-            const { error: retryError } = await supabase.storage
-              .from('id-verifications')
-              .upload(filePath, file);
-            
-            if (retryError) {
-              toast.error('Failed to upload ID verification');
-              return null;
-            }
-          }
+        console.error('Upload error:', uploadError);
+        if (uploadError.message.includes('Bucket not found')) {
+          toast.error('Storage bucket not configured. Please contact support.');
+        } else if (uploadError.message.includes('new row violates row-level security')) {
+          toast.error('Permission denied. Please check your account permissions.');
         } else {
-          toast.error('Failed to upload ID verification');
-          return null;
+          toast.error(`Upload failed: ${uploadError.message}`);
         }
+        return null;
       }
 
       const { data } = supabase.storage
         .from('id-verifications')
         .getPublicUrl(filePath);
 
+      if (!data?.publicUrl) {
+        toast.error('Failed to get file URL after upload');
+        return null;
+      }
+
       return data.publicUrl;
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload ID verification');
+      toast.error(
+        error instanceof Error 
+          ? `Upload failed: ${error.message}` 
+          : 'Failed to upload ID verification. Please try again.'
+      );
       return null;
     }
   };
@@ -595,13 +627,55 @@ const Settings = () => {
         <TabsContent value="verification" className="space-y-6">
           <Card className="hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                ID Verification Status
-              </CardTitle>
-              <CardDescription>Verify your identity with a government-issued ID</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="w-5 h-5" />
+                    ID Verification Status
+                  </CardTitle>
+                  <CardDescription>Verify your identity with a government-issued ID</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={async () => {
+                    if (!user) return;
+                    setIsLoading(true);
+                    try {
+                      const { data, error } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('id', user.id)
+                        .single();
+                      if (error) throw error;
+                      if (data) {
+                        setProfile(data);
+                        if (data.id_verification_url && !data.id_verified) {
+                          setIdPreview(data.id_verification_url);
+                        }
+                      }
+                    } catch (error) {
+                      console.error('Error refreshing profile:', error);
+                      toast.error('Failed to refresh status');
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading}
+                >
+                  <RefreshCcw className={`w-4 h-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Loading State */}
+              {isLoading && !profile ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : (
+                <>
               {/* Status Display */}
               {profile?.id_verified ? (
                 <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
@@ -765,6 +839,8 @@ const Settings = () => {
                   </AlertDescription>
                 </Alert>
               </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
