@@ -22,12 +22,16 @@ const Auth = () => {
   const [parentRole, setParentRole] = useState<'payer' | 'receiver' | 'both'>('payer');
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState('');
+  const [resetRequesting, setResetRequesting] = useState(false);
+
+  const callbackUrl = `${window.location.origin}/auth/callback`;
+  const recoveryRedirectUrl = `${callbackUrl}?type=recovery`;
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
     try {
       // Use the full URL for redirect to ensure proper callback handling
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = callbackUrl;
       
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -60,7 +64,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: callbackUrl,
         },
       });
 
@@ -178,7 +182,7 @@ const Auth = () => {
           data: {
             full_name: signupFullName,
           },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: callbackUrl,
         },
       });
 
@@ -275,6 +279,32 @@ const Auth = () => {
     }
   };
 
+  const handlePasswordReset = async (email: string) => {
+    if (!email) {
+      toast.error('Enter your email address first');
+      return;
+    }
+
+    setResetRequesting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: recoveryRedirectUrl,
+      });
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Password reset email sent. Check your inbox.');
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Unable to send reset email',
+      );
+    } finally {
+      setResetRequesting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-subtle">
       <div className="w-full max-w-md">
@@ -322,6 +352,17 @@ const Auth = () => {
                       onChange={(e) => setLoginPassword(e.target.value)}
                       disabled={isLoading}
                     />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="px-0 text-sm font-normal"
+                      onClick={() => handlePasswordReset(loginEmail)}
+                      disabled={isLoading || resetRequesting}
+                    >
+                      {resetRequesting ? 'Sending link…' : 'Forgot password?'}
+                    </Button>
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? 'Signing in...' : 'Sign In'}
@@ -412,6 +453,17 @@ const Auth = () => {
                       onChange={(e) => setSignupPassword(e.target.value)}
                       disabled={isLoading}
                     />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="px-0 text-sm font-normal"
+                      onClick={() => handlePasswordReset(signupEmail)}
+                      disabled={isLoading || resetRequesting}
+                    >
+                      {resetRequesting ? 'Sending link…' : 'Need to reset an existing account?'}
+                    </Button>
                   </div>
 
                   <div className="space-y-2">

@@ -61,6 +61,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Check for OAuth callback hash fragments and process them
     const handleOAuthCallback = async () => {
+      if (location.pathname === '/auth/callback') {
+        // Dedicated callback route handles session exchange
+        setLoading(false);
+        return;
+      }
       const hash = window.location.hash;
       if (hash && (hash.includes('access_token') || hash.includes('error'))) {
         console.log('OAuth callback detected, processing hash fragments...');

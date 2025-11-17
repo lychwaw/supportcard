@@ -12,6 +12,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import Transactions from "./pages/Transactions";
 import Budget from "./pages/Budget";
 import Expenses from "./pages/Expenses";
@@ -22,6 +23,7 @@ import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
 import Family from "./pages/Family";
 import NotFound from "./pages/NotFound";
+import ResetPassword from "./pages/ResetPassword";
 
 const queryClient = new QueryClient();
 
@@ -53,109 +55,112 @@ const App = () => {
             <CurrencyProvider>
               <RoleProvider>
                 <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Index />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/transactions"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Transactions />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/budget"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Budget />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/expenses"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Expenses />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/cards"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Cards />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Calendar />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/messages"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Messages />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/contacts"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Contacts />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Settings />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/family"
-              element={
-                <ProtectedRoute>
-                  <AppLayout>
-                    <Family />
-                  </AppLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/auth/reset-password" element={<ResetPassword />} />
+
+                  <Route
+                    path="/"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Index />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/transactions"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Transactions />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/budget"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Budget />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/expenses"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Expenses />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/cards"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Cards />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/calendar"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Calendar />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/messages"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Messages />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/contacts"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Contacts />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Settings />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/family"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Family />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
               </RoleProvider>
             </CurrencyProvider>
         </AuthProvider>

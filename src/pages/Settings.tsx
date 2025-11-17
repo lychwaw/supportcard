@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check, Info, Upload, FileCheck, Shield, X, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check, Info, Upload, FileCheck, Shield, X, Image as ImageIcon, AlertCircle, Lock, RefreshCcw } from 'lucide-react';
 
 interface Profile {
   full_name: string;
@@ -37,6 +37,18 @@ const Settings = () => {
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idPreview, setIdPreview] = useState<string | null>(null);
   const [isUploadingId, setIsUploadingId] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [confirmNewEmail, setConfirmNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
+  const [currentPasswordInput, setCurrentPasswordInput] = useState('');
+  const [newPasswordInput, setNewPasswordInput] = useState('');
+  const [confirmNewPasswordInput, setConfirmNewPasswordInput] = useState('');
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [settingsResetting, setSettingsResetting] = useState(false);
+
+  const callbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '';
+  const recoveryRedirectUrl = callbackUrl ? `${callbackUrl}?type=recovery` : '';
 
   const subscriptionTiers = [
     {
@@ -157,6 +169,122 @@ const Settings = () => {
       toast.error('Failed to update profile');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const reauthenticate = async (password: string) => {
+    if (!user?.email) {
+      throw new Error('No email associated with this account');
+    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password,
+    });
+    if (error) {
+      throw error;
+    }
+  };
+
+  const handleEmailChange = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newEmail || !confirmNewEmail) {
+      toast.error('Enter and confirm your new email');
+      return;
+    }
+    if (newEmail !== confirmNewEmail) {
+      toast.error('Email addresses do not match');
+      return;
+    }
+    if (!emailPassword) {
+      toast.error('Enter your current password to continue');
+      return;
+    }
+
+    setIsUpdatingEmail(true);
+    try {
+      await reauthenticate(emailPassword);
+      const { error } = await supabase.auth.updateUser(
+        { email: newEmail },
+        callbackUrl ? { emailRedirectTo: callbackUrl } : undefined,
+      );
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Confirm the change using the link sent to your new email.');
+      setNewEmail('');
+      setConfirmNewEmail('');
+      setEmailPassword('');
+    } catch (error) {
+      console.error('Email change error:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Unable to update email',
+      );
+    } finally {
+      setIsUpdatingEmail(false);
+    }
+  };
+
+  const handlePasswordChange = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!currentPasswordInput || !newPasswordInput || !confirmNewPasswordInput) {
+      toast.error('Fill in all password fields');
+      return;
+    }
+    if (newPasswordInput.length < 8) {
+      toast.error('New password must be at least 8 characters');
+      return;
+    }
+    if (newPasswordInput !== confirmNewPasswordInput) {
+      toast.error('New passwords do not match');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    try {
+      await reauthenticate(currentPasswordInput);
+      const { error } = await supabase.auth.updateUser({ password: newPasswordInput });
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Password updated successfully');
+      setCurrentPasswordInput('');
+      setNewPasswordInput('');
+      setConfirmNewPasswordInput('');
+    } catch (error) {
+      console.error('Password change error:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Unable to update password',
+      );
+    } finally {
+      setIsUpdatingPassword(false);
+    }
+  };
+
+  const handleSettingsPasswordReset = async () => {
+    if (!user?.email) {
+      toast.error('No email on file for this account');
+      return;
+    }
+
+    setSettingsResetting(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+        redirectTo: recoveryRedirectUrl || undefined,
+      });
+      if (error) {
+        throw error;
+      }
+
+      toast.success('Password reset email sent');
+    } catch (error) {
+      console.error('Settings reset password error:', error);
+      toast.error(
+        error instanceof Error ? error.message : 'Unable to send reset email',
+      );
+    } finally {
+      setSettingsResetting(false);
     }
   };
 
@@ -351,6 +479,7 @@ const Settings = () => {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="verification">Verification</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -636,6 +765,124 @@ const Settings = () => {
                   </AlertDescription>
                 </Alert>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="w-5 h-5" />
+                Login Email
+              </CardTitle>
+              <CardDescription>
+                Update the email you use to sign in. For safety, we’ll ask you to confirm with your current password.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4" onSubmit={handleEmailChange}>
+                <div className="space-y-2">
+                  <Label htmlFor="new-email">New email address</Label>
+                  <Input
+                    id="new-email"
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="you@newdomain.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-email">Confirm email</Label>
+                  <Input
+                    id="confirm-email"
+                    type="email"
+                    value={confirmNewEmail}
+                    onChange={(e) => setConfirmNewEmail(e.target.value)}
+                    placeholder="Repeat new email"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email-password">Current password</Label>
+                  <Input
+                    id="email-password"
+                    type="password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    placeholder="Enter password to confirm"
+                  />
+                </div>
+                <Button type="submit" disabled={isUpdatingEmail}>
+                  {isUpdatingEmail ? 'Sending confirmation...' : 'Send confirmation email'}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  We’ll send a confirmation link to your new address. Your email will update once you click the link.
+                </p>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="w-5 h-5" />
+                Password & Recovery
+              </CardTitle>
+              <CardDescription>
+                Change your password or send yourself a reset link. Re-entering your current password keeps your account secure.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-4" onSubmit={handlePasswordChange}>
+                <div className="space-y-2">
+                  <Label htmlFor="current-password">Current password</Label>
+                  <Input
+                    id="current-password"
+                    type="password"
+                    value={currentPasswordInput}
+                    onChange={(e) => setCurrentPasswordInput(e.target.value)}
+                    placeholder="Enter current password"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New password</Label>
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="At least 8 characters"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-new-password">Confirm new password</Label>
+                  <Input
+                    id="confirm-new-password"
+                    type="password"
+                    value={confirmNewPasswordInput}
+                    onChange={(e) => setConfirmNewPasswordInput(e.target.value)}
+                    placeholder="Re-enter new password"
+                  />
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <Button type="submit" disabled={isUpdatingPassword}>
+                    {isUpdatingPassword ? 'Updating...' : 'Update password'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="justify-start sm:justify-center"
+                    onClick={handleSettingsPasswordReset}
+                    disabled={settingsResetting}
+                  >
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                    {settingsResetting ? 'Sending link…' : 'Send reset email'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Reset links use the same secure callback flow as sign-in, so you can finish the process without leaving the app.
+                </p>
+              </form>
             </CardContent>
           </Card>
         </TabsContent>
