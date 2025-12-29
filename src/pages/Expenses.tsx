@@ -17,6 +17,15 @@ import { FileText, Plus, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
+import { z } from 'zod';
+
+// Zod schema for expense request validation
+const ExpenseRequestSchema = z.object({
+  amount: z.number().positive().max(100000),
+  category: z.enum(['Food', 'Clothing', 'School', 'Activities', 'Healthcare', 'Transportation']),
+  description: z.string().min(1).max(1000),
+  child_id: z.string().uuid().nullable(),
+});
 
 interface ExpenseRequest {
   id: string;
@@ -64,7 +73,9 @@ const Expenses = () => {
         .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
       
       if (error) {
-        console.error('Error fetching children:', error);
+        if (import.meta.env.DEV) {
+          console.error('Error fetching children:', error);
+        }
         return;
       }
       
@@ -79,7 +90,9 @@ const Expenses = () => {
         setChildrenList([]);
       }
     } catch (error) {
-      console.error('Error fetching children:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching children:', error);
+      }
       setChildrenList([]);
     }
   };
@@ -141,7 +154,9 @@ const Expenses = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching expenses:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching expenses:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -168,6 +183,21 @@ const Expenses = () => {
     if (amountNum > 100000) {
       toast.error('Amount is too large. Maximum is $100,000');
       return;
+    }
+
+    // Validate with Zod schema
+    try {
+      ExpenseRequestSchema.parse({
+        amount: amountNum,
+        category,
+        description,
+        child_id: childId || null,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
     }
 
     // For parents, require child selection
@@ -211,7 +241,9 @@ const Expenses = () => {
       fetchExpenses();
     } catch (error) {
       toast.error('Failed to submit request');
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.error('Error submitting expense request:', error);
+      }
     }
   };
 
@@ -238,7 +270,9 @@ const Expenses = () => {
       // Check if user is parent or co-parent
       return child.parent_id === user.id || child.co_parent_id === user.id;
     } catch (error) {
-      console.error('Error checking approval permission:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error checking approval permission:', error);
+      }
       return false;
     }
   };
@@ -270,18 +304,21 @@ const Expenses = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('expense_requests')
-        .update({ status: 'approved' })
-        .eq('id', expenseId);
+      // Use secure RPC function instead of direct UPDATE
+      const { error } = await (supabase.rpc as any)('approve_expense_request', {
+        p_request_id: expenseId,
+        p_approver_id: user?.id,
+      });
 
       if (error) throw error;
 
       toast.success('Expense request approved');
       fetchExpenses();
-    } catch (error) {
-      toast.error('Failed to approve request');
-      console.error(error);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to approve request');
+      if (import.meta.env.DEV) {
+        console.error('Error approving expense:', error);
+      }
     }
   };
 
@@ -312,18 +349,21 @@ const Expenses = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from('expense_requests')
-        .update({ status: 'rejected' })
-        .eq('id', expenseId);
+      // Use secure RPC function instead of direct UPDATE
+      const { error } = await (supabase.rpc as any)('reject_expense_request', {
+        p_request_id: expenseId,
+        p_rejector_id: user?.id,
+      });
 
       if (error) throw error;
 
       toast.success('Expense request rejected');
       fetchExpenses();
-    } catch (error) {
-      toast.error('Failed to reject request');
-      console.error(error);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to reject request');
+      if (import.meta.env.DEV) {
+        console.error('Error rejecting expense:', error);
+      }
     }
   };
 

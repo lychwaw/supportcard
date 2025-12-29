@@ -169,3 +169,32 @@ export const secureStorage = {
   },
 };
 
+/**
+ * Generate a SHA-256 hash for short secrets such as local passcodes.
+ * Returns the hex-encoded digest so it can be safely stored in Supabase.
+ */
+export const hashString = async (value: string): Promise<string> => {
+  if (typeof window === 'undefined' || !window.crypto?.subtle) {
+    throw new Error('Secure hashing is not available in this environment');
+  }
+
+  const encoder = new TextEncoder();
+  const data = encoder.encode(value);
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('');
+};
+
+/**
+ * Timing-safe string compare for hashed values.
+ */
+export const constantTimeCompare = (a: string, b: string): boolean => {
+  if (a.length !== b.length) return false;
+  let mismatch = 0;
+  for (let i = 0; i < a.length; i++) {
+    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return mismatch === 0;
+};
+

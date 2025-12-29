@@ -3,11 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { MessageSquare, Send, User, Users } from 'lucide-react';
+import { MessageSquare, User, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import TonePolice from '@/components/TonePolice';
 
 interface Message {
   id: string;
@@ -31,7 +31,6 @@ interface CoParent {
 const Messages = () => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [coParent, setCoParent] = useState<CoParent | null>(null);
 
@@ -68,12 +67,12 @@ const Messages = () => {
 
     try {
       // Find co-parent through shared children
-      const { data: sharedChildren, error: childrenError } = await supabase
+      const { data: sharedChildrenData, error: childrenError } = await supabase
         .from('children')
         .select('parent_id, co_parent_id')
         .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`)
         .limit(1)
-        .maybeSingle(); // Use maybeSingle instead of single to avoid errors
+        .maybeSingle();
 
       if (childrenError) {
         console.error('Error fetching children:', childrenError);
@@ -81,7 +80,8 @@ const Messages = () => {
         return;
       }
 
-      if (sharedChildren) {
+      if (sharedChildrenData) {
+        const sharedChildren = sharedChildrenData as any;
         const coParentId = sharedChildren.parent_id === user.id 
           ? sharedChildren.co_parent_id 
           : sharedChildren.parent_id;
@@ -139,8 +139,8 @@ const Messages = () => {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!user || !newMessage.trim()) {
+  const handleSendMessage = async (messageContent: string) => {
+    if (!user || !messageContent.trim()) {
       toast.error('Please enter a message');
       return;
     }
@@ -156,13 +156,12 @@ const Messages = () => {
         .insert({
           sender_id: user.id,
           receiver_id: coParent.id,
-          content: newMessage.trim(),
+          content: messageContent.trim(),
           read: false,
         });
 
       if (error) throw error;
 
-      setNewMessage('');
       fetchMessages();
     } catch (error) {
       toast.error('Failed to send message');
@@ -278,18 +277,11 @@ const Messages = () => {
                 )}
               </div>
 
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Type your message..."
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  disabled={!coParent}
-                />
-                <Button onClick={handleSendMessage} disabled={!coParent}>
-                  <Send className="w-4 h-4" />
-                </Button>
-              </div>
+              <TonePolice
+                onSend={handleSendMessage}
+                placeholder="Type your message..."
+                disabled={!coParent}
+              />
             </>
           )}
         </CardContent>

@@ -318,8 +318,14 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          parent_passcode_hash: string | null
+          parent_passcode_hint: string | null
+          passcode_failed_attempts: number | null
+          passcode_locked_until: string | null
+          passcode_updated_at: string | null
           phone: string | null
           preferred_currency: string | null
+          require_child_passcode: boolean | null
           updated_at: string | null
         }
         Insert: {
@@ -328,8 +334,14 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          parent_passcode_hash?: string | null
+          parent_passcode_hint?: string | null
+          passcode_failed_attempts?: number | null
+          passcode_locked_until?: string | null
+          passcode_updated_at?: string | null
           phone?: string | null
           preferred_currency?: string | null
+          require_child_passcode?: boolean | null
           updated_at?: string | null
         }
         Update: {
@@ -338,8 +350,14 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          parent_passcode_hash?: string | null
+          parent_passcode_hint?: string | null
+          passcode_failed_attempts?: number | null
+          passcode_locked_until?: string | null
+          passcode_updated_at?: string | null
           phone?: string | null
           preferred_currency?: string | null
+          require_child_passcode?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -399,31 +417,46 @@ export type Database = {
         Row: {
           balance: number | null
           card_number: string
+          cardholder_name: string | null
           card_type: string | null
           child_id: string | null
           created_at: string | null
+          cvv: string | null
+          expiry_month: number | null
+          expiry_year: number | null
           id: string
           is_primary: boolean | null
+          last_four: string | null
           user_id: string
         }
         Insert: {
           balance?: number | null
           card_number: string
+          cardholder_name?: string | null
           card_type?: string | null
           child_id?: string | null
           created_at?: string | null
+          cvv?: string | null
+          expiry_month?: number | null
+          expiry_year?: number | null
           id?: string
           is_primary?: boolean | null
+          last_four?: string | null
           user_id: string
         }
         Update: {
           balance?: number | null
           card_number?: string
+          cardholder_name?: string | null
           card_type?: string | null
           child_id?: string | null
           created_at?: string | null
+          cvv?: string | null
+          expiry_month?: number | null
+          expiry_year?: number | null
           id?: string
           is_primary?: boolean | null
+          last_four?: string | null
           user_id?: string
         }
         Relationships: [

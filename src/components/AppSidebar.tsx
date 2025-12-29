@@ -11,6 +11,9 @@ import {
   FileText,
   LogOut,
   Users,
+  Shield,
+  Navigation,
+  FolderOpen,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -37,6 +40,9 @@ const navigationItems = [
   { title: 'Calendar', url: '/calendar', icon: Calendar },
   { title: 'Messages', url: '/messages', icon: MessageSquare },
   { title: 'Emergency Contacts', url: '/contacts', icon: PhoneCall },
+  { title: 'Compliance', url: '/compliance', icon: Shield },
+  { title: 'Visitation Tracker', url: '/visitation', icon: Navigation },
+  { title: 'Documents', url: '/documents', icon: FolderOpen },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
 

@@ -51,6 +51,15 @@ export const usePermissions = () => {
     
     // Can top up cards (parents only)
     canTopUpCards: isParent,
+
+    // Wallet visibility (both can view balances)
+    canViewWallet: true,
+
+    // Only parents can see sensitive CVV/expiry data
+    canViewWalletSensitive: isParent,
+
+    // Only parents can remove cards
+    canDeleteCards: isParent,
     
     // Generic permission check
     hasPermission: (permission: string): boolean => {
@@ -71,6 +80,11 @@ export const usePermissions = () => {
         'export_reports': isParent,
         'manage_cards': isParent,
         'top_up_cards': isParent,
+        'wallet_view': true,
+        'wallet_manage': isParent,
+        'wallet_top_up': isParent,
+        'wallet_delete': isParent,
+        'wallet_view_sensitive': isParent,
       };
       
       return permissions[permission] || false;

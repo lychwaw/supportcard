@@ -35,20 +35,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('Auth state changed:', event, session?.user?.email);
+        if (import.meta.env.DEV) {
+          console.log('Auth state changed:', event);
+        }
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log('User signed in, session:', session?.user?.email);
+          if (import.meta.env.DEV) {
+            console.log('User signed in');
+          }
           // Clean up hash fragments after successful sign-in
           if (window.location.hash) {
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
           }
           
           if (location.pathname === '/auth') {
-            console.log('Redirecting from /auth to / after sign-in');
+            if (import.meta.env.DEV) {
+              console.log('Redirecting from /auth to / after sign-in');
+            }
             navigate('/', { replace: true });
           }
         }
@@ -68,15 +74,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       const hash = window.location.hash;
       if (hash && (hash.includes('access_token') || hash.includes('error'))) {
-        console.log('OAuth callback detected, processing hash fragments...');
-        console.log('Hash:', hash.substring(0, 100) + '...');
+        if (import.meta.env.DEV) {
+          console.log('OAuth callback detected, processing hash fragments...');
+        }
         
         // Check for error in hash
         if (hash.includes('error=')) {
           const hashParams = new URLSearchParams(hash.substring(1));
           const error = hashParams.get('error');
           const errorDescription = hashParams.get('error_description');
-          console.error('OAuth error in callback:', error, errorDescription);
+          if (import.meta.env.DEV) {
+            console.error('OAuth error in callback:', error, errorDescription);
+          }
           setLoading(false);
           return;
         }
@@ -86,12 +95,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         
-        console.log('Tokens found:', { 
-          hasAccessToken: !!accessToken, 
-          hasRefreshToken: !!refreshToken,
-          tokenLength: accessToken?.length 
-        });
-        
         if (accessToken && refreshToken) {
           // Exchange the tokens for a session
           const { data: { session }, error } = await supabase.auth.setSession({
@@ -100,50 +103,69 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           });
           
           if (error) {
-            console.error('Error setting session from OAuth:', error);
+            if (import.meta.env.DEV) {
+              console.error('Error setting session from OAuth:', error.message);
+            }
             setLoading(false);
           } else if (session) {
-            console.log('✅ Session set successfully from OAuth:', session.user.email);
+            if (import.meta.env.DEV) {
+              console.log('✅ Session set successfully from OAuth');
+            }
             // Force update state immediately
             setSession(session);
             setUser(session.user);
             setLoading(false);
             // The onAuthStateChange will also be triggered
           } else {
-            console.warn('No session returned after setSession');
+            if (import.meta.env.DEV) {
+              console.warn('No session returned after setSession');
+            }
             setLoading(false);
           }
         } else {
-          console.warn('Missing tokens in hash, trying automatic processing...');
+          if (import.meta.env.DEV) {
+            console.warn('Missing tokens in hash, trying automatic processing...');
+          }
           // Let Supabase handle it automatically
           setTimeout(async () => {
             if (!mounted) return;
             const { data: { session }, error } = await supabase.auth.getSession();
             if (error) {
-              console.error('Error getting session after OAuth:', error);
+              if (import.meta.env.DEV) {
+                console.error('Error getting session after OAuth:', error.message);
+              }
             } else if (session) {
-              console.log('✅ Session retrieved after OAuth callback:', session.user.email);
+              if (import.meta.env.DEV) {
+                console.log('✅ Session retrieved after OAuth callback');
+              }
               setSession(session);
               setUser(session.user);
             } else {
-              console.warn('No session found after OAuth callback');
+              if (import.meta.env.DEV) {
+                console.warn('No session found after OAuth callback');
+              }
             }
             setLoading(false);
           }, 1000);
         }
       } else {
         // No OAuth callback, check for existing session from localStorage
-        console.log('No OAuth callback, checking for existing session...');
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('Error getting session:', error);
+          if (import.meta.env.DEV) {
+            console.error('Error getting session:', error.message);
+          }
         } else if (session) {
-          console.log('✅ Existing session found:', session.user.email);
+          if (import.meta.env.DEV) {
+            console.log('✅ Existing session found');
+          }
           setSession(session);
           setUser(session.user);
         } else {
-          console.log('No existing session found');
+          if (import.meta.env.DEV) {
+            console.log('No existing session found');
+          }
         }
         setLoading(false);
       }

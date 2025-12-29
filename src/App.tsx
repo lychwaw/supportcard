@@ -24,6 +24,9 @@ import Settings from "./pages/Settings";
 import Family from "./pages/Family";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import ComplianceDashboard from "./pages/ComplianceDashboard";
+import VisitationTracker from "./pages/VisitationTracker";
+import DocumentVault from "./pages/DocumentVault";
 
 const queryClient = new QueryClient();
 
@@ -155,6 +158,36 @@ const App = () => {
                       <ProtectedRoute>
                         <AppLayout>
                           <Family />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/compliance"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <ComplianceDashboard />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/visitation"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <VisitationTracker />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/documents"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <DocumentVault />
                         </AppLayout>
                       </ProtectedRoute>
                     }

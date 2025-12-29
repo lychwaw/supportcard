@@ -37,7 +37,9 @@ export function useRealtimeSubscription({
           filter: filter || undefined,
         },
         (payload) => {
-          console.log('Realtime update received:', payload);
+          if (import.meta.env.DEV) {
+            console.log('Realtime update received:', payload.eventType);
+          }
           
           switch (payload.eventType) {
             case 'INSERT':
@@ -53,7 +55,9 @@ export function useRealtimeSubscription({
         }
       )
       .subscribe((status) => {
-        console.log('Subscription status:', status);
+        if (import.meta.env.DEV) {
+          console.log('Subscription status:', status);
+        }
         setIsConnected(status === 'SUBSCRIBED');
         if (status === 'CHANNEL_ERROR') {
           setError('Failed to connect to real-time updates');

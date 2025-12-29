@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRole } from '@/contexts/RoleContext';
+import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -8,13 +9,52 @@ import { Label } from '@/components/ui/label';
 import { UserCircle, Users, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { hashString, constantTimeCompare } from '@/lib/security';
 
 export const AccountSwitcher = () => {
+  const { user } = useAuth();
   const { role, activeChildId, children, isParent, switchToChild, switchToParent } = useRole();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPasscodeDialog, setShowPasscodeDialog] = useState(false);
+  const [passcodeInput, setPasscodeInput] = useState('');
+  const [passcodeLoading, setPasscodeLoading] = useState(false);
+  const [passcodeConfig, setPasscodeConfig] = useState({
+    requireChildPasscode: false,
+    parentPasscodeHash: null as string | null,
+    parentPasscodeHint: null as string | null,
+    passcodeFailedAttempts: 0,
+    passcodeLockedUntil: null as string | null,
+  });
+
+  useEffect(() => {
+    const fetchPasscodeConfig = async () => {
+      if (!user) return;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('require_child_passcode, parent_passcode_hash, parent_passcode_hint, passcode_failed_attempts, passcode_locked_until')
+          .eq('id', user.id)
+          .single();
+        if (error) throw error;
+        if (data) {
+          setPasscodeConfig({
+            requireChildPasscode: data.require_child_passcode ?? false,
+            parentPasscodeHash: data.parent_passcode_hash,
+            parentPasscodeHint: data.parent_passcode_hint,
+            passcodeFailedAttempts: data.passcode_failed_attempts ?? 0,
+            passcodeLockedUntil: data.passcode_locked_until,
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load passcode settings:', error);
+      }
+    };
+
+    fetchPasscodeConfig();
+  }, [user]);
 
   if (!role) return null;
 
@@ -59,14 +99,91 @@ export const AccountSwitcher = () => {
   };
 
   const handleSwitchRequest = (childId?: string) => {
-    if (childId) {
-      setSelectedChildId(childId);
-    }
+    setSelectedChildId(childId || '');
     setShowAuthDialog(true);
   };
 
   const handleParentSwitch = () => {
+    if (
+      activeChildId &&
+      passcodeConfig.requireChildPasscode &&
+      passcodeConfig.parentPasscodeHash
+    ) {
+      setShowPasscodeDialog(true);
+      return;
+    }
     handleSwitchRequest();
+  };
+
+  const handlePasscodeUnlock = async () => {
+    if (!user) return;
+    if (!passcodeInput) {
+      toast.error('Enter your passcode');
+      return;
+    }
+
+    if (passcodeConfig.passcodeLockedUntil) {
+      const lockedUntil = new Date(passcodeConfig.passcodeLockedUntil);
+      if (lockedUntil > new Date()) {
+        toast.error('Passcode locked. Try again later.');
+        return;
+      }
+    }
+
+    setPasscodeLoading(true);
+    try {
+      const hashedInput = await hashString(passcodeInput);
+      const isValid =
+        passcodeConfig.parentPasscodeHash &&
+        constantTimeCompare(hashedInput, passcodeConfig.parentPasscodeHash);
+
+      if (!isValid) {
+        const nextAttempts = (passcodeConfig.passcodeFailedAttempts || 0) + 1;
+        const shouldLock = nextAttempts >= 5;
+        const lockUntil = shouldLock ? new Date(Date.now() + 5 * 60 * 1000).toISOString() : null;
+
+        await supabase
+          .from('profiles')
+          .update({
+            passcode_failed_attempts: nextAttempts,
+            passcode_locked_until: lockUntil,
+          })
+          .eq('id', user.id);
+
+        setPasscodeConfig((prev) => ({
+          ...prev,
+          passcodeFailedAttempts: nextAttempts,
+          passcodeLockedUntil: lockUntil,
+        }));
+
+        toast.error(shouldLock ? 'Too many attempts. Locked for 5 minutes.' : 'Incorrect passcode');
+        return;
+      }
+
+      await supabase
+        .from('profiles')
+        .update({
+          passcode_failed_attempts: 0,
+          passcode_locked_until: null,
+        })
+        .eq('id', user.id);
+
+      setPasscodeConfig((prev) => ({
+        ...prev,
+        passcodeFailedAttempts: 0,
+        passcodeLockedUntil: null,
+      }));
+
+      setShowPasscodeDialog(false);
+      setPasscodeInput('');
+      switchToParent();
+      toast.success('Parent account unlocked');
+    } catch (error) {
+      console.error('Passcode verification failed:', error);
+      toast.error('Unable to verify passcode');
+    } finally {
+      setPasscodeLoading(false);
+    }
   };
 
   return (
@@ -146,6 +263,62 @@ export const AccountSwitcher = () => {
             </Button>
             <Button onClick={handlePasswordAuth} disabled={loading}>
               {loading ? 'Verifying...' : 'Verify & Switch'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showPasscodeDialog} onOpenChange={setShowPasscodeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="h-5 w-5" />
+              Parent Passcode
+            </DialogTitle>
+            <DialogDescription>
+              Enter the shared parent passcode to return to the adult account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="passcode">Passcode</Label>
+              <Input
+                id="passcode"
+                type="password"
+                value={passcodeInput}
+                onChange={(e) => setPasscodeInput(e.target.value)}
+                disabled={passcodeLoading}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePasscodeUnlock();
+                  }
+                }}
+              />
+              {passcodeConfig.parentPasscodeHint && (
+                <p className="text-xs text-muted-foreground">
+                  Hint: {passcodeConfig.parentPasscodeHint}
+                </p>
+              )}
+              {passcodeConfig.passcodeLockedUntil && new Date(passcodeConfig.passcodeLockedUntil) > new Date() && (
+                <p className="text-xs text-destructive">
+                  Locked until {new Date(passcodeConfig.passcodeLockedUntil).toLocaleTimeString()}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowPasscodeDialog(false);
+                setPasscodeInput('');
+              }}
+              disabled={passcodeLoading}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handlePasscodeUnlock} disabled={passcodeLoading}>
+              {passcodeLoading ? 'Checking...' : 'Unlock'}
             </Button>
           </DialogFooter>
         </DialogContent>

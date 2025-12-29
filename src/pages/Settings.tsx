@@ -11,17 +11,26 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check, Info, Upload, FileCheck, Shield, X, Image as ImageIcon, AlertCircle, Lock, RefreshCcw } from 'lucide-react';
+import { hashString, constantTimeCompare } from '@/lib/security';
 
 interface Profile {
-  full_name: string;
-  email: string;
-  phone: string;
-  avatar_url: string;
-  preferred_currency: string;
-  id_verified: boolean;
-  subscription_tier: string;
+  full_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  avatar_url?: string | null;
+  preferred_currency?: string | null;
+  id_verified?: boolean | null;
+  subscription_tier?: string | null;
+  id_verification_url?: string | null;
+  bio?: string | null;
+  require_child_passcode?: boolean | null;
+  parent_passcode_hint?: string | null;
+  parent_passcode_hash?: string | null;
+  passcode_failed_attempts?: number | null;
+  passcode_locked_until?: string | null;
 }
 
 const Settings = () => {
@@ -46,6 +55,12 @@ const Settings = () => {
   const [confirmNewPasswordInput, setConfirmNewPasswordInput] = useState('');
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const [settingsResetting, setSettingsResetting] = useState(false);
+  const [requireChildPasscode, setRequireChildPasscode] = useState(false);
+  const [passcodeHint, setPasscodeHint] = useState('');
+  const [currentPasscode, setCurrentPasscode] = useState('');
+  const [newPasscode, setNewPasscode] = useState('');
+  const [confirmPasscode, setConfirmPasscode] = useState('');
+  const [isUpdatingPasscode, setIsUpdatingPasscode] = useState(false);
 
   const callbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '';
   const recoveryRedirectUrl = callbackUrl ? `${callbackUrl}?type=recovery` : '';
@@ -136,23 +151,29 @@ const Settings = () => {
 
             if (createError) throw createError;
             if (newProfile) {
-              setProfile(newProfile as Profile);
-              setFullName(newProfile.full_name || '');
-              setPhone(newProfile.phone || '');
-              setCurrency(newProfile.preferred_currency || 'USD');
+              const typedProfile = newProfile as Profile;
+              setProfile(typedProfile);
+              setFullName(typedProfile.full_name || '');
+              setPhone(typedProfile.phone || '');
+              setCurrency(typedProfile.preferred_currency || 'USD');
+              setRequireChildPasscode(typedProfile.require_child_passcode ?? false);
+              setPasscodeHint(typedProfile.parent_passcode_hint || '');
             }
           } else {
             throw error;
           }
         } else if (data) {
-          setProfile(data);
-          setFullName(data.full_name || '');
-          setPhone(data.phone || '');
-          setCurrency(data.preferred_currency || 'USD');
+          const typedProfile = data as Profile;
+          setProfile(typedProfile);
+          setFullName(typedProfile.full_name || '');
+          setPhone(typedProfile.phone || '');
+          setCurrency(typedProfile.preferred_currency || 'USD');
+          setRequireChildPasscode(typedProfile.require_child_passcode ?? false);
+          setPasscodeHint(typedProfile.parent_passcode_hint || '');
           
           // If there's an existing ID verification URL, set it as preview
-          if (data.id_verification_url && !data.id_verified) {
-            setIdPreview(data.id_verification_url);
+          if (typedProfile.id_verification_url && !typedProfile.id_verified) {
+            setIdPreview(typedProfile.id_verification_url);
           }
         }
       } catch (error) {
@@ -167,6 +188,9 @@ const Settings = () => {
           preferred_currency: 'USD',
           id_verified: false,
           subscription_tier: 'Free',
+          require_child_passcode: false,
+          parent_passcode_hint: '',
+          parent_passcode_hash: null,
         } as Profile);
       } finally {
         setIsLoading(false);
@@ -319,6 +343,93 @@ const Settings = () => {
       );
     } finally {
       setSettingsResetting(false);
+    }
+  };
+
+  const handlePasscodeUpdate = async () => {
+    if (!user) return;
+
+    if (requireChildPasscode && !(newPasscode || profile?.parent_passcode_hash)) {
+      toast.error('Set a passcode before requiring it for child accounts');
+      return;
+    }
+
+    if (newPasscode && newPasscode.length < 4) {
+      toast.error('Passcode must be at least 4 characters');
+      return;
+    }
+
+    if (newPasscode && newPasscode !== confirmPasscode) {
+      toast.error('Passcodes do not match');
+      return;
+    }
+
+    setIsUpdatingPasscode(true);
+    try {
+      let nextHash = profile?.parent_passcode_hash || null;
+
+      if (profile?.parent_passcode_hash) {
+        if (!currentPasscode) {
+          toast.error('Enter your current passcode to update it');
+          setIsUpdatingPasscode(false);
+          return;
+        }
+        const currentHash = await hashString(currentPasscode);
+        const isValid = constantTimeCompare(currentHash, profile.parent_passcode_hash);
+        if (!isValid) {
+          toast.error('Current passcode is incorrect');
+          setIsUpdatingPasscode(false);
+          return;
+        }
+      }
+
+      if (newPasscode) {
+        nextHash = await hashString(newPasscode);
+      } else if (!requireChildPasscode) {
+        nextHash = nextHash;
+      }
+
+      const updatePayload: Record<string, any> = {
+        require_child_passcode: requireChildPasscode,
+        parent_passcode_hint: passcodeHint || null,
+      };
+
+      if (newPasscode) {
+        updatePayload.parent_passcode_hash = nextHash;
+        updatePayload.passcode_updated_at = new Date().toISOString();
+        updatePayload.passcode_failed_attempts = 0;
+        updatePayload.passcode_locked_until = null;
+      } else if (!requireChildPasscode && !nextHash) {
+        updatePayload.parent_passcode_hash = null;
+        updatePayload.parent_passcode_hint = null;
+      }
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(updatePayload)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Passcode preferences updated');
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              require_child_passcode: requireChildPasscode,
+              parent_passcode_hint: passcodeHint,
+              parent_passcode_hash: nextHash,
+            }
+          : prev
+      );
+      setCurrentPasscode('');
+      setNewPasscode('');
+      setConfirmPasscode('');
+    } catch (error) {
+      console.error('Passcode update error:', error);
+      toast.error('Unable to update passcode');
+    } finally {
+      setIsUpdatingPasscode(false);
     }
   };
 
@@ -647,13 +758,14 @@ const Settings = () => {
                         .select('*')
                         .eq('id', user.id)
                         .single();
-                      if (error) throw error;
-                      if (data) {
-                        setProfile(data);
-                        if (data.id_verification_url && !data.id_verified) {
-                          setIdPreview(data.id_verification_url);
-                        }
+                    if (error) throw error;
+                    if (data) {
+                      const refreshedProfile = data as Profile;
+                      setProfile(refreshedProfile);
+                      if (refreshedProfile.id_verification_url && !refreshedProfile.id_verified) {
+                        setIdPreview(refreshedProfile.id_verification_url);
                       }
+                    }
                     } catch (error) {
                       console.error('Error refreshing profile:', error);
                       toast.error('Failed to refresh status');
@@ -959,6 +1071,89 @@ const Settings = () => {
                   Reset links use the same secure callback flow as sign-in, so you can finish the process without leaving the app.
                 </p>
               </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Parent Passcode
+              </CardTitle>
+              <CardDescription>
+                Require a short passcode before a child can switch back to the parent account.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between border rounded-lg px-4 py-3">
+                <div>
+                  <p className="font-medium">Require passcode</p>
+                  <p className="text-sm text-muted-foreground">
+                    Toggle to enforce passcode entry on child devices.
+                  </p>
+                </div>
+                <Switch
+                  checked={requireChildPasscode}
+                  onCheckedChange={setRequireChildPasscode}
+                />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="passcode-hint">Passcode hint</Label>
+                  <Input
+                    id="passcode-hint"
+                    placeholder="e.g. Favorite place"
+                    value={passcodeHint}
+                    onChange={(e) => setPasscodeHint(e.target.value)}
+                  />
+                </div>
+                {profile?.parent_passcode_hint && (
+                  <div className="text-sm text-muted-foreground">
+                    <p className="font-medium">Current hint</p>
+                    <p>{profile.parent_passcode_hint}</p>
+                  </div>
+                )}
+              </div>
+
+              {profile?.parent_passcode_hash && (
+                <div className="space-y-2">
+                  <Label htmlFor="current-passcode">Current passcode</Label>
+                  <Input
+                    id="current-passcode"
+                    type="password"
+                    value={currentPasscode}
+                    onChange={(e) => setCurrentPasscode(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="new-passcode">New passcode</Label>
+                  <Input
+                    id="new-passcode"
+                    type="password"
+                    value={newPasscode}
+                    onChange={(e) => setNewPasscode(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-passcode">Confirm passcode</Label>
+                  <Input
+                    id="confirm-passcode"
+                    type="password"
+                    value={confirmPasscode}
+                    onChange={(e) => setConfirmPasscode(e.target.value)}
+                    placeholder="Optional"
+                  />
+                </div>
+              </div>
+
+              <Button onClick={handlePasscodeUpdate} disabled={isUpdatingPasscode}>
+                {isUpdatingPasscode ? 'Saving...' : 'Save Passcode Settings'}
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

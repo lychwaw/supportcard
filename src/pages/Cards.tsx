@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
@@ -11,7 +11,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { CreditCard, Plus, Wallet, User, Copy, Check } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { CreditCard, Plus, Wallet, User, Copy, Check, Eye, EyeOff, Trash2, ArrowUpCircle, Loader2, Shield } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
@@ -23,6 +24,11 @@ interface VirtualCard {
   balance: number;
   is_primary: boolean;
   child_id: string | null;
+  cardholder_name: string | null;
+  cvv: string | null;
+  expiry_month: number | null;
+  expiry_year: number | null;
+  last_four: string | null;
   child?: {
     id: string;
     name: string;
@@ -32,7 +38,7 @@ interface VirtualCard {
 const Cards = () => {
   const { user } = useAuth();
   const { activeChildId, children, isParent } = useRole();
-  const { canManageCards } = usePermissions();
+  const { canManageCards, canTopUpCards, canViewWalletSensitive, canDeleteCards } = usePermissions();
   const { currency } = useCurrency();
   const [cards, setCards] = useState<VirtualCard[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +50,40 @@ const Cards = () => {
   const [selectedCard, setSelectedCard] = useState<VirtualCard | null>(null);
   const [isCardDialogOpen, setIsCardDialogOpen] = useState(false);
   const [copiedCardNumber, setCopiedCardNumber] = useState<string | null>(null);
+  const [cardOwnerId, setCardOwnerId] = useState<string | null>(null);
+  const [topUpTargetId, setTopUpTargetId] = useState<string>('');
+  const [isTopUpDialogOpen, setIsTopUpDialogOpen] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [isProcessingTopUp, setIsProcessingTopUp] = useState(false);
+  const [cardToDelete, setCardToDelete] = useState<VirtualCard | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDeletingCard, setIsDeletingCard] = useState(false);
+  const [sensitiveVisible, setSensitiveVisible] = useState(false);
+
+  const topUpCard = useMemo(
+    () => cards.find((card) => card.id === topUpTargetId) || null,
+    [cards, topUpTargetId]
+  );
+
+  const walletStats = useMemo(() => {
+    const total = cards.reduce((sum, card) => sum + Number(card.balance || 0), 0);
+    const assigned = cards.filter((card) => !!card.child).length;
+    return {
+      total,
+      assigned,
+      unassigned: cards.length - assigned,
+    };
+  }, [cards]);
+
+  useEffect(() => {
+    if (isTopUpDialogOpen && !topUpTargetId && cards.length > 0) {
+      setTopUpTargetId(cards[0].id);
+    }
+  }, [isTopUpDialogOpen, cards, topUpTargetId]);
+
+  useEffect(() => {
+    setSensitiveVisible(false);
+  }, [selectedCard?.id]);
 
   useEffect(() => {
     if (user) {
@@ -66,7 +106,9 @@ const Cards = () => {
         setChildrenList(childrenData);
       }
     } catch (error) {
-      console.error('Error fetching children:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching children:', error);
+      }
     }
   };
 
@@ -83,6 +125,8 @@ const Cards = () => {
         setLoading(false);
         return;
       }
+
+      setCardOwnerId(queryUserId);
 
       // Fetch cards with child information
       const { data, error } = await supabase
@@ -103,7 +147,9 @@ const Cards = () => {
         setCards(cardsWithChildren);
       }
     } catch (error) {
-      console.error('Error fetching cards:', error);
+      if (import.meta.env.DEV) {
+        console.error('Error fetching cards:', error);
+      }
     } finally {
       setLoading(false);
     }
@@ -112,9 +158,38 @@ const Cards = () => {
   const generateCardNumber = () => {
     const parts = [];
     for (let i = 0; i < 4; i++) {
-      parts.push(Math.floor(1000 + Math.random() * 9000));
+      // Use cryptographically secure random number generation
+      const array = new Uint32Array(1);
+      crypto.getRandomValues(array);
+      const randomNum = array[0] % 9000 + 1000; // Range: 1000-9999
+      parts.push(randomNum);
     }
     return parts.join(' ');
+  };
+
+  const generateCvv = () => {
+    // Use cryptographically secure random number generation
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    const randomNum = array[0] % 900 + 100; // Range: 100-999
+    return randomNum.toString();
+  };
+
+  const generateExpiryDate = () => {
+    const now = new Date();
+    // Use cryptographically secure random number generation
+    const array = new Uint32Array(2);
+    crypto.getRandomValues(array);
+    const month = (array[0] % 12) + 1; // Range: 1-12
+    const year = now.getFullYear() + 2 + (array[1] % 5); // Range: +2 to +6 years
+    return { month, year };
+  };
+
+  const formatExpiry = (card: VirtualCard | null) => {
+    if (!card?.expiry_month || !card?.expiry_year) return 'N/A';
+    const month = String(card.expiry_month).padStart(2, '0');
+    const year = card.expiry_year.toString().slice(-2);
+    return `${month}/${year}`;
   };
 
   const handleAddCard = async () => {
@@ -149,6 +224,13 @@ const Cards = () => {
 
     try {
       const cardNumber = generateCardNumber();
+      const cvv = generateCvv();
+      const { month, year } = generateExpiryDate();
+      const lastFour = cardNumber.replace(/\s/g, '').slice(-4);
+      const childForCard = selectedChildId
+        ? childrenList.find((c) => c.id === selectedChildId)
+        : null;
+      const cardholderName = childForCard?.name || user.user_metadata?.full_name || user.email || 'Family Wallet';
       
       // Determine user_id: if child selected and has user_id, use child's user_id, else use parent's user_id
       let cardUserId = user.id;
@@ -167,6 +249,11 @@ const Cards = () => {
           card_type: cardType,
           balance: balanceNum,
           is_primary: cards.length === 0,
+          cardholder_name: cardholderName,
+          cvv,
+          expiry_month: month,
+          expiry_year: year,
+          last_four: lastFour,
         });
 
       if (error) throw error;
@@ -178,7 +265,98 @@ const Cards = () => {
       fetchCards();
     } catch (error) {
       toast.error('Failed to add card');
-      console.error(error);
+      if (import.meta.env.DEV) {
+        console.error('Error adding card:', error);
+      }
+    }
+  };
+
+  const handleOpenTopUpDialog = (card?: VirtualCard) => {
+    if (card) {
+      setTopUpTargetId(card.id);
+    } else if (cards.length > 0) {
+      setTopUpTargetId(cards[0].id);
+    }
+    setIsTopUpDialogOpen(true);
+  };
+
+  const handleTopUpSubmit = async () => {
+    if (!canTopUpCards) {
+      toast.error('You do not have permission to top up cards');
+      return;
+    }
+
+    if (!topUpCard) {
+      toast.error('Select a card to top up');
+      return;
+    }
+
+    const amount = parseFloat(topUpAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Enter a positive amount');
+      return;
+    }
+
+    setIsProcessingTopUp(true);
+    try {
+      const newBalance = Number(topUpCard.balance || 0) + amount;
+      const { error } = await supabase
+        .from('virtual_cards')
+        .update({ balance: newBalance })
+        .eq('id', topUpCard.id);
+
+      if (error) throw error;
+
+      toast.success('Allowance topped up successfully');
+      setIsTopUpDialogOpen(false);
+      setTopUpAmount('');
+      fetchCards();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error topping up card:', error);
+      }
+      toast.error('Unable to top up this card right now');
+    } finally {
+      setIsProcessingTopUp(false);
+    }
+  };
+
+  const handleDeleteRequest = (card: VirtualCard) => {
+    setCardToDelete(card);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteCard = async () => {
+    if (!cardToDelete) return;
+    if (!canDeleteCards) {
+      toast.error('You do not have permission to delete cards');
+      return;
+    }
+
+    setIsDeletingCard(true);
+    try {
+      const { error } = await supabase
+        .from('virtual_cards')
+        .delete()
+        .eq('id', cardToDelete.id);
+
+      if (error) throw error;
+
+      toast.success('Card removed successfully');
+      setIsDeleteDialogOpen(false);
+      setCardToDelete(null);
+      if (selectedCard?.id === cardToDelete.id) {
+        setSelectedCard(null);
+        setIsCardDialogOpen(false);
+      }
+      fetchCards();
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error deleting card:', error);
+      }
+      toast.error('Failed to remove this card');
+    } finally {
+      setIsDeletingCard(false);
     }
   };
 
@@ -192,85 +370,149 @@ const Cards = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3">
           <CreditCard className="w-8 h-8 text-primary" />
           <div>
             <h1 className="text-3xl font-bold">Virtual Cards</h1>
-            <p className="text-muted-foreground">Manage your payment cards</p>
+            <p className="text-muted-foreground">Manage allowances, cards, and wallet security</p>
           </div>
         </div>
-        {canManageCards && (
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Card
+        <div className="flex flex-col gap-2 sm:flex-row">
+          {canTopUpCards && cards.length > 0 && (
+            <Button variant="outline" onClick={() => handleOpenTopUpDialog()}>
+              <ArrowUpCircle className="w-4 h-4 mr-2" />
+              Top Up Allowance
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add Virtual Card</DialogTitle>
-              <DialogDescription>Create a new virtual card for payments</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              {childrenList.length > 0 && (
-                <div className="space-y-2">
-                  <Label htmlFor="child">Child *</Label>
-                  <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select child" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {childrenList.map((child) => (
-                        <SelectItem key={child.id} value={child.id}>
-                          {child.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Cards must be associated with a child</p>
+          )}
+          {canManageCards && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Card
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Virtual Card</DialogTitle>
+                  <DialogDescription>Create a new virtual card for payments</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  {childrenList.length > 0 && (
+                    <div className="space-y-2">
+                      <Label htmlFor="child">Child *</Label>
+                      <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select child" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {childrenList.map((child) => (
+                            <SelectItem key={child.id} value={child.id}>
+                              {child.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">Cards must be associated with a child</p>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="cardType">Card Type</Label>
+                    <Select value={cardType} onValueChange={setCardType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="VISA">VISA</SelectItem>
+                        <SelectItem value="Mastercard">Mastercard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="balance">Initial Balance ({getCurrencySymbol(currency)})</Label>
+                    <Input
+                      id="balance"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="0.00"
+                      value={initialBalance}
+                      onChange={(e) => setInitialBalance(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Enter a positive amount</p>
+                  </div>
+                  <Button 
+                    onClick={handleAddCard} 
+                    className="w-full"
+                    disabled={childrenList.length > 0 && !selectedChildId}
+                  >
+                    Create Card
+                  </Button>
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="cardType">Card Type</Label>
-                <Select value={cardType} onValueChange={setCardType}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="VISA">VISA</SelectItem>
-                    <SelectItem value="Mastercard">Mastercard</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="balance">Initial Balance ({getCurrencySymbol(currency)})</Label>
-                <Input
-                  id="balance"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.00"
-                  value={initialBalance}
-                  onChange={(e) => setInitialBalance(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">Enter a positive amount</p>
-              </div>
-              <Button 
-                onClick={handleAddCard} 
-                className="w-full"
-                disabled={childrenList.length > 0 && !selectedChildId}
-              >
-                Create Card
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-        )}
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
 
       <AccountSwitcher />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="shadow-soft border border-muted">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-primary" />
+              Total Wallet Balance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(walletStats.total, currency)}</div>
+            <p className="text-xs text-muted-foreground">Across {cards.length} virtual cards</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft border border-muted">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Active Cards</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{cards.length}</div>
+            <p className="text-xs text-muted-foreground">{walletStats.assigned} linked to children</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft border border-muted">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium">Child Wallets</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{walletStats.assigned}</div>
+            <p className="text-xs text-muted-foreground">
+              {isParent ? 'Managed by you' : 'Assigned to you'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-soft border border-muted">
+          <CardHeader className="pb-2 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Shield className="w-4 h-4 text-primary" />
+              Security
+            </CardTitle>
+            <Badge variant="outline" className="capitalize">
+              {isParent ? 'Parent' : 'Child'}
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              {canViewWalletSensitive
+                ? 'Sensitive card data unlocked'
+                : 'CVV protected. Ask a parent to reveal.'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {cards.length === 0 ? (
@@ -310,7 +552,7 @@ const Cards = () => {
                   </div>
                 </div>
                 <CardDescription className="text-primary-foreground/80">
-                  Virtual Card {card.child ? `• ${card.child.name}` : ''}
+                  {card.child ? `${card.child.name}` : 'Family Wallet'} •••• {card.last_four || card.card_number.slice(-4)}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -350,7 +592,7 @@ const Cards = () => {
             </DialogDescription>
           </DialogHeader>
           {selectedCard && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="p-4 rounded-lg bg-gradient-primary text-primary-foreground">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-sm opacity-80">Card Number</span>
@@ -385,6 +627,64 @@ const Cards = () => {
                     <p className="font-semibold">{selectedCard.card_type}</p>
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div>
+                    <p className="text-xs opacity-80 mb-1">Expiry</p>
+                    <p className="font-semibold">{formatExpiry(selectedCard)}</p>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs opacity-80">CVV</p>
+                      {canViewWalletSensitive && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-primary-foreground hover:bg-white/20"
+                          onClick={() => setSensitiveVisible((prev) => !prev)}
+                        >
+                          {sensitiveVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                      )}
+                    </div>
+                    <p className="font-mono text-lg tracking-widest">
+                      {canViewWalletSensitive
+                        ? sensitiveVisible
+                          ? selectedCard.cvv || '---'
+                          : '***'
+                        : 'Protected'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-xs opacity-80 mb-1">Cardholder</p>
+                  <p className="font-medium">{selectedCard.cardholder_name || 'Not set'}</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {canTopUpCards && (
+                  <Button
+                    onClick={() => {
+                      handleOpenTopUpDialog(selectedCard);
+                      setIsCardDialogOpen(false);
+                    }}
+                  >
+                    <ArrowUpCircle className="w-4 h-4 mr-2" />
+                    Top Up Allowance
+                  </Button>
+                )}
+                {canDeleteCards && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      handleDeleteRequest(selectedCard);
+                      setIsCardDialogOpen(false);
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Remove Card
+                  </Button>
+                )}
               </div>
 
               <div className="space-y-3 pt-4 border-t">
@@ -417,6 +717,95 @@ const Cards = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Top Up Dialog */}
+      <Dialog
+        open={isTopUpDialogOpen}
+        onOpenChange={(open) => {
+          setIsTopUpDialogOpen(open);
+          if (!open) {
+            setTopUpAmount('');
+          } else if (!topUpTargetId && cards.length > 0) {
+            setTopUpTargetId(cards[0].id);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Top Up Allowance</DialogTitle>
+            <DialogDescription>Increase a child card balance instantly.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Card</Label>
+              <Select value={topUpTargetId} onValueChange={setTopUpTargetId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select card" />
+                </SelectTrigger>
+                <SelectContent>
+                  {cards.map((card) => (
+                    <SelectItem key={card.id} value={card.id}>
+                      {card.child?.name || 'Family Wallet'} •••• {card.last_four || card.card_number.slice(-4)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Amount ({getCurrencySymbol(currency)})</Label>
+              <Input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={topUpAmount}
+                onChange={(e) => setTopUpAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+            <Button className="w-full" onClick={handleTopUpSubmit} disabled={isProcessingTopUp}>
+              {isProcessingTopUp ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <ArrowUpCircle className="w-4 h-4 mr-2" />
+                  Apply Top Up
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Virtual Card?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The card and its balance history will be removed from the wallet.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingCard}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCard} disabled={isDeletingCard}>
+              {isDeletingCard ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Remove Card
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
