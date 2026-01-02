@@ -61,19 +61,26 @@ const Auth = () => {
   const handleAppleLogin = async () => {
     setIsLoading(true);
     try {
+      // Use the full URL for redirect to ensure proper callback handling
+      const redirectUrl = callbackUrl;
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
         options: {
-          redirectTo: callbackUrl,
+          redirectTo: redirectUrl,
         },
       });
 
       if (error) {
-        toast.error(error.message);
+        console.error('Apple OAuth error:', error);
+        toast.error(error.message || 'Failed to sign in with Apple');
+        setIsLoading(false);
       }
+      // Note: Don't set loading to false here - the redirect will happen
+      // Loading will be reset when component unmounts or user returns
     } catch (error) {
+      console.error('Unexpected error:', error);
       toast.error('An unexpected error occurred');
-    } finally {
       setIsLoading(false);
     }
   };

@@ -139,3 +139,4 @@ const TonePolice = ({ onSend, initialValue = '', placeholder = 'Type your messag
 
 export default TonePolice;
 
+
