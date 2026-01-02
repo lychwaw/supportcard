@@ -6,12 +6,13 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { formatCurrency } from '@/lib/currency';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Wallet, Tag } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Wallet, Tag, CreditCard, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ChildManagement } from '@/components/ChildManagement';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
 import { Notifications } from '@/components/Notifications';
+import { useNavigate } from 'react-router-dom';
 
 interface Child {
   id: string;
@@ -37,11 +38,13 @@ const Index = () => {
   const { user } = useAuth();
   const { activeChildId, isParent, children: roleChildren } = useRole();
   const { currency } = useCurrency();
+  const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [totalBalance, setTotalBalance] = useState(0);
   const [monthlySpending, setMonthlySpending] = useState(0);
   const [categorySpending, setCategorySpending] = useState<CategorySpending[]>([]);
+  const [balanceCategories, setBalanceCategories] = useState<{category: string; balance: number}[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -120,15 +123,29 @@ const Index = () => {
         
         if (transactionsData) setRecentTransactions(transactionsData);
 
-        // Fetch virtual cards to calculate total balance
+        // Fetch virtual cards/balances to calculate total balance and categories
         const { data: cardsData } = await supabase
           .from('virtual_cards')
-          .select('balance')
+          .select('balance, card_type')
           .eq('user_id', queryUserId);
         
         if (cardsData) {
-          const total = cardsData.reduce((sum, card) => sum + Number(card.balance), 0);
+          const total = cardsData.reduce((sum, card) => sum + Number(card.balance || 0), 0);
           setTotalBalance(total);
+          
+          // Group by category (card_type)
+          const categoryMap = new Map<string, number>();
+          cardsData.forEach(card => {
+            const category = card.card_type || 'General';
+            const current = categoryMap.get(category) || 0;
+            categoryMap.set(category, current + Number(card.balance || 0));
+          });
+          
+          const categories = Array.from(categoryMap.entries())
+            .map(([category, balance]) => ({ category, balance }))
+            .sort((a, b) => b.balance - a.balance);
+          
+          setBalanceCategories(categories);
         }
 
         // Calculate monthly spending
@@ -199,14 +216,22 @@ const Index = () => {
       <AccountSwitcher />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
+        <Card 
+          className="shadow-soft hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
+          onClick={() => navigate('/cards')}
+        >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Balance</CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(totalBalance, currency)}</div>
-            <p className="text-xs text-muted-foreground">Across all cards</p>
+            <div className="text-2xl font-bold group-hover:text-primary transition-colors">
+              {formatCurrency(totalBalance, currency)}
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-muted-foreground">View balances</p>
+              <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            </div>
           </CardContent>
         </Card>
 
@@ -243,6 +268,47 @@ const Index = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Balance Categories Widget */}
+      {balanceCategories.length > 0 && (
+        <Card 
+          className="shadow-soft hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
+          onClick={() => navigate('/cards')}
+        >
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Wallet className="w-5 h-5" />
+                  Balance Categories
+                </CardTitle>
+                <CardDescription>Click to manage balances</CardDescription>
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {balanceCategories.slice(0, 3).map((item) => (
+                <div 
+                  key={item.category} 
+                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{item.category}</Badge>
+                  </div>
+                  <span className="font-semibold">{formatCurrency(item.balance, currency)}</span>
+                </div>
+              ))}
+              {balanceCategories.length > 3 && (
+                <p className="text-xs text-muted-foreground text-center pt-2">
+                  +{balanceCategories.length - 3} more category{balanceCategories.length - 3 > 1 ? 'ies' : ''}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {isParent ? (

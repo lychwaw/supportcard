@@ -30,20 +30,45 @@ import {
 import { useAuth } from '@/components/AuthProvider';
 import { Button } from '@/components/ui/button';
 
-const navigationItems = [
-  { title: 'Dashboard', url: '/', icon: Home },
-  { title: 'Family', url: '/family', icon: Users },
-  { title: 'Transactions', url: '/transactions', icon: Receipt },
-  { title: 'Budget', url: '/budget', icon: TrendingUp },
-  { title: 'Expense Requests', url: '/expenses', icon: FileText },
-  { title: 'Virtual Cards', url: '/cards', icon: CreditCard },
-  { title: 'Calendar', url: '/calendar', icon: Calendar },
-  { title: 'Messages', url: '/messages', icon: MessageSquare },
-  { title: 'Emergency Contacts', url: '/contacts', icon: PhoneCall },
-  { title: 'Compliance', url: '/compliance', icon: Shield },
-  { title: 'Visitation Tracker', url: '/visitation', icon: Navigation },
-  { title: 'Documents', url: '/documents', icon: FolderOpen },
-  { title: 'Settings', url: '/settings', icon: Settings },
+const navigationGroups = [
+  {
+    label: 'Main',
+    items: [
+      { title: 'Dashboard', url: '/', icon: Home },
+      { title: 'Family', url: '/family', icon: Users },
+    ],
+  },
+  {
+    label: 'Financial',
+    items: [
+      { title: 'Transactions', url: '/transactions', icon: Receipt },
+      { title: 'Budget', url: '/budget', icon: TrendingUp },
+      { title: 'Expense Requests', url: '/expenses', icon: FileText },
+      { title: 'Balance', url: '/cards', icon: CreditCard },
+    ],
+  },
+  {
+    label: 'Communication',
+    items: [
+      { title: 'Messages', url: '/messages', icon: MessageSquare },
+      { title: 'Calendar', url: '/calendar', icon: Calendar },
+    ],
+  },
+  {
+    label: 'Legal & Compliance',
+    items: [
+      { title: 'Compliance', url: '/compliance', icon: Shield },
+      { title: 'Visitation Tracker', url: '/visitation', icon: Navigation },
+      { title: 'Documents', url: '/documents', icon: FolderOpen },
+    ],
+  },
+  {
+    label: 'Other',
+    items: [
+      { title: 'Emergency Contacts', url: '/contacts', icon: PhoneCall },
+      { title: 'Settings', url: '/settings', icon: Settings },
+    ],
+  },
 ];
 
 export function AppSidebar() {
@@ -66,31 +91,33 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === '/'}
-                      className={({ isActive }) =>
-                        isActive
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                          : ''
-                      }
-                    >
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {navigationGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === '/'}
+                        className={({ isActive }) =>
+                          isActive
+                            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                            : ''
+                        }
+                      >
+                        <item.icon className="w-4 h-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border p-4">

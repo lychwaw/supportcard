@@ -58,7 +58,6 @@ const Cards = () => {
   const [cardToDelete, setCardToDelete] = useState<VirtualCard | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeletingCard, setIsDeletingCard] = useState(false);
-  const [sensitiveVisible, setSensitiveVisible] = useState(false);
 
   const topUpCard = useMemo(
     () => cards.find((card) => card.id === topUpTargetId) || null,
@@ -81,9 +80,6 @@ const Cards = () => {
     }
   }, [isTopUpDialogOpen, cards, topUpTargetId]);
 
-  useEffect(() => {
-    setSensitiveVisible(false);
-  }, [selectedCard?.id]);
 
   useEffect(() => {
     if (user) {
@@ -155,46 +151,10 @@ const Cards = () => {
     }
   };
 
-  const generateCardNumber = () => {
-    const parts = [];
-    for (let i = 0; i < 4; i++) {
-      // Use cryptographically secure random number generation
-      const array = new Uint32Array(1);
-      crypto.getRandomValues(array);
-      const randomNum = array[0] % 9000 + 1000; // Range: 1000-9999
-      parts.push(randomNum);
-    }
-    return parts.join(' ');
-  };
-
-  const generateCvv = () => {
-    // Use cryptographically secure random number generation
-    const array = new Uint32Array(1);
-    crypto.getRandomValues(array);
-    const randomNum = array[0] % 900 + 100; // Range: 100-999
-    return randomNum.toString();
-  };
-
-  const generateExpiryDate = () => {
-    const now = new Date();
-    // Use cryptographically secure random number generation
-    const array = new Uint32Array(2);
-    crypto.getRandomValues(array);
-    const month = (array[0] % 12) + 1; // Range: 1-12
-    const year = now.getFullYear() + 2 + (array[1] % 5); // Range: +2 to +6 years
-    return { month, year };
-  };
-
-  const formatExpiry = (card: VirtualCard | null) => {
-    if (!card?.expiry_month || !card?.expiry_year) return 'N/A';
-    const month = String(card.expiry_month).padStart(2, '0');
-    const year = card.expiry_year.toString().slice(-2);
-    return `${month}/${year}`;
-  };
 
   const handleAddCard = async () => {
     if (!canManageCards) {
-      toast.error('Only parents can add cards');
+      toast.error('Only parents can create balance categories');
       return;
     }
 
@@ -210,7 +170,7 @@ const Cards = () => {
       return;
     }
 
-    // CRITICAL: Virtual cards must be associated with a child
+    // CRITICAL: Balance categories must be associated with a child
     if (!selectedChildId && childrenList.length > 0) {
       toast.error('Please select a child for this card');
       return;
@@ -223,10 +183,8 @@ const Cards = () => {
     }
 
     try {
-      const cardNumber = generateCardNumber();
-      const cvv = generateCvv();
-      const { month, year } = generateExpiryDate();
-      const lastFour = cardNumber.replace(/\s/g, '').slice(-4);
+      // Generate a simple identifier (not a real card number)
+      const balanceId = `BAL-${Date.now().toString().slice(-6)}`;
       const childForCard = selectedChildId
         ? childrenList.find((c) => c.id === selectedChildId)
         : null;
@@ -236,8 +194,7 @@ const Cards = () => {
       let cardUserId = user.id;
       if (selectedChildId) {
         const selectedChild = childrenList.find(c => c.id === selectedChildId);
-        // For now, cards are linked to parent's user_id but associated with child_id
-        // In production, you might want cards tied to child's account if they have one
+        // For now, balances are linked to parent's user_id but associated with child_id
       }
 
       const { error } = await supabase
@@ -245,20 +202,20 @@ const Cards = () => {
         .insert({
           user_id: cardUserId,
           child_id: selectedChildId || null,
-          card_number: cardNumber,
-          card_type: cardType,
+          card_number: balanceId, // Using as identifier, not a real card number
+          card_type: cardType, // This is now the category
           balance: balanceNum,
           is_primary: cards.length === 0,
           cardholder_name: cardholderName,
-          cvv,
-          expiry_month: month,
-          expiry_year: year,
-          last_four: lastFour,
+          cvv: null, // No CVV needed
+          expiry_month: null, // No expiry needed
+          expiry_year: null, // No expiry needed
+          last_four: balanceId.slice(-4), // Last 4 of identifier
         });
 
       if (error) throw error;
 
-      toast.success('Virtual card added successfully');
+      toast.success('Balance category created successfully');
       setIsDialogOpen(false);
       setInitialBalance('');
       setSelectedChildId('');
@@ -282,12 +239,12 @@ const Cards = () => {
 
   const handleTopUpSubmit = async () => {
     if (!canTopUpCards) {
-      toast.error('You do not have permission to top up cards');
+      toast.error('You do not have permission to add money to balances');
       return;
     }
 
     if (!topUpCard) {
-      toast.error('Select a card to top up');
+      toast.error('Select a balance category to add money to');
       return;
     }
 
@@ -315,7 +272,7 @@ const Cards = () => {
       if (import.meta.env.DEV) {
         console.error('Error topping up card:', error);
       }
-      toast.error('Unable to top up this card right now');
+      toast.error('Unable to add money to this balance right now');
     } finally {
       setIsProcessingTopUp(false);
     }
@@ -374,15 +331,15 @@ const Cards = () => {
         <div className="flex items-center gap-3">
           <CreditCard className="w-8 h-8 text-primary" />
           <div>
-            <h1 className="text-3xl font-bold">Virtual Cards</h1>
-            <p className="text-muted-foreground">Manage allowances, cards, and wallet security</p>
+            <h1 className="text-3xl font-bold">Balance Tracker</h1>
+            <p className="text-muted-foreground">Track balances by category - like an imaginary bank account</p>
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           {canTopUpCards && cards.length > 0 && (
             <Button variant="outline" onClick={() => handleOpenTopUpDialog()}>
               <ArrowUpCircle className="w-4 h-4 mr-2" />
-              Top Up Allowance
+              Add Money
             </Button>
           )}
           {canManageCards && (
@@ -390,13 +347,13 @@ const Cards = () => {
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Card
+                  Create Balance
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add Virtual Card</DialogTitle>
-                  <DialogDescription>Create a new virtual card for payments</DialogDescription>
+                  <DialogTitle>Create Balance Category</DialogTitle>
+                  <DialogDescription>Create a new balance category (e.g., School Money, Allowance)</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                   {childrenList.length > 0 && (
@@ -414,20 +371,24 @@ const Cards = () => {
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="text-xs text-muted-foreground">Cards must be associated with a child</p>
+                      <p className="text-xs text-muted-foreground">Balance categories must be associated with a child</p>
                     </div>
                   )}
                   <div className="space-y-2">
-                    <Label htmlFor="cardType">Card Type</Label>
+                    <Label htmlFor="cardType">Category</Label>
                     <Select value={cardType} onValueChange={setCardType}>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="VISA">VISA</SelectItem>
-                        <SelectItem value="Mastercard">Mastercard</SelectItem>
+                        <SelectItem value="School Money">School Money</SelectItem>
+                        <SelectItem value="Allowance">Allowance</SelectItem>
+                        <SelectItem value="Lunch Money">Lunch Money</SelectItem>
+                        <SelectItem value="Activities">Activities</SelectItem>
+                        <SelectItem value="General">General</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-muted-foreground">Choose a category for this balance</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="balance">Initial Balance ({getCurrencySymbol(currency)})</Label>
@@ -447,7 +408,7 @@ const Cards = () => {
                     className="w-full"
                     disabled={childrenList.length > 0 && !selectedChildId}
                   >
-                    Create Card
+                    Create Balance
                   </Button>
                 </div>
               </DialogContent>
@@ -468,13 +429,13 @@ const Cards = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{formatCurrency(walletStats.total, currency)}</div>
-            <p className="text-xs text-muted-foreground">Across {cards.length} virtual cards</p>
+            <p className="text-xs text-muted-foreground">Across {cards.length} balance category{cards.length !== 1 ? 'ies' : ''}</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-soft border border-muted">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Active Cards</CardTitle>
+            <CardTitle className="text-sm font-medium">Balance Categories</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{cards.length}</div>
@@ -506,9 +467,9 @@ const Cards = () => {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              {canViewWalletSensitive
-                ? 'Sensitive card data unlocked'
-                : 'CVV protected. Ask a parent to reveal.'}
+              {isParent
+                ? 'You can manage all balances'
+                : 'View-only access to balances'}
             </p>
           </CardContent>
         </Card>
@@ -519,10 +480,10 @@ const Cards = () => {
           <Card className="col-span-full shadow-soft">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <CreditCard className="w-12 h-12 text-muted-foreground mb-3" />
-              <p className="text-muted-foreground mb-4">No virtual cards yet</p>
+              <p className="text-muted-foreground mb-4">No balance categories yet</p>
               <Button onClick={() => setIsDialogOpen(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Add Your First Card
+                Create Your First Balance
               </Button>
             </CardContent>
           </Card>
@@ -552,25 +513,22 @@ const Cards = () => {
                   </div>
                 </div>
                 <CardDescription className="text-primary-foreground/80">
-                  {card.child ? `${card.child.name}` : 'Family Wallet'} •••• {card.last_four || card.card_number.slice(-4)}
+                  {card.child ? `${card.child.name}'s Balance` : 'Family Balance'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="font-mono text-lg tracking-wider group-hover:opacity-80 transition-opacity">
-                  {card.card_number}
-                </div>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Wallet className="w-4 h-4" />
-                    <span className="text-sm">Balance</span>
+                    <span className="text-sm">Available</span>
                   </div>
-                  <span className="text-xl font-bold">
+                  <span className="text-2xl font-bold">
                     {formatCurrency(card.balance, currency)}
                   </span>
                 </div>
                 <div className="pt-2 border-t border-white/20">
                   <p className="text-xs text-primary-foreground/60 group-hover:text-primary-foreground/80 transition-colors">
-                    Click to view details
+                    Click to manage balance
                   </p>
                 </div>
               </CardContent>
@@ -584,80 +542,29 @@ const Cards = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CreditCard className="w-5 h-5" />
-              Card Details
+              <Wallet className="w-5 h-5" />
+              Balance Details
             </DialogTitle>
             <DialogDescription>
-              {selectedCard?.card_type} Virtual Card Information
+              {selectedCard?.card_type} Balance Information
             </DialogDescription>
           </DialogHeader>
           {selectedCard && (
             <div className="space-y-6">
               <div className="p-4 rounded-lg bg-gradient-primary text-primary-foreground">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm opacity-80">Card Number</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 text-primary-foreground hover:bg-white/20"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(selectedCard.card_number.replace(/\s/g, ''));
-                      setCopiedCardNumber(selectedCard.id);
-                      setTimeout(() => setCopiedCardNumber(null), 2000);
-                      toast.success('Card number copied!');
-                    }}
-                  >
-                    {copiedCardNumber === selectedCard.id ? (
-                      <Check className="w-4 h-4" />
-                    ) : (
-                      <Copy className="w-4 h-4" />
-                    )}
-                  </Button>
-                </div>
-                <div className="font-mono text-xl tracking-wider mb-4">
-                  {selectedCard.card_number}
-                </div>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <div>
+                    <p className="text-xs opacity-80 mb-1">Category</p>
+                    <p className="text-lg font-semibold">{selectedCard.card_type}</p>
+                  </div>
+                  <div className="text-right">
                     <p className="text-xs opacity-80 mb-1">Balance</p>
                     <p className="text-2xl font-bold">{formatCurrency(selectedCard.balance, currency)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs opacity-80 mb-1">Type</p>
-                    <p className="font-semibold">{selectedCard.card_type}</p>
-                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div>
-                    <p className="text-xs opacity-80 mb-1">Expiry</p>
-                    <p className="font-semibold">{formatExpiry(selectedCard)}</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-xs opacity-80">CVV</p>
-                      {canViewWalletSensitive && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-primary-foreground hover:bg-white/20"
-                          onClick={() => setSensitiveVisible((prev) => !prev)}
-                        >
-                          {sensitiveVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </Button>
-                      )}
-                    </div>
-                    <p className="font-mono text-lg tracking-widest">
-                      {canViewWalletSensitive
-                        ? sensitiveVisible
-                          ? selectedCard.cvv || '---'
-                          : '***'
-                        : 'Protected'}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <p className="text-xs opacity-80 mb-1">Cardholder</p>
-                  <p className="font-medium">{selectedCard.cardholder_name || 'Not set'}</p>
+                <div className="pt-3 border-t border-white/20">
+                  <p className="text-xs opacity-80 mb-1">Assigned To</p>
+                  <p className="font-semibold">{selectedCard.child ? selectedCard.child.name : 'Family Wallet'}</p>
                 </div>
               </div>
 
@@ -670,7 +577,7 @@ const Cards = () => {
                     }}
                   >
                     <ArrowUpCircle className="w-4 h-4 mr-2" />
-                    Top Up Allowance
+                    Add Money
                   </Button>
                 )}
                 {canDeleteCards && (
@@ -682,7 +589,7 @@ const Cards = () => {
                     }}
                   >
                     <Trash2 className="w-4 h-4 mr-2" />
-                    Remove Card
+                    Delete Balance
                   </Button>
                 )}
               </div>
@@ -708,8 +615,8 @@ const Cards = () => {
 
                 {selectedCard.is_primary && (
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-primary/10">
-                    <Badge variant="default" className="w-fit">Primary Card</Badge>
-                    <p className="text-xs text-muted-foreground">This is your default payment card</p>
+                    <Badge variant="default" className="w-fit">Primary Balance</Badge>
+                    <p className="text-xs text-muted-foreground">This is your default balance category</p>
                   </div>
                 )}
               </div>
@@ -732,7 +639,7 @@ const Cards = () => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Top Up Allowance</DialogTitle>
+            <DialogTitle>Add Money to Balance</DialogTitle>
             <DialogDescription>Increase a child card balance instantly.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -740,12 +647,12 @@ const Cards = () => {
               <Label>Card</Label>
               <Select value={topUpTargetId} onValueChange={setTopUpTargetId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select card" />
+                  <SelectValue placeholder="Select balance category" />
                 </SelectTrigger>
                 <SelectContent>
                   {cards.map((card) => (
                     <SelectItem key={card.id} value={card.id}>
-                      {card.child?.name || 'Family Wallet'} •••• {card.last_four || card.card_number.slice(-4)}
+                      {card.card_type} - {card.child?.name || 'Family Wallet'} ({formatCurrency(card.balance, currency)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -771,7 +678,7 @@ const Cards = () => {
               ) : (
                 <>
                   <ArrowUpCircle className="w-4 h-4 mr-2" />
-                  Apply Top Up
+                  Add Money
                 </>
               )}
             </Button>
@@ -783,9 +690,9 @@ const Cards = () => {
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Virtual Card?</AlertDialogTitle>
+            <AlertDialogTitle>Delete Balance Category?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. The card and its balance history will be removed from the wallet.
+              This action cannot be undone. The balance category and its history will be removed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -799,7 +706,7 @@ const Cards = () => {
               ) : (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Remove Card
+                  Delete Balance
                 </>
               )}
             </AlertDialogAction>
