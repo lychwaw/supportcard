@@ -218,7 +218,7 @@ const Index = () => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card 
           className="shadow-soft hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
-          onClick={() => navigate('/cards')}
+          onClick={() => navigate('/balance-budget')}
         >
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
@@ -273,7 +273,7 @@ const Index = () => {
       {balanceCategories.length > 0 && (
         <Card 
           className="shadow-soft hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
-          onClick={() => navigate('/cards')}
+          onClick={() => navigate('/balance-budget')}
         >
           <CardHeader>
             <div className="flex items-center justify-between">

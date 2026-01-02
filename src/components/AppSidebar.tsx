@@ -14,6 +14,7 @@ import {
   Shield,
   Navigation,
   FolderOpen,
+  Wallet,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -42,9 +43,8 @@ const navigationGroups = [
     label: 'Financial',
     items: [
       { title: 'Transactions', url: '/transactions', icon: Receipt },
-      { title: 'Budget', url: '/budget', icon: TrendingUp },
+      { title: 'Balance & Budget', url: '/balance-budget', icon: Wallet },
       { title: 'Expense Requests', url: '/expenses', icon: FileText },
-      { title: 'Balance', url: '/cards', icon: CreditCard },
     ],
   },
   {

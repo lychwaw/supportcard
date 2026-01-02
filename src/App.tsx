@@ -14,9 +14,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Transactions from "./pages/Transactions";
-import Budget from "./pages/Budget";
 import Expenses from "./pages/Expenses";
-import Cards from "./pages/Cards";
+import BalanceBudget from "./pages/BalanceBudget";
 import Calendar from "./pages/Calendar";
 import Messages from "./pages/Messages";
 import Contacts from "./pages/Contacts";
@@ -83,11 +82,11 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/budget"
+                    path="/balance-budget"
                     element={
                       <ProtectedRoute>
                         <AppLayout>
-                          <Budget />
+                          <BalanceBudget />
                         </AppLayout>
                       </ProtectedRoute>
                     }
@@ -98,16 +97,6 @@ const App = () => {
                       <ProtectedRoute>
                         <AppLayout>
                           <Expenses />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/cards"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Cards />
                         </AppLayout>
                       </ProtectedRoute>
                     }

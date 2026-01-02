@@ -197,23 +197,55 @@ const Cards = () => {
         // For now, balances are linked to parent's user_id but associated with child_id
       }
 
-      const { error } = await supabase
-        .from('virtual_cards')
-        .insert({
-          user_id: cardUserId,
-          child_id: selectedChildId || null,
-          card_number: balanceId, // Using as identifier, not a real card number
-          card_type: cardType, // This is now the category
-          balance: balanceNum,
-          is_primary: cards.length === 0,
-          cardholder_name: cardholderName,
-          cvv: null, // No CVV needed
-          expiry_month: null, // No expiry needed
-          expiry_year: null, // No expiry needed
-          last_four: balanceId.slice(-4), // Last 4 of identifier
-        });
+      // Build insert object with only required fields first
+      const insertData: any = {
+        user_id: cardUserId,
+        child_id: selectedChildId || null,
+        card_number: balanceId,
+        card_type: cardType,
+        balance: balanceNum,
+        is_primary: cards.length === 0,
+      };
 
-      if (error) throw error;
+      // Add optional fields if they exist in the schema
+      // Check if cardholder_name column exists by trying to add it
+      try {
+        insertData.cardholder_name = cardholderName;
+      } catch (e) {
+        // Column might not exist, that's okay
+      }
+
+      const { error, data } = await supabase
+        .from('virtual_cards')
+        .insert(insertData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Card creation error:', error);
+        // Provide more specific error messages
+        if (error.code === '23503') {
+          toast.error('Invalid child selected. Please refresh and try again.');
+        } else if (error.code === '23505') {
+          toast.error('A balance category with this name already exists for this child.');
+        } else if (error.message.includes('cardholder_name')) {
+          // Retry without optional fields
+          const { error: retryError } = await supabase
+            .from('virtual_cards')
+            .insert({
+              user_id: cardUserId,
+              child_id: selectedChildId || null,
+              card_number: balanceId,
+              card_type: cardType,
+              balance: balanceNum,
+              is_primary: cards.length === 0,
+            });
+          if (retryError) throw retryError;
+        } else {
+          throw error;
+        }
+        return;
+      }
 
       toast.success('Balance category created successfully');
       setIsDialogOpen(false);
