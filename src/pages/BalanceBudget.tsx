@@ -151,12 +151,40 @@ const BalanceBudget = () => {
       }
 
       setCategories(mergedCategories);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching categories:', error);
-      toast.error('Failed to load balance and budget data');
+      const errorMessage = error?.message || 'Failed to load balance and budget data';
+      toast.error(`Error loading data: ${errorMessage}. Please refresh the page.`);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to normalize and validate numeric input
+  const normalizeNumberInput = (value: string, fieldName: string): { valid: boolean; number: number; error?: string } => {
+    const trimmed = value.trim();
+    
+    if (!trimmed) {
+      return { valid: false, number: 0, error: `${fieldName} cannot be empty` };
+    }
+
+    // Remove leading zeros (but keep at least one zero if input is all zeros)
+    const normalized = trimmed.replace(/^0+/, '') || '0';
+    const num = parseFloat(normalized);
+
+    if (isNaN(num)) {
+      return { valid: false, number: 0, error: `${fieldName} must be a valid number` };
+    }
+
+    if (num < 0) {
+      return { valid: false, number: 0, error: `${fieldName} cannot be negative` };
+    }
+
+    if (num > 1000000) {
+      return { valid: false, number: 0, error: `${fieldName} cannot exceed 1,000,000` };
+    }
+
+    return { valid: true, number: num };
   };
 
   const handleCreateCategory = async () => {
@@ -165,22 +193,38 @@ const BalanceBudget = () => {
       return;
     }
 
-    if (!user || !initialBalance || !categoryName) {
-      toast.error('Please fill in all required fields');
+    if (!user) {
+      toast.error('You must be logged in to create categories');
       return;
     }
 
-    const balanceNum = parseFloat(initialBalance);
-    const limitNum = monthlyLimit ? parseFloat(monthlyLimit) : 0;
-
-    if (isNaN(balanceNum) || balanceNum < 0) {
-      toast.error('Balance must be a non-negative number');
+    if (!categoryName) {
+      toast.error('Please select a category name');
       return;
     }
 
-    if (limitNum < 0) {
-      toast.error('Monthly limit must be a non-negative number');
+    if (!initialBalance || !initialBalance.trim()) {
+      toast.error('Please enter an initial balance');
       return;
+    }
+
+    // Validate and normalize balance
+    const balanceValidation = normalizeNumberInput(initialBalance, 'Balance');
+    if (!balanceValidation.valid) {
+      toast.error(balanceValidation.error || 'Invalid balance amount');
+      return;
+    }
+    const balanceNum = balanceValidation.number;
+
+    // Validate and normalize monthly limit (optional)
+    let limitNum = 0;
+    if (monthlyLimit && monthlyLimit.trim()) {
+      const limitValidation = normalizeNumberInput(monthlyLimit, 'Monthly limit');
+      if (!limitValidation.valid) {
+        toast.error(limitValidation.error || 'Invalid monthly limit');
+        return;
+      }
+      limitNum = limitValidation.number;
     }
 
     if (!selectedChildId && childrenList.length > 0) {
@@ -209,11 +253,20 @@ const BalanceBudget = () => {
 
       if (cardError) {
         console.error('Card creation error:', cardError);
+        let errorMessage = 'Failed to create balance category';
+        
         if (cardError.code === '23503') {
-          toast.error('Invalid child selected. Please refresh and try again.');
-        } else {
-          throw cardError;
+          errorMessage = 'Invalid child selected. Please refresh the page and try again.';
+        } else if (cardError.code === '23505') {
+          errorMessage = 'A balance category with this name already exists for this child.';
+        } else if (cardError.code === '23514') {
+          errorMessage = 'Invalid balance amount. Please check your input.';
+        } else if (cardError.message) {
+          errorMessage = `Failed to create category: ${cardError.message}`;
         }
+        
+        toast.error(errorMessage);
+        setIsProcessing(false);
         return;
       }
 
@@ -231,7 +284,8 @@ const BalanceBudget = () => {
 
         if (budgetError) {
           console.error('Budget creation error:', budgetError);
-          // Don't fail the whole operation if budget creation fails
+          // Warn but don't fail the whole operation if budget creation fails
+          toast.warning('Balance category created, but failed to set budget limit. You can set it later.');
         }
       }
 
@@ -244,7 +298,8 @@ const BalanceBudget = () => {
       fetchCategories();
     } catch (error: any) {
       console.error('Error creating category:', error);
-      toast.error(error?.message || 'Failed to create balance category');
+      const errorMessage = error?.message || 'Failed to create balance category. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -256,11 +311,18 @@ const BalanceBudget = () => {
       return;
     }
 
-    const amount = parseFloat(topUpAmount);
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Enter a positive amount');
+    if (!topUpAmount || !topUpAmount.trim()) {
+      toast.error('Please enter an amount to add');
       return;
     }
+
+    // Validate and normalize amount
+    const amountValidation = normalizeNumberInput(topUpAmount, 'Amount');
+    if (!amountValidation.valid || amountValidation.number <= 0) {
+      toast.error('Please enter a positive amount');
+      return;
+    }
+    const amount = amountValidation.number;
 
     setIsProcessing(true);
     try {
@@ -286,16 +348,28 @@ const BalanceBudget = () => {
           .eq('id', selectedCategory.id);
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Top-up error:', error);
+        if (error.code === '23514') {
+          throw new Error('Invalid amount. Please enter a valid number.');
+        } else if (error.code === 'PGRST116') {
+          throw new Error('Balance category not found. Please refresh and try again.');
+        } else {
+          throw new Error(`Failed to add money: ${error.message || 'Unknown error'}`);
+        }
+      }
 
       toast.success(`Added ${formatCurrency(amount, currency)} to ${selectedCategory.card_type}`);
       setIsTopUpDialogOpen(false);
       setTopUpAmount('');
       setSelectedCategory(null);
-      fetchCategories();
+      
+      // Force refresh to ensure UI updates
+      await fetchCategories();
     } catch (error: any) {
       console.error('Error topping up:', error);
-      toast.error(error?.message || 'Failed to add money');
+      const errorMessage = error?.message || 'Failed to add money. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -307,54 +381,133 @@ const BalanceBudget = () => {
       return;
     }
 
-    const limitNum = parseFloat(editLimit);
+    if (!user) {
+      toast.error('You must be logged in to update budget limits');
+      return;
+    }
+
+    // Normalize and validate input
+    const trimmedLimit = editLimit.trim();
+    if (!trimmedLimit) {
+      toast.error('Please enter a monthly limit');
+      return;
+    }
+
+    // Remove leading zeros and parse
+    const normalizedLimit = trimmedLimit.replace(/^0+/, '') || '0';
+    const limitNum = parseFloat(normalizedLimit);
+
     if (isNaN(limitNum) || limitNum < 0) {
-      toast.error('Enter a valid monthly limit');
+      toast.error('Monthly limit must be a valid number (0 or greater)');
+      return;
+    }
+
+    // Check for unreasonably large numbers
+    if (limitNum > 1000000) {
+      toast.error('Monthly limit cannot exceed 1,000,000');
       return;
     }
 
     setIsProcessing(true);
     try {
-      // Check if budget category exists
-      const { data: existingBudget } = await supabase
+      const queryUserId = activeChildId 
+        ? children.find(c => c.id === activeChildId)?.user_id 
+        : user.id;
+
+      if (!queryUserId) {
+        toast.error('Unable to determine user account. Please refresh and try again.');
+        setIsProcessing(false);
+        return;
+      }
+
+      // Build query with proper null handling for child_id
+      let budgetQuery = supabase
         .from('budget_categories')
         .select('id')
-        .eq('user_id', user?.id)
-        .eq('category', selectedCategory.card_type)
-        .eq('child_id', selectedCategory.child_id)
-        .single();
+        .eq('user_id', queryUserId)
+        .eq('category', selectedCategory.card_type);
+
+      // Handle null child_id properly - use is() for null comparison
+      if (selectedCategory.child_id) {
+        budgetQuery = budgetQuery.eq('child_id', selectedCategory.child_id);
+      } else {
+        budgetQuery = budgetQuery.is('child_id', null);
+      }
+
+      const { data: existingBudget, error: queryError } = await budgetQuery.maybeSingle();
+
+      if (queryError) {
+        console.error('Error querying budget:', queryError);
+        throw new Error(`Failed to check existing budget: ${queryError.message}`);
+      }
 
       if (existingBudget) {
         // Update existing budget
-        const { error } = await supabase
+        const { error: updateError } = await supabase
           .from('budget_categories')
-          .update({ monthly_limit: limitNum })
+          .update({ 
+            monthly_limit: limitNum,
+            // Reset current_spent if limit is set to 0 (removing budget)
+            ...(limitNum === 0 && { current_spent: 0 })
+          })
           .eq('id', existingBudget.id);
 
-        if (error) throw error;
+        if (updateError) {
+          console.error('Update error:', updateError);
+          if (updateError.code === '23514') {
+            throw new Error('Invalid budget limit. Please enter a valid number.');
+          } else if (updateError.code === '23503') {
+            throw new Error('Budget category reference is invalid. Please refresh and try again.');
+          } else {
+            throw new Error(`Failed to update budget: ${updateError.message}`);
+          }
+        }
       } else {
-        // Create new budget category
-        const { error } = await supabase
-          .from('budget_categories')
-          .insert({
-            user_id: user?.id,
-            child_id: selectedCategory.child_id,
-            category: selectedCategory.card_type,
-            monthly_limit: limitNum,
-            current_spent: 0,
-          });
+        // Create new budget category only if limit > 0
+        if (limitNum > 0) {
+          const { error: insertError } = await supabase
+            .from('budget_categories')
+            .insert({
+              user_id: queryUserId,
+              child_id: selectedCategory.child_id || null,
+              category: selectedCategory.card_type,
+              monthly_limit: limitNum,
+              current_spent: 0,
+            });
 
-        if (error) throw error;
+          if (insertError) {
+            console.error('Insert error:', insertError);
+            if (insertError.code === '23505') {
+              throw new Error('A budget for this category already exists. Please refresh and try again.');
+            } else if (insertError.code === '23503') {
+              throw new Error('Invalid child or user reference. Please refresh and try again.');
+            } else {
+              throw new Error(`Failed to create budget: ${insertError.message}`);
+            }
+          }
+        } else {
+          // Limit is 0, nothing to create
+          toast.success('Budget limit removed');
+          setIsEditDialogOpen(false);
+          setEditLimit('');
+          setSelectedCategory(null);
+          setIsProcessing(false);
+          await fetchCategories();
+          return;
+        }
       }
 
-      toast.success('Monthly limit updated successfully');
+      toast.success(`Monthly limit ${existingBudget ? 'updated' : 'set'} to ${formatCurrency(limitNum, currency)}`);
       setIsEditDialogOpen(false);
       setEditLimit('');
       setSelectedCategory(null);
-      fetchCategories();
+      
+      // Force refresh to ensure UI updates
+      await fetchCategories();
     } catch (error: any) {
       console.error('Error updating limit:', error);
-      toast.error(error?.message || 'Failed to update monthly limit');
+      const errorMessage = error?.message || 'Failed to update monthly limit. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setIsProcessing(false);
     }
@@ -438,24 +591,50 @@ const BalanceBudget = () => {
                   <Label htmlFor="balance">Initial Balance ({getCurrencySymbol(currency)}) *</Label>
                   <Input
                     id="balance"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0.00"
                     value={initialBalance}
-                    onChange={(e) => setInitialBalance(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      const parts = value.split('.');
+                      const normalized = parts.length > 2 
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : value;
+                      setInitialBalance(normalized);
+                    }}
+                    onBlur={(e) => {
+                      const trimmed = e.target.value.trim();
+                      if (trimmed) {
+                        const normalized = trimmed.replace(/^0+/, '') || '0';
+                        setInitialBalance(normalized);
+                      }
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="limit">Monthly Budget Limit ({getCurrencySymbol(currency)})</Label>
                   <Input
                     id="limit"
-                    type="number"
-                    step="0.01"
-                    min="0"
+                    type="text"
+                    inputMode="decimal"
                     placeholder="0.00 (optional)"
                     value={monthlyLimit}
-                    onChange={(e) => setMonthlyLimit(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9.]/g, '');
+                      const parts = value.split('.');
+                      const normalized = parts.length > 2 
+                        ? parts[0] + '.' + parts.slice(1).join('')
+                        : value;
+                      setMonthlyLimit(normalized);
+                    }}
+                    onBlur={(e) => {
+                      const trimmed = e.target.value.trim();
+                      if (trimmed) {
+                        const normalized = trimmed.replace(/^0+/, '') || '0';
+                        setMonthlyLimit(normalized);
+                      }
+                    }}
                   />
                   <p className="text-xs text-muted-foreground">
                     Set a monthly spending limit for this category (optional)
@@ -642,7 +821,8 @@ const BalanceBudget = () => {
                         className="flex-1"
                         onClick={() => {
                           setSelectedCategory(category);
-                          setEditLimit(category.monthly_limit.toString());
+                          // Initialize with current limit, or empty if no limit set
+                          setEditLimit(category.monthly_limit > 0 ? category.monthly_limit.toString() : '');
                           setIsEditDialogOpen(true);
                         }}
                       >
@@ -672,12 +852,25 @@ const BalanceBudget = () => {
               <Label htmlFor="topup">Amount ({getCurrencySymbol(currency)})</Label>
               <Input
                 id="topup"
-                type="number"
-                step="0.01"
-                min="0.01"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={topUpAmount}
-                onChange={(e) => setTopUpAmount(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  const parts = value.split('.');
+                  const normalized = parts.length > 2 
+                    ? parts[0] + '.' + parts.slice(1).join('')
+                    : value;
+                  setTopUpAmount(normalized);
+                }}
+                onBlur={(e) => {
+                  const trimmed = e.target.value.trim();
+                  if (trimmed) {
+                    const normalized = trimmed.replace(/^0+/, '') || '0';
+                    setTopUpAmount(normalized);
+                  }
+                }}
               />
             </div>
             <Button 
@@ -705,12 +898,25 @@ const BalanceBudget = () => {
               <Label htmlFor="editLimit">Monthly Limit ({getCurrencySymbol(currency)})</Label>
               <Input
                 id="editLimit"
-                type="number"
-                step="0.01"
-                min="0"
+                type="text"
+                inputMode="decimal"
                 placeholder="0.00"
                 value={editLimit}
-                onChange={(e) => setEditLimit(e.target.value)}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.]/g, '');
+                  const parts = value.split('.');
+                  const normalized = parts.length > 2 
+                    ? parts[0] + '.' + parts.slice(1).join('')
+                    : value;
+                  setEditLimit(normalized);
+                }}
+                onBlur={(e) => {
+                  const trimmed = e.target.value.trim();
+                  if (trimmed) {
+                    const normalized = trimmed.replace(/^0+/, '') || '0';
+                    setEditLimit(normalized);
+                  }
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 Set to 0 to remove budget limit
@@ -719,9 +925,13 @@ const BalanceBudget = () => {
             <Button 
               className="w-full" 
               onClick={handleUpdateLimit} 
-              disabled={isProcessing || editLimit === ''}
+              disabled={isProcessing || !editLimit.trim()}
             >
-              {isProcessing ? 'Updating...' : 'Update Limit'}
+              {isProcessing 
+                ? 'Updating...' 
+                : (editLimit === '0' || parseFloat(editLimit || '0') === 0) 
+                  ? 'Remove Budget' 
+                  : 'Update Limit'}
             </Button>
           </div>
         </DialogContent>
