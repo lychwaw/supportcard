@@ -104,3 +104,7 @@ GRANT EXECUTE ON FUNCTION public.approve_expense_request(UUID, UUID) TO authenti
 
 COMMENT ON FUNCTION public.approve_expense_request IS 'Secure expense approval function that deducts from balance category and updates budget tracking';
 
+
+
+
+

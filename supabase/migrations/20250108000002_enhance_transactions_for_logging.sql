@@ -52,3 +52,7 @@ COMMENT ON COLUMN public.transactions.notes IS 'Additional notes for legal docum
 COMMENT ON COLUMN public.transactions.is_parent_logged IS 'True if logged by parent, false if logged by child';
 COMMENT ON COLUMN public.transactions.child_id IS 'Child associated with this transaction';
 
+
+
+
+

@@ -106,3 +106,7 @@ The OAuth flow works like this:
 
 **After adding the redirect URL in Supabase, it should work! 🎉**
 
+
+
+
+

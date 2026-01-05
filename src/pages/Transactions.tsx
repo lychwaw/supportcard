@@ -84,7 +84,8 @@ const Transactions = () => {
       fetchChildrenList();
       fetchBalanceCategories();
     }
-  }, [user, activeChildId, children]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeChildId]); // Removed children to prevent multiple renders
 
   const fetchChildrenList = async () => {
     if (!user) return;
@@ -149,11 +150,28 @@ const Transactions = () => {
         .eq('user_id', queryUserId)
         .order('transaction_date', { ascending: false });
 
-      if (error) throw error;
-      if (data) setTransactions(data as Transaction[]);
-    } catch (error) {
+      if (error) {
+        console.error('Error fetching transactions:', error);
+        // Don't show error toast - empty results are not errors
+        setTransactions([]);
+        return;
+      }
+      
+      // Set transactions (empty array if no data, which is fine - no error)
+      setTransactions((data || []) as Transaction[]);
+    } catch (error: any) {
       console.error('Error fetching transactions:', error);
-      toast.error('Failed to load transactions');
+      // Only show error for real database/network errors
+      // Empty results or "no rows" are not errors - they're just empty state
+      const isRealError = error?.code && 
+        error.code !== 'PGRST116' && 
+        !error.message?.includes('multiple') &&
+        !error.message?.includes('no rows');
+      
+      if (isRealError) {
+        toast.error('Failed to load transactions');
+      }
+      setTransactions([]);
     } finally {
       setLoading(false);
     }

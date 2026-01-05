@@ -34,3 +34,7 @@ GRANT EXECUTE ON FUNCTION public.update_balance(UUID, DECIMAL) TO authenticated;
 
 COMMENT ON FUNCTION public.update_balance IS 'Atomically updates balance by adding amount, prevents race conditions';
 
+
+
+
+

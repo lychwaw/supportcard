@@ -117,12 +117,16 @@ const BalanceBudget = () => {
             (b.child_id === card.child_id || (!b.child_id && !card.child_id))
           );
           
+          const cardBalance = Number(card.balance) || 0;
+          const budgetLimit = budget ? (Number(budget.monthly_limit) || 0) : 0;
+          const budgetSpent = budget ? (Number(budget.current_spent) || 0) : 0;
+          
           mergedCategories.push({
             id: card.id,
             card_type: card.card_type,
-            balance: Number(card.balance || 0),
-            monthly_limit: budget ? Number(budget.monthly_limit || 0) : 0,
-            current_spent: budget ? Number(budget.current_spent || 0) : 0,
+            balance: isFinite(cardBalance) ? cardBalance : 0,
+            monthly_limit: isFinite(budgetLimit) ? budgetLimit : 0,
+            current_spent: isFinite(budgetSpent) ? budgetSpent : 0,
             child_id: card.child_id,
             child: card.children,
           });
@@ -138,12 +142,15 @@ const BalanceBudget = () => {
           );
           
           if (!exists) {
+            const budgetLimit = Number(budget.monthly_limit) || 0;
+            const budgetSpent = Number(budget.current_spent) || 0;
+            
             mergedCategories.push({
               id: budget.id,
               card_type: budget.category,
               balance: 0,
-              monthly_limit: Number(budget.monthly_limit || 0),
-              current_spent: Number(budget.current_spent || 0),
+              monthly_limit: isFinite(budgetLimit) ? budgetLimit : 0,
+              current_spent: isFinite(budgetSpent) ? budgetSpent : 0,
               child_id: budget.child_id,
             });
           }
@@ -326,36 +333,55 @@ const BalanceBudget = () => {
 
     setIsProcessing(true);
     try {
-      // Use atomic update to prevent race conditions
-      const { error } = await supabase.rpc('update_balance', {
+      // Try atomic RPC update first
+      const { error: rpcError } = await supabase.rpc('update_balance', {
         p_card_id: selectedCategory.id,
         p_amount: amount,
-      }).catch(async () => {
-        // Fallback to direct update if RPC doesn't exist
-        const { data: currentCard } = await supabase
-          .from('virtual_cards')
-          .select('balance')
-          .eq('id', selectedCategory.id)
-          .single();
-
-        if (!currentCard) throw new Error('Balance category not found');
-
-        const newBalance = Number(currentCard.balance || 0) + amount;
-
-        return await supabase
-          .from('virtual_cards')
-          .update({ balance: newBalance })
-          .eq('id', selectedCategory.id);
       });
 
-      if (error) {
-        console.error('Top-up error:', error);
-        if (error.code === '23514') {
-          throw new Error('Invalid amount. Please enter a valid number.');
-        } else if (error.code === 'PGRST116') {
-          throw new Error('Balance category not found. Please refresh and try again.');
+      // If RPC function doesn't exist or fails, fall back to direct update
+      if (rpcError) {
+        if (rpcError.code === 'PGRST116' || rpcError.message?.includes('function') || rpcError.message?.includes('does not exist')) {
+          // RPC function doesn't exist, use fallback
+          const { data: currentCard, error: fetchError } = await supabase
+            .from('virtual_cards')
+            .select('balance')
+            .eq('id', selectedCategory.id)
+            .maybeSingle();
+
+          if (fetchError) {
+            console.error('Error fetching card:', fetchError);
+            throw new Error(`Failed to load balance category: ${fetchError.message}`);
+          }
+          
+          if (!currentCard) {
+            throw new Error('Balance category not found. Please refresh the page and try again.');
+          }
+
+          const newBalance = Number(currentCard.balance || 0) + amount;
+          const { error: updateError } = await supabase
+            .from('virtual_cards')
+            .update({ balance: newBalance })
+            .eq('id', selectedCategory.id);
+
+          if (updateError) {
+            console.error('Update error:', updateError);
+            if (updateError.code === '23514') {
+              throw new Error('Invalid amount. Please enter a valid number.');
+            } else {
+              throw new Error(`Failed to add money: ${updateError.message || 'Unknown error'}`);
+            }
+          }
         } else {
-          throw new Error(`Failed to add money: ${error.message || 'Unknown error'}`);
+          // Other RPC error
+          console.error('RPC error:', rpcError);
+          if (rpcError.code === '23514') {
+            throw new Error('Invalid amount. Please enter a valid number.');
+          } else if (rpcError.code === 'PGRST116') {
+            throw new Error('RPC function not available. Please refresh and try again.');
+          } else {
+            throw new Error(`Failed to add money: ${rpcError.message || 'Unknown error'}`);
+          }
         }
       }
 
@@ -425,7 +451,8 @@ const BalanceBudget = () => {
         .from('budget_categories')
         .select('id')
         .eq('user_id', queryUserId)
-        .eq('category', selectedCategory.card_type);
+        .eq('category', selectedCategory.card_type)
+        .limit(1); // Limit to 1 row to avoid multiple row errors
 
       // Handle null child_id properly - use is() for null comparison
       if (selectedCategory.child_id) {
@@ -434,11 +461,42 @@ const BalanceBudget = () => {
         budgetQuery = budgetQuery.is('child_id', null);
       }
 
-      const { data: existingBudget, error: queryError } = await budgetQuery.maybeSingle();
+      // Use maybeSingle() - with limit(1), this should work even if duplicates exist in DB
+      let existingBudget = null;
+      const { data: existingBudgetData, error: queryError } = await budgetQuery.maybeSingle();
 
       if (queryError) {
-        console.error('Error querying budget:', queryError);
-        throw new Error(`Failed to check existing budget: ${queryError.message}`);
+        // If error is about multiple rows despite limit, try getting first row
+        if (queryError.code === 'PGRST116' || queryError.message?.includes('multiple')) {
+          try {
+            // Rebuild query and use single() to get first row
+            let singleQuery = supabase
+              .from('budget_categories')
+              .select('id')
+              .eq('user_id', queryUserId)
+              .eq('category', selectedCategory.card_type)
+              .limit(1);
+            
+            if (selectedCategory.child_id) {
+              singleQuery = singleQuery.eq('child_id', selectedCategory.child_id);
+            } else {
+              singleQuery = singleQuery.is('child_id', null);
+            }
+            
+            const { data: firstRow } = await singleQuery.single();
+            existingBudget = firstRow;
+          } catch (singleError: any) {
+            // If single() also fails, treat as no budget found (will create new one)
+            console.warn('Could not retrieve budget, will create new one');
+            existingBudget = null;
+          }
+        } else {
+          // For other errors, throw
+          console.error('Error querying budget:', queryError);
+          throw new Error(`Failed to check existing budget: ${queryError.message}`);
+        }
+      } else {
+        existingBudget = existingBudgetData || null;
       }
 
       if (existingBudget) {
@@ -514,11 +572,21 @@ const BalanceBudget = () => {
   };
 
   const totalBalance = useMemo(() => {
-    return categories.reduce((sum, cat) => sum + cat.balance, 0);
+    return categories.reduce((sum, cat) => {
+      const balance = Number(cat.balance) || 0;
+      // Safeguard against NaN and Infinity
+      if (!isFinite(balance)) return sum;
+      return sum + balance;
+    }, 0);
   }, [categories]);
 
   const totalBudget = useMemo(() => {
-    return categories.reduce((sum, cat) => sum + cat.monthly_limit, 0);
+    return categories.reduce((sum, cat) => {
+      const limit = Number(cat.monthly_limit) || 0;
+      // Safeguard against NaN and Infinity
+      if (!isFinite(limit)) return sum;
+      return sum + limit;
+    }, 0);
   }, [categories]);
 
   if (loading) {
@@ -716,15 +784,30 @@ const BalanceBudget = () => {
             // - monthly_limit = total budget for the month
             // - current_spent = amount spent this month (tracked separately)
             // - remaining = monthly_limit - current_spent (budget remaining)
-            const spent = category.current_spent || 0;
-            const usagePercentage = category.monthly_limit > 0 
-              ? Math.min(100, (spent / category.monthly_limit) * 100)
+            
+            // Safely parse all numeric values with validation
+            const balance = Number(category.balance) || 0;
+            const monthlyLimit = Number(category.monthly_limit) || 0;
+            const spent = Number(category.current_spent) || 0;
+            
+            // Ensure all values are finite numbers (not NaN or Infinity)
+            const safeBalance = isFinite(balance) ? balance : 0;
+            const safeMonthlyLimit = isFinite(monthlyLimit) ? monthlyLimit : 0;
+            const safeSpent = isFinite(spent) ? spent : 0;
+            
+            // Calculate usage percentage with division by zero protection
+            const usagePercentage = safeMonthlyLimit > 0 
+              ? Math.min(100, Math.max(0, (safeSpent / safeMonthlyLimit) * 100))
               : 0;
-            const remaining = category.monthly_limit > 0 
-              ? category.monthly_limit - spent
-              : category.balance;
-            const isOverBudget = category.monthly_limit > 0 && spent > category.monthly_limit;
-            const isNearLimit = category.monthly_limit > 0 && usagePercentage > 80 && !isOverBudget;
+            
+            // Calculate remaining budget (only relevant when monthly limit is set)
+            const remaining = safeMonthlyLimit > 0 
+              ? safeMonthlyLimit - safeSpent
+              : 0;
+            
+            // Determine budget status
+            const isOverBudget = safeMonthlyLimit > 0 && safeSpent > safeMonthlyLimit;
+            const isNearLimit = safeMonthlyLimit > 0 && usagePercentage > 80 && usagePercentage <= 100 && !isOverBudget;
 
             return (
               <Card
@@ -747,7 +830,7 @@ const BalanceBudget = () => {
                           <AlertTriangle className="w-3 h-3" />
                           Warning
                         </Badge>
-                      ) : category.monthly_limit > 0 ? (
+                      ) : safeMonthlyLimit > 0 ? (
                         <Badge variant="outline" className="border-success text-success flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3" />
                           On Track
@@ -766,17 +849,17 @@ const BalanceBudget = () => {
                       <span className="text-sm opacity-80">Available Balance</span>
                     </div>
                     <div className="text-3xl font-bold">
-                      {formatCurrency(category.balance, currency)}
+                      {formatCurrency(safeBalance, currency)}
                     </div>
                   </div>
 
                   {/* Budget Progress */}
-                  {category.monthly_limit > 0 && (
+                  {safeMonthlyLimit > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="text-muted-foreground">Monthly Budget</span>
                         <span className="font-medium">
-                          {formatCurrency(spent, currency)} / {formatCurrency(category.monthly_limit, currency)}
+                          {formatCurrency(safeSpent, currency)} / {formatCurrency(safeMonthlyLimit, currency)}
                         </span>
                       </div>
                       <Progress
@@ -789,10 +872,10 @@ const BalanceBudget = () => {
                         <span className={`font-medium ${isOverBudget ? 'text-destructive' : 'text-muted-foreground'}`}>
                           {isOverBudget 
                             ? `${formatCurrency(Math.abs(remaining), currency)} over budget`
-                            : `${formatCurrency(remaining, currency)} remaining`}
+                            : `${formatCurrency(Math.max(0, remaining), currency)} remaining`}
                         </span>
                         <span className="text-muted-foreground">
-                          {usagePercentage.toFixed(0)}% used
+                          {isFinite(usagePercentage) ? usagePercentage.toFixed(0) : '0'}% used
                         </span>
                       </div>
                     </div>
@@ -822,7 +905,8 @@ const BalanceBudget = () => {
                         onClick={() => {
                           setSelectedCategory(category);
                           // Initialize with current limit, or empty if no limit set
-                          setEditLimit(category.monthly_limit > 0 ? category.monthly_limit.toString() : '');
+                          const currentLimit = Number(category.monthly_limit) || 0;
+                          setEditLimit(isFinite(currentLimit) && currentLimit > 0 ? currentLimit.toString() : '');
                           setIsEditDialogOpen(true);
                         }}
                       >
