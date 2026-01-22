@@ -6,12 +6,14 @@ interface CurrencyContextType {
   currency: string;
   isLoading: boolean;
   refreshCurrency: () => Promise<void>;
+  setCurrency: (nextCurrency: string) => void;
 }
 
 const CurrencyContext = createContext<CurrencyContextType>({
   currency: 'USD',
   isLoading: true,
   refreshCurrency: async () => {},
+  setCurrency: () => {},
 });
 
 export const useCurrency = () => useContext(CurrencyContext);
@@ -55,7 +57,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   }, [user]);
 
   return (
-    <CurrencyContext.Provider value={{ currency, isLoading, refreshCurrency }}>
+    <CurrencyContext.Provider value={{ currency, isLoading, refreshCurrency, setCurrency }}>
       {children}
     </CurrencyContext.Provider>
   );

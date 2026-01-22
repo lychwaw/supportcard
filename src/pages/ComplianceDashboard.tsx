@@ -4,6 +4,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { formatCurrency } from '@/lib/currency';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +13,7 @@ import { FileDown, Shield, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { z } from 'zod';
+import SubscriptionGate from '@/components/SubscriptionGate';
 
 // Zod schema for compliance score validation
 const ComplianceScoreSchema = z.object({
@@ -44,11 +46,21 @@ const ComplianceDashboard = () => {
   const { user } = useAuth();
   const { children } = useRole();
   const { currency } = useCurrency();
+  const { canViewCompliance } = usePermissions();
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [currentScore, setCurrentScore] = useState<ComplianceScore | null>(null);
   const [history, setHistory] = useState<ComplianceHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  if (!canViewCompliance) {
+    return (
+      <SubscriptionGate
+        title="Compliance analytics are a Legal tier feature"
+        description="Upgrade to SupportCard Legal (or Executive) to access compliance reporting."
+      />
+    );
+  }
 
   useEffect(() => {
     if (user && children.length > 0) {

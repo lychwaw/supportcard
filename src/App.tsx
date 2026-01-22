@@ -8,6 +8,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
@@ -20,6 +21,7 @@ import Calendar from "./pages/Calendar";
 import Messages from "./pages/Messages";
 import Contacts from "./pages/Contacts";
 import Settings from "./pages/Settings";
+import Subscriptions from "./pages/Subscriptions";
 import Family from "./pages/Family";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
@@ -55,7 +57,8 @@ const App = () => {
         <BrowserRouter>
           <AuthProvider>
             <CurrencyProvider>
-              <RoleProvider>
+              <SubscriptionProvider>
+                <RoleProvider>
                 <Routes>
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/auth/callback" element={<AuthCallback />} />
@@ -142,6 +145,16 @@ const App = () => {
                     }
                   />
                   <Route
+                    path="/subscriptions"
+                    element={
+                      <ProtectedRoute>
+                        <AppLayout>
+                          <Subscriptions />
+                        </AppLayout>
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/family"
                     element={
                       <ProtectedRoute>
@@ -183,7 +196,8 @@ const App = () => {
                   />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </RoleProvider>
+                </RoleProvider>
+              </SubscriptionProvider>
             </CurrencyProvider>
         </AuthProvider>
       </BrowserRouter>

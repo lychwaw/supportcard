@@ -1,0 +1,45 @@
+import { importPKCS8, SignJWT } from 'jose';
+
+const getEnv = (key: string) => {
+  const value = process.env[key];
+  if (!value) {
+    throw new Error(`Missing ${key}`);
+  }
+  return value;
+};
+
+const normalizePrivateKey = (value: string) => {
+  const decoded = value.includes('-----BEGIN')
+    ? value
+    : Buffer.from(value, 'base64').toString('utf8');
+  return decoded.replace(/\\n/g, '\n');
+};
+
+export default async function handler(req: any, res: any) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const teamId = getEnv('APPLE_TEAM_ID');
+    const keyId = getEnv('APPLE_MAPKIT_KEY_ID');
+    const privateKeyRaw = getEnv('APPLE_MAPKIT_PRIVATE_KEY');
+    const privateKey = await importPKCS8(normalizePrivateKey(privateKeyRaw), 'ES256');
+
+    const token = await new SignJWT({})
+      .setProtectedHeader({ alg: 'ES256', kid: keyId })
+      .setIssuer(teamId)
+      .setIssuedAt()
+      .setExpirationTime('30m')
+      .sign(privateKey);
+
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Cache-Control', 'no-store');
+    res.status(200).send(token);
+  } catch (error: any) {
+    console.error('MapKit token error:', error);
+    res.status(500).json({ error: 'Failed to generate MapKit token' });
+  }
+}
+

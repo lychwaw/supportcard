@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +17,7 @@ import { FileText, Upload, Trash2, Download, Shield, AlertCircle, Lock } from 'l
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { z } from 'zod';
+import SubscriptionGate from '@/components/SubscriptionGate';
 
 // Zod schema for document upload validation
 const DocumentUploadSchema = z.object({
@@ -49,6 +51,7 @@ interface LegalDocument {
 const DocumentVault = () => {
   const { user } = useAuth();
   const { children } = useRole();
+  const { canViewDocuments } = usePermissions();
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,6 +62,15 @@ const DocumentVault = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentToDelete, setDocumentToDelete] = useState<LegalDocument | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+
+  if (!canViewDocuments) {
+    return (
+      <SubscriptionGate
+        title="Legal Documents are a Legal tier feature"
+        description="Upgrade to SupportCard Legal (or Executive) to access secure document storage."
+      />
+    );
+  }
 
   useEffect(() => {
     if (user && children.length > 0) {

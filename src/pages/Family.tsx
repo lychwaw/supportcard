@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { usePermissions } from '@/hooks/usePermissions';
 import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ import {
 import { toast } from 'sonner';
 import { InviteCoParent } from '@/components/InviteCoParent';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
+import { useNavigate } from 'react-router-dom';
 
 interface CoParentInfo {
   id: string;
@@ -63,6 +65,8 @@ const Family = () => {
   const { user } = useAuth();
   const { refreshChildren, isParent } = useRole();
   const { currency } = useCurrency();
+  const { canManageChildren } = usePermissions();
+  const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [childName, setChildName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
@@ -452,10 +456,17 @@ const Family = () => {
                 Create a child profile to start tracking support payments and invite a co-parent
               </p>
               {isParent && (
-                <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Add Your First Child
-                </Button>
+                canManageChildren ? (
+                  <Button onClick={() => setIsDialogOpen(true)} className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Add Your First Child
+                  </Button>
+                ) : (
+                  <Button onClick={() => navigate('/subscriptions')} className="gap-2">
+                    <Plus className="w-4 h-4" />
+                    Upgrade to add a child
+                  </Button>
+                )
               )}
             </CardContent>
           </Card>

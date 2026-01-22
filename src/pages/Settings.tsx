@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
-import { User, Mail, Phone, DollarSign, Crown, Scale, Users, Check, Info, Upload, FileCheck, Shield, X, Image as ImageIcon, AlertCircle, Lock, RefreshCcw } from 'lucide-react';
+import { User, Mail, Phone, DollarSign, Check, Info, Upload, FileCheck, Shield, X, Image as ImageIcon, AlertCircle, Lock, RefreshCcw } from 'lucide-react';
 import { hashString, constantTimeCompare } from '@/lib/security';
 
 interface Profile {
@@ -35,8 +35,8 @@ interface Profile {
 
 const Settings = () => {
   const { user } = useAuth();
-  const { canManageSettings, canManageSubscription } = usePermissions();
-  const { refreshCurrency } = useCurrency();
+  const { canManageSettings } = usePermissions();
+  const { refreshCurrency, setCurrency: setAppCurrency } = useCurrency();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,66 +61,12 @@ const Settings = () => {
   const [newPasscode, setNewPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [isUpdatingPasscode, setIsUpdatingPasscode] = useState(false);
+  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
+  const [webhookSecret, setWebhookSecret] = useState<string | null>(null);
+  const [webhookMessage, setWebhookMessage] = useState<string | null>(null);
 
   const callbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '';
   const recoveryRedirectUrl = callbackUrl ? `${callbackUrl}?type=recovery` : '';
-
-  const subscriptionTiers = [
-    {
-      tier: 'Free',
-      price: 'R0',
-      features: [
-        'Basic wallet',
-        'Transactions',
-        'Shared expenses',
-        'Basic notifications'
-      ],
-      icon: User,
-      color: 'bg-muted'
-    },
-    {
-      tier: 'Premium',
-      price: 'R99-R149',
-      features: [
-        'Advanced expense analytics & AI insights',
-        'Court-ready exportable reports',
-        'Smart notifications & category tracking',
-        'Goal-based saving pockets',
-        'Priority support & calendar sync',
-        'Custom virtual card designs'
-      ],
-      icon: Crown,
-      color: 'bg-yellow-500'
-    },
-    {
-      tier: 'Legal',
-      price: 'R299-R499',
-      features: [
-        'Multi-client dashboard',
-        'Exportable client reports',
-        'Secure document storage',
-        'Legal portal integration',
-        'Digital signing of agreements',
-        'All Premium features'
-      ],
-      icon: Scale,
-      color: 'bg-purple-500'
-    },
-    {
-      tier: 'Family+',
-      price: 'R199',
-      features: [
-        'Multiple child wallets',
-        'Guardian viewing access',
-        'International transfer discounts',
-        'Individual child insights',
-        'Advanced spending analytics',
-        'All Premium features'
-      ],
-      icon: Users,
-      color: 'bg-blue-500'
-    }
-  ];
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -564,32 +510,33 @@ const Settings = () => {
     setIdPreview(null);
   };
 
-  const handleUpgradeSubscription = async (tier: string) => {
-    if (!canManageSubscription) {
-      toast.error('Only parents can manage subscriptions');
-      return;
-    }
+  const handleRegisterWebhook = async () => {
+    setIsRegisteringWebhook(true);
+    setWebhookMessage(null);
+    setWebhookSecret(null);
 
-    if (!user) return;
-
-    // Placeholder implementation - will integrate with payment system
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          subscription_tier: tier,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', user.id);
+      const response = await fetch('/api/yoco-register-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        throw new Error('Failed to register webhook');
+      }
 
-      toast.success(`Successfully updated to ${tier} tier!`);
-      if (profile) {
-        setProfile({ ...profile, subscription_tier: tier } as Profile);
+      const data = await response.json();
+      if (data?.secret) {
+        setWebhookSecret(data.secret);
+        setWebhookMessage('Webhook registered. Save the secret in Vercel as YOCO_WEBHOOK_SECRET.');
+      } else {
+        setWebhookMessage('Webhook registered. No secret was returned (it is shown only once).');
       }
     } catch (error) {
-      toast.error('Failed to update subscription');
+      console.error('Webhook registration error:', error);
+      setWebhookMessage('Unable to register webhook. Check your Yoco key and try again.');
+    } finally {
+      setIsRegisteringWebhook(false);
     }
   };
 
@@ -614,13 +561,12 @@ const Settings = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your account and subscription preferences</p>
+        <p className="text-muted-foreground">Manage your account preferences and security settings</p>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="subscription">Subscription</TabsTrigger>
           <TabsTrigger value="verification">Verification</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
@@ -668,7 +614,11 @@ const Settings = () => {
                 <select
                   id="currency"
                   value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
+                  onChange={(e) => {
+                    const nextCurrency = e.target.value;
+                    setCurrency(nextCurrency);
+                    setAppCurrency(nextCurrency);
+                  }}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 >
                   <option value="ZAR">ZAR (South African Rand)</option>
@@ -681,56 +631,6 @@ const Settings = () => {
               <Button onClick={handleSaveProfile} disabled={isSaving}>
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="subscription" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription Management</CardTitle>
-              <CardDescription>Choose the plan that best fits your needs</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {subscriptionTiers.map((plan) => {
-                  const Icon = plan.icon;
-                  const isCurrentPlan = profile?.subscription_tier?.toLowerCase() === plan.tier.toLowerCase();
-                  
-                  return (
-                    <Card key={plan.tier} className={isCurrentPlan ? 'border-primary' : ''}>
-                      <CardHeader>
-                        <div className={`${plan.color} w-12 h-12 rounded-lg flex items-center justify-center mb-2`}>
-                          <Icon className="w-6 h-6 text-white" />
-                        </div>
-                        <CardTitle className="text-xl">{plan.tier}</CardTitle>
-                        <div className="text-2xl font-bold">{plan.price}</div>
-                        <p className="text-sm text-muted-foreground">per month</p>
-                      </CardHeader>
-                      <CardContent>
-                        <ul className="space-y-2 mb-4">
-                          {plan.features.map((feature, index) => (
-                            <li key={index} className="flex items-start gap-2 text-sm">
-                              <Check className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                              <span>{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        {isCurrentPlan ? (
-                          <Badge variant="outline" className="w-full justify-center">Current Plan</Badge>
-                        ) : (
-                          <Button
-                            className="w-full"
-                            onClick={() => handleUpgradeSubscription(plan.tier)}
-                          >
-                            {plan.tier === 'Free' ? 'Downgrade' : 'Upgrade'}
-                          </Button>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1007,6 +907,38 @@ const Settings = () => {
                   We’ll send a confirmation link to your new address. Your email will update once you click the link.
                 </p>
               </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="w-5 h-5" />
+                Yoco Webhook Registration
+              </CardTitle>
+              <CardDescription>
+                Register the webhook endpoint to activate automatic subscription updates.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button onClick={handleRegisterWebhook} disabled={isRegisteringWebhook}>
+                {isRegisteringWebhook ? 'Registering...' : 'Register Webhook'}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                This uses your server-side `YOCO_SECRET_KEY` and returns the webhook secret once.
+                Copy it and save it in Vercel as `YOCO_WEBHOOK_SECRET`.
+              </p>
+              {webhookMessage && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs">{webhookMessage}</AlertDescription>
+                </Alert>
+              )}
+              {webhookSecret && (
+                <div className="rounded-lg border bg-muted p-3 text-xs font-mono break-all">
+                  {webhookSecret}
+                </div>
+              )}
             </CardContent>
           </Card>
 

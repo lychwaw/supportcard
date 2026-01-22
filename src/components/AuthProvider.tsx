@@ -3,6 +3,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ProfileCompletionModal } from './ProfileCompletionModal';
+import SubscriptionPromptModal from './SubscriptionPromptModal';
 
 interface AuthContextType {
   user: User | null;
@@ -189,6 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     <AuthContext.Provider value={{ user, session, loading, signOut }}>
       {children}
       <ProfileCompletionModal />
+      <SubscriptionPromptModal />
     </AuthContext.Provider>
   );
 };

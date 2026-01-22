@@ -15,6 +15,7 @@ import {
   Navigation,
   FolderOpen,
   Wallet,
+  Crown,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -43,6 +44,7 @@ const navigationGroups = [
     label: 'Financial',
     items: [
       { title: 'Transactions', url: '/transactions', icon: Receipt },
+      { title: 'Subscriptions', url: '/subscriptions', icon: Crown },
       { title: 'Balance & Budget', url: '/balance-budget', icon: Wallet },
       { title: 'Expense Requests', url: '/expenses', icon: FileText },
     ],

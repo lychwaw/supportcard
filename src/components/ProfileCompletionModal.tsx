@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './AuthProvider';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Dialog,
@@ -21,6 +22,8 @@ export const ProfileCompletionModal = () => {
   const [age, setAge] = useState<number | ''>('');
   const [isLoading, setIsLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [currency, setCurrency] = useState('ZAR');
+  const { setCurrency: setAppCurrency } = useCurrency();
 
   useEffect(() => {
     const checkProfileCompletion = async () => {
@@ -37,7 +40,7 @@ export const ProfileCompletionModal = () => {
         // Check if profile exists and has age
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('age')
+          .select('age, preferred_currency')
           .eq('id', user.id)
           .single();
 
@@ -48,12 +51,20 @@ export const ProfileCompletionModal = () => {
             setTimeout(async () => {
               const { data: profileRetry } = await supabase
                 .from('profiles')
-                .select('age')
+                .select('age, preferred_currency')
                 .eq('id', user.id)
                 .single();
 
-              if (!profileRetry || profileRetry.age === null || profileRetry.age === undefined) {
+              if (
+                !profileRetry ||
+                profileRetry.age === null ||
+                profileRetry.age === undefined ||
+                !profileRetry.preferred_currency
+              ) {
                 setOpen(true);
+              }
+              if (profileRetry?.preferred_currency) {
+                setCurrency(profileRetry.preferred_currency);
               }
               setChecking(false);
             }, 1000);
@@ -65,9 +76,17 @@ export const ProfileCompletionModal = () => {
           }
         }
 
-        // If age is missing, show modal
-        if (!profile || profile.age === null || profile.age === undefined) {
+        // If age or preferred currency is missing, show modal
+        if (
+          !profile ||
+          profile.age === null ||
+          profile.age === undefined ||
+          !profile.preferred_currency
+        ) {
           setOpen(true);
+        }
+        if (profile?.preferred_currency) {
+          setCurrency(profile.preferred_currency);
         }
         setChecking(false);
       } catch (error) {
@@ -94,13 +113,14 @@ export const ProfileCompletionModal = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ age: age } as any)
+        .update({ age: age, preferred_currency: currency } as any)
         .eq('id', user.id);
 
       if (error) {
         console.error('Error updating profile:', error);
         toast.error('Failed to update profile. Please try again.');
       } else {
+        setAppCurrency(currency);
         toast.success('Profile completed! Your role has been assigned based on your age.');
         setOpen(false);
         // Role will be updated automatically by the trigger
@@ -155,6 +175,19 @@ export const ProfileCompletionModal = () => {
               <p className="text-xs text-muted-foreground">
                 Must be between 13 and 120 years old
               </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="preferred-currency">Preferred Currency</Label>
+              <select
+                id="preferred-currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                disabled={isLoading}
+              >
+                <option value="ZAR">ZAR (South African Rand)</option>
+                <option value="USD">USD (US Dollar)</option>
+              </select>
             </div>
           </div>
           <DialogFooter>

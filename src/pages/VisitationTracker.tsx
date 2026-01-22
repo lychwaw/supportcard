@@ -12,6 +12,8 @@ import { MapPin, Clock, CheckCircle, AlertCircle, Navigation } from 'lucide-reac
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { z } from 'zod';
+import MapKitPreview from '@/components/MapKitPreview';
+import { getAppleMapsUrl } from '@/lib/mapkit';
 
 // Zod schema for GPS coordinates validation
 const GPSLocationSchema = z.object({
@@ -167,7 +169,7 @@ const VisitationTracker = () => {
   };
 
   const getMapUrl = (lat: number, lng: number) => {
-    return `https://www.google.com/maps?q=${lat},${lng}`;
+    return getAppleMapsUrl(lat, lng);
   };
 
   if (loading) {
@@ -246,14 +248,21 @@ const VisitationTracker = () => {
                 />
               </div>
               {currentLocation && (
-                <div className="p-3 rounded-lg bg-muted">
-                  <p className="text-sm font-medium mb-1">Current Location</p>
-                  <p className="text-xs text-muted-foreground">
-                    Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Accuracy: ±{Math.round(currentLocation.accuracy)}m
-                  </p>
+                <div className="space-y-3">
+                  <div className="p-3 rounded-lg bg-muted">
+                    <p className="text-sm font-medium mb-1">Current Location</p>
+                    <p className="text-xs text-muted-foreground">
+                      Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Accuracy: ±{Math.round(currentLocation.accuracy)}m
+                    </p>
+                  </div>
+                  <MapKitPreview
+                    latitude={currentLocation.lat}
+                    longitude={currentLocation.lng}
+                    title={`${handoffType === 'pickup' ? 'Pickup' : 'Dropoff'} location`}
+                  />
                 </div>
               )}
               <Button 

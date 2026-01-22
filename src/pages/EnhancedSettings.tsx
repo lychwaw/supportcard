@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { usePermissionContext } from '@/components/PermissionProvider';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,6 +41,7 @@ interface PaymentMethod {
 const EnhancedSettings = () => {
   const { user } = useAuth();
   const { isParent, userRole } = usePermissionContext();
+  const { setCurrency: setAppCurrency } = useCurrency();
   const [loading, setLoading] = useState(true);
   
   // Profile data
@@ -307,7 +309,13 @@ const EnhancedSettings = () => {
                       <DollarSign className="h-4 w-4" />
                       Preferred Currency
                     </Label>
-                    <Select value={currency} onValueChange={setCurrency}>
+                    <Select
+                      value={currency}
+                      onValueChange={(value) => {
+                        setCurrency(value);
+                        setAppCurrency(value);
+                      }}
+                    >
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
