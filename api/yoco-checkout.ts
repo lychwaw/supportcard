@@ -94,7 +94,11 @@ export default async function handler(req: any, res: any) {
     }
 
     const data = await response.json();
-    const checkoutUrl = data?.redirect_url || data?.url || data?.checkout?.url;
+    const checkoutUrl =
+      data?.redirectUrl ||
+      data?.redirect_url ||
+      data?.url ||
+      data?.checkout?.url;
 
     if (!checkoutUrl) {
       res.status(502).json({
