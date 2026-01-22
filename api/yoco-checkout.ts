@@ -86,7 +86,10 @@ export default async function handler(req: any, res: any) {
     if (!response.ok) {
       const message = await response.text();
       console.error('Yoco checkout error:', message);
-      res.status(502).json({ error: 'Failed to create checkout session' });
+      res.status(502).json({
+        error: 'Failed to create checkout session',
+        details: message || `Yoco responded with ${response.status}`,
+      });
       return;
     }
 
@@ -94,14 +97,20 @@ export default async function handler(req: any, res: any) {
     const checkoutUrl = data?.redirect_url || data?.url || data?.checkout?.url;
 
     if (!checkoutUrl) {
-      res.status(502).json({ error: 'Checkout URL missing from Yoco response' });
+      res.status(502).json({
+        error: 'Checkout URL missing from Yoco response',
+        details: JSON.stringify(data),
+      });
       return;
     }
 
     res.status(200).json({ checkout_url: checkoutUrl });
   } catch (error) {
     console.error('Yoco checkout unexpected error:', error);
-    res.status(500).json({ error: 'Unexpected error creating checkout' });
+    res.status(500).json({
+      error: 'Unexpected error creating checkout',
+      details: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 

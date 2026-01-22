@@ -17,6 +17,7 @@ const Subscriptions = () => {
   const { tier, status, expiryDate, isActive, refreshSubscription } = useSubscription();
   const { canManageSubscription } = usePermissions();
   const [isSubmitting, setIsSubmitting] = useState<SubscriptionTierId | null>(null);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
   const expiryLabel = useMemo(() => {
     if (!expiryDate) return 'No expiry set';
@@ -73,6 +74,7 @@ const Subscriptions = () => {
   const handleCheckout = async (tierId: SubscriptionTierId) => {
     if (!user) return;
     setIsSubmitting(tierId);
+    setCheckoutError(null);
 
     try {
       const response = await fetch('/api/yoco-checkout', {
@@ -86,7 +88,17 @@ const Subscriptions = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to start checkout');
+        let errorMessage = 'Failed to start checkout';
+        try {
+          const data = await response.json();
+          if (data?.details) {
+            errorMessage = `${errorMessage}: ${data.details}`;
+          }
+        } catch {
+          const text = await response.text();
+          if (text) errorMessage = `${errorMessage}: ${text}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -97,7 +109,9 @@ const Subscriptions = () => {
       window.location.href = data.checkout_url;
     } catch (error) {
       console.error('Yoco checkout error:', error);
-      toast.error('Unable to start checkout. Please try again.');
+      const message = error instanceof Error ? error.message : 'Unable to start checkout.';
+      setCheckoutError(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(null);
     }
@@ -128,6 +142,11 @@ const Subscriptions = () => {
           <p className="text-sm text-muted-foreground">
             Payments are processed via Yoco hosted checkout (manual renewal each month).
           </p>
+          {checkoutError && (
+            <div className="mt-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
+              {checkoutError}
+            </div>
+          )}
         </CardContent>
       </Card>
 
