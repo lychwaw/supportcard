@@ -35,12 +35,12 @@ export const subscriptionTiers: SubscriptionTier[] = [
   {
     id: 'premium',
     name: 'Premium',
-    description: 'Advanced insights and smart support tools.',
+    description: 'Advanced analytics and smart support tools.',
     priceZar: 100,
     priceUsd: 0,
     billingCycle: 'month',
     features: [
-      'Advanced expense analytics & AI insights',
+      'Advanced expense analytics',
       'Court-ready exportable reports',
       'Smart notifications & category tracking',
       'Goal-based saving pockets',
@@ -59,7 +59,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
       'Multiple child wallets',
       'Guardian viewing access',
       'International transfer discounts',
-      'Individual child insights',
+      'Individual child analytics',
       'Advanced spending analytics',
       'All Premium features',
     ],
