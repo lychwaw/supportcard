@@ -40,7 +40,7 @@ const Pricing = () => {
       description: 'Advanced analytics, smart alerts, and exportable legal reports',
       targetUser: 'Active parents',
       features: [
-        'Advanced expense analytics & AI insights',
+        'Advanced expense analytics',
         'Court-ready, exportable financial reports',
         'Smart notifications & category tracking',
         'Goal-based saving pockets with co-parent contributions',
@@ -82,13 +82,13 @@ const Pricing = () => {
       name: 'Family+',
       price: 'R199',
       period: 'month',
-      description: 'Multiple child wallets, guardian access, and spending insights',
+      description: 'Multiple child wallets, guardian access, and spending overview',
       targetUser: 'Multi-child households',
       features: [
         'Separate wallets per child with limits',
         'Guardian viewing & contribution access',
         'International transfer fee discounts',
-        'Individual child spending insights',
+        'Individual child spending overview',
         'Family dashboard overview',
         'Child-specific analytics',
         'Guardian notifications',
@@ -124,7 +124,7 @@ const Pricing = () => {
   };
 
   const getIcon = (feature: string) => {
-    if (feature.includes('analytics') || feature.includes('insights')) return <BarChart3 className="h-4 w-4" />;
+    if (feature.includes('analytics')) return <BarChart3 className="h-4 w-4" />;
     if (feature.includes('report') || feature.includes('export')) return <Download className="h-4 w-4" />;
     if (feature.includes('notification') || feature.includes('alert')) return <Bell className="h-4 w-4" />;
     if (feature.includes('security') || feature.includes('secure')) return <Shield className="h-4 w-4" />;

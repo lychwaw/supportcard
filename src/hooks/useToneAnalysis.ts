@@ -14,7 +14,7 @@ interface ToneAnalysisResult {
   suggestedTone: 'neutral' | 'positive' | 'negative' | 'hostile';
 }
 
-// Simple sentiment analysis (in production, use AI service like OpenAI, AWS Comprehend, etc.)
+  // Simple sentiment analysis (replace with a dedicated service in production)
 const analyzeTone = (text: string): ToneAnalysisResult => {
   const lowerText = text.toLowerCase();
   
@@ -95,7 +95,7 @@ export const useToneAnalysis = () => {
       // Validate input with Zod
       const validated = MessageSchema.parse({ content: message });
       
-      // Simulate API delay (in production, call actual AI service)
+      // Simulate API delay (replace with real sentiment scoring in production)
       await new Promise(resolve => setTimeout(resolve, 300));
       
       const result = analyzeTone(validated.content);
@@ -122,6 +122,10 @@ export const useToneAnalysis = () => {
     reset,
   };
 };
+
+
+
+
 
 
 
