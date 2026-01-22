@@ -62,7 +62,11 @@ export default async function handler(req: any, res: any) {
 
     const supabase = getSupabaseClient();
     const nextExpiryDate = new Date();
-    nextExpiryDate.setMonth(nextExpiryDate.getMonth() + 1);
+    if (tierId === 'executive') {
+      nextExpiryDate.setFullYear(nextExpiryDate.getFullYear() + 1);
+    } else {
+      nextExpiryDate.setMonth(nextExpiryDate.getMonth() + 1);
+    }
     const nextExpiry = nextExpiryDate.toISOString();
 
     const { error } = await supabase

@@ -168,7 +168,9 @@ const Subscriptions = () => {
               <CardContent className="space-y-4">
                 <div className="text-3xl font-bold">
                   {priceLabel}
-                  <span className="text-base font-normal text-muted-foreground"> / month</span>
+                  <span className="text-base font-normal text-muted-foreground">
+                    {plan.billingCycle === 'year' ? ' / year' : ' / month'}
+                  </span>
                 </div>
                 <ul className="space-y-2 text-sm">
                   {plan.features.map((feature) => (

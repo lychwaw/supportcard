@@ -18,6 +18,7 @@ export interface SubscriptionTier {
   description: string;
   priceZar: number;
   priceUsd: number;
+  billingCycle: 'month' | 'year';
   features: string[];
 }
 
@@ -28,6 +29,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     description: 'Basic access for essential tracking.',
     priceZar: 0,
     priceUsd: 0,
+    billingCycle: 'month',
     features: ['Basic wallet', 'Transactions', 'Shared expenses', 'Basic notifications'],
   },
   {
@@ -36,6 +38,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     description: 'Advanced insights and smart support tools.',
     priceZar: 100,
     priceUsd: 0,
+    billingCycle: 'month',
     features: [
       'Advanced expense analytics & AI insights',
       'Court-ready exportable reports',
@@ -51,6 +54,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     description: 'Multi-child wallets and guardian visibility.',
     priceZar: 150,
     priceUsd: 0,
+    billingCycle: 'month',
     features: [
       'Multiple child wallets',
       'Guardian viewing access',
@@ -66,6 +70,7 @@ export const subscriptionTiers: SubscriptionTier[] = [
     description: 'Built for legal workflows and documentation.',
     priceZar: 500,
     priceUsd: 0,
+    billingCycle: 'month',
     features: [
       'Multi-client dashboard',
       'Exportable client reports',
@@ -79,8 +84,9 @@ export const subscriptionTiers: SubscriptionTier[] = [
     id: 'executive',
     name: 'SupportCard Executive',
     description: 'Global-grade compliance and dispute handling.',
-    priceZar: 1616,
-    priceUsd: 100,
+    priceZar: 1500,
+    priceUsd: 0,
+    billingCycle: 'year',
     features: [
       'All Premium/Family+/Legal features',
       'Court-ready audit trails',
@@ -101,16 +107,8 @@ export const getTierPriceDisplay = (tier: SubscriptionTier, currency: string) =>
   }
 
   if (currency === 'USD') {
-    if (tier.id === 'executive') {
-      return formatCurrency(tier.priceUsd, 'USD');
-    }
     const usdAmount = tier.priceZar / ZAR_PER_USD;
-    return `${formatCurrency(usdAmount, 'USD')} (est.)`;
-  }
-
-  if (tier.id === 'executive') {
-    const zarAmount = tier.priceUsd * ZAR_PER_USD;
-    return `${formatCurrency(zarAmount, 'ZAR')} (est.)`;
+    return formatCurrency(usdAmount, 'USD');
   }
 
   return formatCurrency(tier.priceZar, 'ZAR');

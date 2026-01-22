@@ -15,10 +15,7 @@ const getAmountInCents = (tierId: string, currency: string) => {
     case 'legal':
       return 50000;
     case 'executive':
-      if (currency === 'USD') {
-        return Math.round(100 * ZAR_PER_USD * 100);
-      }
-      return Math.round(1616 * 100);
+      return Math.round(1500 * 100);
     default:
       return 0;
   }
