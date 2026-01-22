@@ -64,8 +64,8 @@ const BalanceBudget = () => {
     try {
       const { data: childrenData } = await supabase
         .from('children')
-        .select('id, name, parent_id, co_parent_id')
-        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
+        .select('id, name, parent_id')
+        .eq('parent_id', user.id);
       if (childrenData) {
         setChildrenList(childrenData);
       }
@@ -78,30 +78,33 @@ const BalanceBudget = () => {
     if (!user) return;
 
     try {
-      const queryUserId = activeChildId 
-        ? children.find(c => c.id === activeChildId)?.user_id 
-        : user.id;
-
-      if (!queryUserId) {
-        setLoading(false);
-        return;
-      }
-
       // Fetch balance categories (virtual_cards)
-      const { data: cardsData, error: cardsError } = await supabase
+      let cardsQuery = supabase
         .from('virtual_cards')
         .select(`
           *,
           children:child_id(id, name)
         `)
-        .eq('user_id', queryUserId)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
+      if (activeChildId) {
+        cardsQuery = cardsQuery.eq('child_id', activeChildId);
+      }
+
+      const { data: cardsData, error: cardsError } = await cardsQuery;
+
       // Fetch budget categories
-      const { data: budgetsData, error: budgetsError } = await supabase
+      let budgetsQuery = supabase
         .from('budget_categories')
         .select('*')
-        .eq('user_id', queryUserId);
+        .eq('user_id', user.id);
+
+      if (activeChildId) {
+        budgetsQuery = budgetsQuery.eq('child_id', activeChildId);
+      }
+
+      const { data: budgetsData, error: budgetsError } = await budgetsQuery;
 
       if (cardsError) console.error('Error fetching cards:', cardsError);
       if (budgetsError) console.error('Error fetching budgets:', budgetsError);
@@ -347,15 +350,10 @@ const BalanceBudget = () => {
             .from('virtual_cards')
             .select('balance')
             .eq('id', selectedCategory.id)
-            .maybeSingle();
+            .single();
 
-          if (fetchError) {
-            console.error('Error fetching card:', fetchError);
-            throw new Error(`Failed to load balance category: ${fetchError.message}`);
-          }
-          
-          if (!currentCard) {
-            throw new Error('Balance category not found. Please refresh the page and try again.');
+          if (fetchError || !currentCard) {
+            throw new Error('Balance category not found. Please refresh and try again.');
           }
 
           const newBalance = Number(currentCard.balance || 0) + amount;
@@ -378,7 +376,7 @@ const BalanceBudget = () => {
           if (rpcError.code === '23514') {
             throw new Error('Invalid amount. Please enter a valid number.');
           } else if (rpcError.code === 'PGRST116') {
-            throw new Error('RPC function not available. Please refresh and try again.');
+            throw new Error('Balance category not found. Please refresh and try again.');
           } else {
             throw new Error(`Failed to add money: ${rpcError.message || 'Unknown error'}`);
           }
@@ -436,23 +434,13 @@ const BalanceBudget = () => {
 
     setIsProcessing(true);
     try {
-      const queryUserId = activeChildId 
-        ? children.find(c => c.id === activeChildId)?.user_id 
-        : user.id;
-
-      if (!queryUserId) {
-        toast.error('Unable to determine user account. Please refresh and try again.');
-        setIsProcessing(false);
-        return;
-      }
-
       // Build query with proper null handling for child_id
       let budgetQuery = supabase
         .from('budget_categories')
         .select('id')
-        .eq('user_id', queryUserId)
+        .eq('user_id', user.id)
         .eq('category', selectedCategory.card_type)
-        .limit(1); // Limit to 1 row to avoid multiple row errors
+        .limit(1);
 
       // Handle null child_id properly - use is() for null comparison
       if (selectedCategory.child_id) {
@@ -461,42 +449,11 @@ const BalanceBudget = () => {
         budgetQuery = budgetQuery.is('child_id', null);
       }
 
-      // Use maybeSingle() - with limit(1), this should work even if duplicates exist in DB
-      let existingBudget = null;
-      const { data: existingBudgetData, error: queryError } = await budgetQuery.maybeSingle();
+      const { data: existingBudget, error: queryError } = await budgetQuery.maybeSingle();
 
       if (queryError) {
-        // If error is about multiple rows despite limit, try getting first row
-        if (queryError.code === 'PGRST116' || queryError.message?.includes('multiple')) {
-          try {
-            // Rebuild query and use single() to get first row
-            let singleQuery = supabase
-              .from('budget_categories')
-              .select('id')
-              .eq('user_id', queryUserId)
-              .eq('category', selectedCategory.card_type)
-              .limit(1);
-            
-            if (selectedCategory.child_id) {
-              singleQuery = singleQuery.eq('child_id', selectedCategory.child_id);
-            } else {
-              singleQuery = singleQuery.is('child_id', null);
-            }
-            
-            const { data: firstRow } = await singleQuery.single();
-            existingBudget = firstRow;
-          } catch (singleError: any) {
-            // If single() also fails, treat as no budget found (will create new one)
-            console.warn('Could not retrieve budget, will create new one');
-            existingBudget = null;
-          }
-        } else {
-          // For other errors, throw
-          console.error('Error querying budget:', queryError);
-          throw new Error(`Failed to check existing budget: ${queryError.message}`);
-        }
-      } else {
-        existingBudget = existingBudgetData || null;
+        console.error('Error querying budget:', queryError);
+        throw new Error(`Failed to check existing budget: ${queryError.message}`);
       }
 
       if (existingBudget) {
@@ -526,7 +483,7 @@ const BalanceBudget = () => {
           const { error: insertError } = await supabase
             .from('budget_categories')
             .insert({
-              user_id: queryUserId,
+              user_id: user.id,
               child_id: selectedCategory.child_id || null,
               category: selectedCategory.card_type,
               monthly_limit: limitNum,

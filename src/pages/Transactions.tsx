@@ -92,8 +92,8 @@ const Transactions = () => {
     try {
       const { data: childrenData } = await supabase
         .from('children')
-        .select('id, name, parent_id, co_parent_id')
-        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
+        .select('id, name, parent_id')
+        .eq('parent_id', user.id);
       if (childrenData) {
         setChildrenList(childrenData);
       }
@@ -105,16 +105,16 @@ const Transactions = () => {
   const fetchBalanceCategories = async () => {
     if (!user) return;
     try {
-      const queryUserId = activeChildId 
-        ? children.find(c => c.id === activeChildId)?.user_id 
-        : user.id;
-
-      if (!queryUserId) return;
-
-      const { data: cardsData } = await supabase
+      let cardsQuery = supabase
         .from('virtual_cards')
         .select('id, card_type, child_id')
-        .eq('user_id', queryUserId);
+        .eq('user_id', user.id);
+
+      if (activeChildId) {
+        cardsQuery = cardsQuery.eq('child_id', activeChildId);
+      }
+
+      const { data: cardsData } = await cardsQuery;
 
       if (cardsData) {
         setBalanceCategories(cardsData);
@@ -129,15 +129,6 @@ const Transactions = () => {
 
     try {
       setLoading(true);
-      const queryUserId = activeChildId 
-        ? children.find(c => c.id === activeChildId)?.user_id 
-        : user.id;
-
-      if (!queryUserId) {
-        setLoading(false);
-        return;
-      }
-
       // Fetch all transactions for this user and their children
       const { data, error } = await supabase
         .from('transactions')
@@ -147,7 +138,7 @@ const Transactions = () => {
           virtual_cards:card_id(id, card_type),
           profiles:logged_by(id, full_name)
         `)
-        .eq('user_id', queryUserId)
+        .eq('user_id', user.id)
         .order('transaction_date', { ascending: false });
 
       if (error) {
@@ -190,19 +181,10 @@ const Transactions = () => {
     }
 
     try {
-      const queryUserId = activeChildId 
-        ? children.find(c => c.id === activeChildId)?.user_id 
-        : user.id;
-
-      if (!queryUserId) {
-        toast.error('Unable to determine user account');
-        return;
-      }
-
       const { error } = await supabase
         .from('transactions')
         .insert({
-          user_id: queryUserId,
+          user_id: user.id,
           logged_by: user.id,
           merchant_name: merchantName,
           amount: amountNum,
@@ -212,7 +194,7 @@ const Transactions = () => {
           notes: notes || null,
           transaction_type: transactionType,
           is_parent_logged: isParent,
-          child_id: selectedChildId || null,
+          child_id: selectedChildId || activeChildId || null,
           card_id: selectedCardId || null,
         });
 
@@ -366,11 +348,17 @@ const Transactions = () => {
 
   // Filter transactions based on active tab
   const filteredTransactions = useMemo(() => {
-    if (activeTab === 'all') return transactions;
-    if (activeTab === 'parent') return transactions.filter(t => t.is_parent_logged);
-    if (activeTab === 'child') return transactions.filter(t => !t.is_parent_logged);
-    return transactions;
-  }, [transactions, activeTab]);
+    let scoped = transactions;
+
+    if (activeChildId) {
+      scoped = scoped.filter(t => t.child_id === activeChildId);
+    }
+
+    if (activeTab === 'all') return scoped;
+    if (activeTab === 'parent') return scoped.filter(t => t.is_parent_logged);
+    if (activeTab === 'child') return scoped.filter(t => !t.is_parent_logged);
+    return scoped;
+  }, [transactions, activeTab, activeChildId]);
 
   if (loading) {
     return (
