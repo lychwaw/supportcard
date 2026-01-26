@@ -44,7 +44,7 @@ interface ExpenseRequest {
 const Expenses = () => {
   const { user } = useAuth();
   const { isChild, isParent, children } = useRole();
-  const { canApproveExpenses, canCreateExpenseRequests } = usePermissions();
+  const { canApproveExpenses, canCreateExpenseRequests, canTopUpCards } = usePermissions();
   const { currency } = useCurrency();
   const [expenses, setExpenses] = useState<ExpenseRequest[]>([]);
   const [allExpenses, setAllExpenses] = useState<ExpenseRequest[]>([]);
@@ -56,6 +56,11 @@ const Expenses = () => {
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [childrenList, setChildrenList] = useState<any[]>([]);
   const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
+  const [balanceCategories, setBalanceCategories] = useState<any[]>([]);
+  const [isSendMoneyOpen, setIsSendMoneyOpen] = useState(false);
+  const [sendMoneyAmount, setSendMoneyAmount] = useState('');
+  const [sendMoneyCardId, setSendMoneyCardId] = useState<string>('');
+  const [isSendingMoney, setIsSendingMoney] = useState(false);
 
   const categories = ['Food', 'Clothing', 'School', 'Activities', 'Healthcare', 'Transportation'];
 
@@ -63,6 +68,7 @@ const Expenses = () => {
     if (user) {
       fetchChildrenList();
       fetchExpenses();
+      fetchBalanceCategories();
     }
   }, [user]);
 
@@ -114,6 +120,48 @@ const Expenses = () => {
         console.error('Error fetching children:', error);
       }
       setChildrenList([]);
+    }
+  };
+
+  const fetchBalanceCategories = async () => {
+    if (!user || !canTopUpCards) {
+      setBalanceCategories([]);
+      return;
+    }
+
+    try {
+      const { data: myChildren } = await supabase
+        .from('children')
+        .select('id')
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
+
+      const childIds = myChildren?.map((c) => c.id) || [];
+      if (childIds.length === 0) {
+        setBalanceCategories([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('virtual_cards')
+        .select('id, card_type, balance, child_id, children:child_id(name)')
+        .in('child_id', childIds)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const cardsWithChildren = (data || []).map((card: any) => ({
+        ...card,
+        child: card.children,
+      }));
+      setBalanceCategories(cardsWithChildren);
+      if (!sendMoneyCardId && cardsWithChildren.length > 0) {
+        setSendMoneyCardId(cardsWithChildren[0].id);
+      }
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error fetching balance categories:', error);
+      }
+      setBalanceCategories([]);
     }
   };
 
@@ -275,6 +323,62 @@ const Expenses = () => {
       if (import.meta.env.DEV) {
         console.error('Error submitting expense request:', error);
       }
+    }
+  };
+
+  const handleSendMoney = async () => {
+    if (!canTopUpCards) {
+      toast.error('You do not have permission to send money');
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to send money');
+      return;
+    }
+
+    if (!sendMoneyCardId) {
+      toast.error('Select a balance category to send money to');
+      return;
+    }
+
+    const amountNum = parseFloat(sendMoneyAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      toast.error('Enter a positive amount');
+      return;
+    }
+
+    setIsSendingMoney(true);
+    try {
+      const response = await fetch('/api/yoco-topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          card_id: sendMoneyCardId,
+          amount: amountNum,
+          currency,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to start payment');
+      }
+
+      const data = await response.json();
+      if (!data?.checkout_url) {
+        throw new Error('Missing checkout URL');
+      }
+
+      window.location.href = data.checkout_url;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error sending money:', error);
+      }
+      toast.error('Unable to start payment');
+    } finally {
+      setIsSendingMoney(false);
     }
   };
 
@@ -441,7 +545,53 @@ const Expenses = () => {
             <p className="text-muted-foreground">Submit and track expense approvals</p>
           </div>
         </div>
-        {canCreateExpenseRequests && (
+        <div className="flex gap-2">
+          {canTopUpCards && (
+            <Dialog open={isSendMoneyOpen} onOpenChange={setIsSendMoneyOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">Send Money</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Send Money</DialogTitle>
+                  <DialogDescription>Pay with Yoco to top up a balance category.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="balance-category">Balance Category</Label>
+                    <Select value={sendMoneyCardId} onValueChange={setSendMoneyCardId}>
+                      <SelectTrigger id="balance-category">
+                        <SelectValue placeholder="Select balance category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {balanceCategories.map((card) => (
+                          <SelectItem key={card.id} value={card.id}>
+                            {card.card_type} - {card.child?.name || 'Family Wallet'} ({formatCurrency(card.balance, currency)})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="send-amount">Amount ({getCurrencySymbol(currency)})</Label>
+                    <Input
+                      id="send-amount"
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      placeholder="0.00"
+                      value={sendMoneyAmount}
+                      onChange={(e) => setSendMoneyAmount(e.target.value)}
+                    />
+                  </div>
+                  <Button onClick={handleSendMoney} className="w-full" disabled={isSendingMoney || !sendMoneyCardId}>
+                    {isSendingMoney ? 'Processing...' : 'Pay with Yoco'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          {canCreateExpenseRequests && (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -525,7 +675,9 @@ const Expenses = () => {
             </div>
           </DialogContent>
         </Dialog>
-        )}
+          </Dialog>
+          )}
+        </div>
       </div>
 
       <AccountSwitcher />
