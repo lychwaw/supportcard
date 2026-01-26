@@ -240,7 +240,7 @@ const Expenses = () => {
     }
 
     try {
-      const { error } = await supabase
+      const { data: createdExpense, error } = await supabase
         .from('expense_requests')
         .insert({
           requester_id: user.id,
@@ -249,9 +249,19 @@ const Expenses = () => {
           category,
           description,
           status: 'pending',
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) throw error;
+
+      if (createdExpense?.id) {
+        fetch('/api/apns-notify-expense', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ expense_id: createdExpense.id }),
+        }).catch(() => undefined);
+      }
 
       toast.success('Expense request submitted');
       setIsDialogOpen(false);
