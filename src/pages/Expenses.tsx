@@ -675,7 +675,6 @@ const Expenses = () => {
             </div>
           </DialogContent>
         </Dialog>
-          </Dialog>
           )}
         </div>
       </div>
