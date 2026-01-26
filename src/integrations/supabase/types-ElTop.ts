@@ -242,6 +242,9 @@ export type Database = {
           created_at: string | null
           description: string | null
           id: string
+          paid_at: string | null
+          payment_reference: string | null
+          payment_status: string | null
           receipt_url: string | null
           requester_id: string
           status: string | null
@@ -254,6 +257,9 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           receipt_url?: string | null
           requester_id: string
           status?: string | null
@@ -266,6 +272,9 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           id?: string
+          paid_at?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
           receipt_url?: string | null
           requester_id?: string
           status?: string | null

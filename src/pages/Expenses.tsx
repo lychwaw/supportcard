@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
+import { convertToZar, formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,9 @@ interface ExpenseRequest {
   description: string;
   status: string;
   created_at: string;
+  payment_status?: string | null;
+  paid_at?: string | null;
+  payment_reference?: string | null;
 }
 
 const Expenses = () => {
@@ -52,6 +55,7 @@ const Expenses = () => {
   const [description, setDescription] = useState('');
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [childrenList, setChildrenList] = useState<any[]>([]);
+  const [payingExpenseId, setPayingExpenseId] = useState<string | null>(null);
 
   const categories = ['Food', 'Clothing', 'School', 'Activities', 'Healthcare', 'Transportation'];
 
@@ -61,6 +65,22 @@ const Expenses = () => {
       fetchExpenses();
     }
   }, [user]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const paymentStatus = url.searchParams.get('payment');
+    if (!paymentStatus) return;
+
+    if (paymentStatus === 'success') {
+      toast.success('Payment received. Expense approval is being finalized.');
+      fetchExpenses();
+    } else if (paymentStatus === 'cancel') {
+      toast.error('Payment cancelled.');
+    }
+
+    url.searchParams.delete('payment');
+    window.history.replaceState({}, '', url.toString());
+  }, []);
 
   const fetchChildrenList = async () => {
     if (!user) return;
@@ -180,24 +200,10 @@ const Expenses = () => {
       return;
     }
 
-    if (amountNum > 100000) {
-      toast.error('Amount is too large. Maximum is $100,000');
+    const amountZar = convertToZar(amountNum, currency);
+    if (amountZar > 100000) {
+      toast.error(`Amount is too large. Maximum is ${formatCurrency(100000, currency)}`);
       return;
-    }
-
-    // Validate with Zod schema
-    try {
-      ExpenseRequestSchema.parse({
-        amount: amountNum,
-        category,
-        description,
-        child_id: childId || null,
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        toast.error(error.errors[0].message);
-        return;
-      }
     }
 
     // For parents, require child selection
@@ -218,13 +224,28 @@ const Expenses = () => {
       childId = children[0].id;
     }
 
+    // Validate with Zod schema
+    try {
+      ExpenseRequestSchema.parse({
+        amount: amountZar,
+        category,
+        description,
+        child_id: childId || null,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        toast.error(error.errors[0].message);
+        return;
+      }
+    }
+
     try {
       const { error } = await supabase
         .from('expense_requests')
         .insert({
           requester_id: user.id,
           child_id: childId || null,
-          amount: amountNum,
+          amount: amountZar,
           category,
           description,
           status: 'pending',
@@ -244,6 +265,67 @@ const Expenses = () => {
       if (import.meta.env.DEV) {
         console.error('Error submitting expense request:', error);
       }
+    }
+  };
+
+  const handlePayAndApproveExpense = async (expenseId: string) => {
+    if (!canApproveExpenses) {
+      toast.error('Only parents can approve expenses');
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to approve expenses');
+      return;
+    }
+
+    const expense = expenses.find(e => e.id === expenseId) || allExpenses.find(e => e.id === expenseId);
+    if (!expense) {
+      toast.error('Expense request not found');
+      return;
+    }
+
+    if (expense.requester_id === user.id) {
+      toast.error('You cannot approve your own expense request');
+      return;
+    }
+
+    const canApprove = await canUserApproveExpense(expense);
+    if (!canApprove) {
+      toast.error('You can only approve expenses for your children');
+      return;
+    }
+
+    setPayingExpenseId(expenseId);
+    try {
+      const response = await fetch('/api/yoco-expense-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expense_id: expenseId,
+          approver_id: user.id,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to start approval payment');
+      }
+
+      const data = await response.json();
+      if (!data?.checkout_url) {
+        throw new Error('Missing checkout URL');
+      }
+
+      window.location.href = data.checkout_url;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error starting expense approval payment:', error);
+      }
+      toast.error('Unable to start payment for approval');
+      fetchExpenses();
+    } finally {
+      setPayingExpenseId(null);
     }
   };
 
@@ -274,51 +356,6 @@ const Expenses = () => {
         console.error('Error checking approval permission:', error);
       }
       return false;
-    }
-  };
-
-  const handleApproveExpense = async (expenseId: string) => {
-    if (!canApproveExpenses) {
-      toast.error('Only parents can approve expenses');
-      return;
-    }
-
-    // Get expense to validate
-    const expense = expenses.find(e => e.id === expenseId) || allExpenses.find(e => e.id === expenseId);
-    if (!expense) {
-      toast.error('Expense request not found');
-      return;
-    }
-
-    // CRITICAL: Prevent self-approval
-    if (expense.requester_id === user?.id) {
-      toast.error('You cannot approve your own expense request');
-      return;
-    }
-
-    // Verify user can approve (is parent/co-parent of child)
-    const canApprove = await canUserApproveExpense(expense);
-    if (!canApprove) {
-      toast.error('You can only approve expenses for your children');
-      return;
-    }
-
-    try {
-      // Use secure RPC function instead of direct UPDATE
-      const { error } = await (supabase.rpc as any)('approve_expense_request', {
-        p_request_id: expenseId,
-        p_approver_id: user?.id,
-      });
-
-      if (error) throw error;
-
-      toast.success('Expense request approved');
-      fetchExpenses();
-    } catch (error: any) {
-      toast.error(error?.message || 'Failed to approve request');
-      if (import.meta.env.DEV) {
-        console.error('Error approving expense:', error);
-      }
     }
   };
 
@@ -497,7 +534,13 @@ const Expenses = () => {
           </Card>
         ) : (
           expenses.map((expense) => {
-            const canApprove = isParent && expense.status === 'pending' && expense.requester_id !== user?.id;
+            const canApprove =
+              isParent &&
+              expense.status === 'pending' &&
+              expense.requester_id !== user?.id;
+            const paymentStatus = expense.payment_status || 'unpaid';
+            const isPaymentPending = paymentStatus === 'pending';
+            const isPaid = paymentStatus === 'paid';
             return (
               <Card 
                 key={expense.id} 
@@ -515,6 +558,15 @@ const Expenses = () => {
                               <User className="w-3 h-3" />
                               {expense.child.name}
                             </Badge>
+                          )}
+                          {expense.status === 'approved' && (
+                            <Badge variant="secondary">Approved</Badge>
+                          )}
+                          {isPaid && (
+                            <Badge className="bg-success/10 text-success">Paid</Badge>
+                          )}
+                          {isPaymentPending && (
+                            <Badge className="bg-warning/10 text-warning">Payment pending</Badge>
                           )}
                         </div>
                       </CardDescription>
@@ -544,16 +596,18 @@ const Expenses = () => {
                     <div className="flex gap-2 pt-2 border-t">
                       <Button 
                         size="sm" 
-                        onClick={() => handleApproveExpense(expense.id)}
+                        onClick={() => handlePayAndApproveExpense(expense.id)}
+                        disabled={isPaymentPending || payingExpenseId === expense.id}
                         className="flex-1"
                       >
-                        ✓ Approve
+                        {payingExpenseId === expense.id ? 'Processing...' : 'Pay & Approve'}
                       </Button>
                       <Button 
                         size="sm" 
                         variant="destructive"
                         onClick={() => handleRejectExpense(expense.id)}
                         className="flex-1"
+                        disabled={isPaymentPending || payingExpenseId === expense.id}
                       >
                         ✗ Reject
                       </Button>

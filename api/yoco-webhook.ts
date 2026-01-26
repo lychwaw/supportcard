@@ -20,6 +20,14 @@ const isSuccessEvent = (body: any) => {
 
 const getMetadata = (payload: any) => payload?.metadata || payload?.reference || {};
 
+const getPaymentReference = (payload: any) =>
+  payload?.id ||
+  payload?.payment?.id ||
+  payload?.charge_id ||
+  payload?.charge?.id ||
+  payload?.data?.id ||
+  null;
+
 const verifySignature = (rawBody: string, signature: string, secret: string) => {
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
@@ -52,6 +60,110 @@ export default async function handler(req: any, res: any) {
 
     const payload = extractPayload(body);
     const metadata = getMetadata(payload);
+    const supabase = getSupabaseClient();
+
+    if (metadata?.type === 'expense_approval') {
+      const expenseId = metadata.expense_id;
+      const approverId = metadata.approver_id;
+
+      if (!expenseId || !approverId) {
+        res.status(400).json({ error: 'Missing metadata expense_id or approver_id' });
+        return;
+      }
+
+      const { data: expense, error: expenseError } = await supabase
+        .from('expense_requests')
+        .select('status, payment_status')
+        .eq('id', expenseId)
+        .single();
+
+      if (expenseError || !expense) {
+        console.error('Expense fetch error:', expenseError);
+        res.status(500).json({ error: 'Failed to load expense request' });
+        return;
+      }
+
+      if (expense.payment_status === 'paid') {
+        res.status(200).json({ updated: true, type: 'expense_approval' });
+        return;
+      }
+
+      if (expense.status === 'rejected') {
+        console.warn('Expense payment received for rejected request:', expenseId);
+        res.status(200).json({ updated: false, type: 'expense_approval', reason: 'rejected' });
+        return;
+      }
+
+      if (expense.status === 'pending') {
+        const { error: approveError } = await supabase.rpc('approve_expense_request', {
+          p_request_id: expenseId,
+          p_approver_id: approverId,
+        });
+
+        if (approveError) {
+          console.error('Expense approval error:', approveError);
+          res.status(500).json({ error: 'Failed to approve expense request' });
+          return;
+        }
+      }
+
+      const paymentReference = getPaymentReference(payload);
+      const { error: paymentError } = await supabase
+        .from('expense_requests')
+        .update({
+          payment_status: 'paid',
+          paid_at: new Date().toISOString(),
+          payment_reference: paymentReference,
+        })
+        .eq('id', expenseId);
+
+      if (paymentError) {
+        console.error('Expense payment update error:', paymentError);
+        res.status(500).json({ error: 'Failed to mark expense as paid' });
+        return;
+      }
+
+      res.status(200).json({ updated: true, type: 'expense_approval' });
+      return;
+    }
+
+    if (metadata?.type === 'topup') {
+      const cardId = metadata.card_id;
+      const amountZar = Number(metadata.amount_zar);
+
+      if (!cardId || !Number.isFinite(amountZar)) {
+        res.status(400).json({ error: 'Missing metadata card_id or amount_zar' });
+        return;
+      }
+
+      const { data: card, error: fetchError } = await supabase
+        .from('virtual_cards')
+        .select('balance')
+        .eq('id', cardId)
+        .single();
+
+      if (fetchError || !card) {
+        console.error('Card fetch error:', fetchError);
+        res.status(500).json({ error: 'Failed to load card balance' });
+        return;
+      }
+
+      const newBalance = Number(card.balance || 0) + amountZar;
+      const { error: updateError } = await supabase
+        .from('virtual_cards')
+        .update({ balance: newBalance })
+        .eq('id', cardId);
+
+      if (updateError) {
+        console.error('Topup update error:', updateError);
+        res.status(500).json({ error: 'Failed to apply topup' });
+        return;
+      }
+
+      res.status(200).json({ updated: true, type: 'topup' });
+      return;
+    }
+
     const userId = metadata.user_id;
     const tierId = metadata.tier_id;
 
@@ -60,7 +172,6 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const supabase = getSupabaseClient();
     const nextExpiryDate = new Date();
     if (tierId === 'executive') {
       nextExpiryDate.setFullYear(nextExpiryDate.getFullYear() + 1);
@@ -84,7 +195,7 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    res.status(200).json({ updated: true });
+    res.status(200).json({ updated: true, type: 'subscription' });
   } catch (error) {
     console.error('Yoco webhook error:', error);
     res.status(500).json({ error: 'Webhook processing failed' });
