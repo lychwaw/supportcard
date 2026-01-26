@@ -61,9 +61,6 @@ const Settings = () => {
   const [newPasscode, setNewPasscode] = useState('');
   const [confirmPasscode, setConfirmPasscode] = useState('');
   const [isUpdatingPasscode, setIsUpdatingPasscode] = useState(false);
-  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
-  const [webhookSecret, setWebhookSecret] = useState<string | null>(null);
-  const [webhookMessage, setWebhookMessage] = useState<string | null>(null);
 
   const callbackUrl = typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : '';
   const recoveryRedirectUrl = callbackUrl ? `${callbackUrl}?type=recovery` : '';
@@ -510,35 +507,6 @@ const Settings = () => {
     setIdPreview(null);
   };
 
-  const handleRegisterWebhook = async () => {
-    setIsRegisteringWebhook(true);
-    setWebhookMessage(null);
-    setWebhookSecret(null);
-
-    try {
-      const response = await fetch('/api/yoco-register-webhook', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to register webhook');
-      }
-
-      const data = await response.json();
-      if (data?.secret) {
-        setWebhookSecret(data.secret);
-        setWebhookMessage('Webhook registered. Save the secret in Vercel as YOCO_WEBHOOK_SECRET.');
-      } else {
-        setWebhookMessage('Webhook registered. No secret was returned (it is shown only once).');
-      }
-    } catch (error) {
-      console.error('Webhook registration error:', error);
-      setWebhookMessage('Unable to register webhook. Check your Yoco key and try again.');
-    } finally {
-      setIsRegisteringWebhook(false);
-    }
-  };
 
   if (isLoading) {
     return <div className="p-6">Loading...</div>;
@@ -907,38 +875,6 @@ const Settings = () => {
                   We’ll send a confirmation link to your new address. Your email will update once you click the link.
                 </p>
               </form>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Yoco Webhook Registration
-              </CardTitle>
-              <CardDescription>
-                Register the webhook endpoint to activate automatic subscription updates.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button onClick={handleRegisterWebhook} disabled={isRegisteringWebhook}>
-                {isRegisteringWebhook ? 'Registering...' : 'Register Webhook'}
-              </Button>
-              <p className="text-xs text-muted-foreground">
-                This uses your server-side `YOCO_SECRET_KEY` and returns the webhook secret once.
-                Copy it and save it in Vercel as `YOCO_WEBHOOK_SECRET`.
-              </p>
-              {webhookMessage && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-xs">{webhookMessage}</AlertDescription>
-                </Alert>
-              )}
-              {webhookSecret && (
-                <div className="rounded-lg border bg-muted p-3 text-xs font-mono break-all">
-                  {webhookSecret}
-                </div>
-              )}
             </CardContent>
           </Card>
 
