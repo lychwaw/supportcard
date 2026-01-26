@@ -197,6 +197,44 @@ const BalanceBudget = () => {
     return { valid: true, number: num };
   };
 
+  const startTopupCheckout = async (cardId: string, amount: number) => {
+    if (!user) {
+      toast.error('You must be logged in to add money');
+      return;
+    }
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/yoco-topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          card_id: cardId,
+          amount,
+          currency,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to start topup checkout');
+      }
+
+      const data = await response.json();
+      if (!data?.checkout_url) {
+        throw new Error('Missing checkout URL');
+      }
+
+      window.location.href = data.checkout_url;
+    } catch (error) {
+      console.error('Error starting topup checkout:', error);
+      toast.error('Unable to start topup checkout');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleCreateCategory = async () => {
     if (!canManageCards) {
       toast.error('Only parents can create balance categories');
@@ -255,7 +293,7 @@ const BalanceBudget = () => {
           child_id: selectedChildId || null,
           card_number: balanceId,
           card_type: categoryName,
-          balance: balanceNum,
+          balance: 0,
           is_primary: categories.length === 0,
         })
         .select()
@@ -306,6 +344,10 @@ const BalanceBudget = () => {
       setMonthlyLimit('');
       setSelectedChildId('');
       fetchCategories();
+
+      if (balanceNum > 0 && cardData?.id) {
+        await startTopupCheckout(cardData.id, balanceNum);
+      }
     } catch (error: any) {
       console.error('Error creating category:', error);
       const errorMessage = error?.message || 'Failed to create balance category. Please try again.';
@@ -334,69 +376,7 @@ const BalanceBudget = () => {
     }
     const amount = amountValidation.number;
 
-    setIsProcessing(true);
-    try {
-      // Try atomic RPC update first
-      const { error: rpcError } = await supabase.rpc('update_balance', {
-        p_card_id: selectedCategory.id,
-        p_amount: amount,
-      });
-
-      // If RPC function doesn't exist or fails, fall back to direct update
-      if (rpcError) {
-        if (rpcError.code === 'PGRST116' || rpcError.message?.includes('function') || rpcError.message?.includes('does not exist')) {
-          // RPC function doesn't exist, use fallback
-          const { data: currentCard, error: fetchError } = await supabase
-            .from('virtual_cards')
-            .select('balance')
-            .eq('id', selectedCategory.id)
-            .single();
-
-          if (fetchError || !currentCard) {
-            throw new Error('Balance category not found. Please refresh and try again.');
-          }
-
-          const newBalance = Number(currentCard.balance || 0) + amount;
-          const { error: updateError } = await supabase
-            .from('virtual_cards')
-            .update({ balance: newBalance })
-            .eq('id', selectedCategory.id);
-
-          if (updateError) {
-            console.error('Update error:', updateError);
-            if (updateError.code === '23514') {
-              throw new Error('Invalid amount. Please enter a valid number.');
-            } else {
-              throw new Error(`Failed to add money: ${updateError.message || 'Unknown error'}`);
-            }
-          }
-        } else {
-          // Other RPC error
-          console.error('RPC error:', rpcError);
-          if (rpcError.code === '23514') {
-            throw new Error('Invalid amount. Please enter a valid number.');
-          } else if (rpcError.code === 'PGRST116') {
-            throw new Error('Balance category not found. Please refresh and try again.');
-          } else {
-            throw new Error(`Failed to add money: ${rpcError.message || 'Unknown error'}`);
-          }
-        }
-      }
-
-      toast.success(`Added ${formatCurrency(amount, currency)} to ${selectedCategory.card_type}`);
-      setIsTopUpDialogOpen(false);
-      setTopUpAmount('');
-      setSelectedCategory(null);
-      
-      // Force refresh to ensure UI updates
-      await fetchCategories();
-    } catch (error: any) {
-      console.error('Error topping up:', error);
-      const errorMessage = error?.message || 'Failed to add money. Please try again.';
-      toast.error(errorMessage);
-    } finally {
-      setIsProcessing(false);
-    }
+    await startTopupCheckout(selectedCategory.id, amount);
   };
 
   const handleUpdateLimit = async () => {
