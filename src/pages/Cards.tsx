@@ -80,6 +80,22 @@ const Cards = () => {
     }
   }, [isTopUpDialogOpen, cards, topUpTargetId]);
 
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const topupStatus = url.searchParams.get('topup');
+    if (!topupStatus) return;
+
+    if (topupStatus === 'success') {
+      toast.success('Payment received. Your balance will update shortly.');
+      fetchCards();
+    } else if (topupStatus === 'cancel') {
+      toast.error('Top up cancelled.');
+    }
+
+    url.searchParams.delete('topup');
+    window.history.replaceState({}, '', url.toString());
+  }, []);
+
 
   useEffect(() => {
     if (user) {
@@ -286,25 +302,40 @@ const Cards = () => {
       return;
     }
 
+    if (!user) {
+      toast.error('You must be logged in to add money');
+      return;
+    }
+
     setIsProcessingTopUp(true);
     try {
-      const newBalance = Number(topUpCard.balance || 0) + amount;
-      const { error } = await supabase
-        .from('virtual_cards')
-        .update({ balance: newBalance })
-        .eq('id', topUpCard.id);
+      const response = await fetch('/api/yoco-topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          card_id: topUpCard.id,
+          amount,
+          currency,
+        }),
+      });
 
-      if (error) throw error;
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to start topup checkout');
+      }
 
-      toast.success('Allowance topped up successfully');
-      setIsTopUpDialogOpen(false);
-      setTopUpAmount('');
-      fetchCards();
+      const data = await response.json();
+      if (!data?.checkout_url) {
+        throw new Error('Missing checkout URL');
+      }
+
+      window.location.href = data.checkout_url;
     } catch (error) {
       if (import.meta.env.DEV) {
-        console.error('Error topping up card:', error);
+        console.error('Error starting topup checkout:', error);
       }
-      toast.error('Unable to add money to this balance right now');
+      toast.error('Unable to start topup checkout');
     } finally {
       setIsProcessingTopUp(false);
     }

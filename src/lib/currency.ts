@@ -12,6 +12,14 @@ export const convertFromZar = (amount: number, currency: string = 'ZAR'): number
   return amount / rate;
 };
 
+export const convertToZar = (amount: number, currency: string = 'ZAR'): number => {
+  const rate = ZAR_PER_UNIT[currency];
+  if (!rate || currency === 'ZAR') {
+    return amount;
+  }
+  return amount * rate;
+};
+
 export const formatCurrency = (
   amount: number,
   currency: string = 'ZAR',
