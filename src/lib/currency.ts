@@ -1,6 +1,22 @@
 // Global currency utilities
+const ZAR_PER_UNIT: Record<string, number> = {
+  ZAR: 1,
+  USD: 16.16,
+};
 
-export const formatCurrency = (amount: number, currency: string = 'ZAR'): string => {
+export const convertFromZar = (amount: number, currency: string = 'ZAR'): number => {
+  const rate = ZAR_PER_UNIT[currency];
+  if (!rate || currency === 'ZAR') {
+    return amount;
+  }
+  return amount / rate;
+};
+
+export const formatCurrency = (
+  amount: number,
+  currency: string = 'ZAR',
+  isBaseZar: boolean = true
+): string => {
   const formatters: Record<string, Intl.NumberFormat> = {
     ZAR: new Intl.NumberFormat('en-ZA', {
       style: 'currency',
@@ -95,7 +111,8 @@ export const formatCurrency = (amount: number, currency: string = 'ZAR'): string
   };
 
   const formatter = formatters[currency] || formatters.ZAR;
-  return formatter.format(amount);
+  const displayAmount = isBaseZar ? convertFromZar(amount, currency) : amount;
+  return formatter.format(displayAmount);
 };
 
 export const getCurrencySymbol = (currency: string = 'ZAR'): string => {

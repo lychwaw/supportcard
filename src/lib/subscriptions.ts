@@ -10,8 +10,6 @@ export const TIER_RANK: Record<SubscriptionTierId, number> = {
   executive: 4,
 };
 
-export const ZAR_PER_USD = 16.16;
-
 export interface SubscriptionTier {
   id: SubscriptionTierId;
   name: string;
@@ -106,12 +104,7 @@ export const getTierPriceDisplay = (tier: SubscriptionTier, currency: string) =>
     return 'Free';
   }
 
-  if (currency === 'USD') {
-    const usdAmount = tier.priceZar / ZAR_PER_USD;
-    return formatCurrency(usdAmount, 'USD');
-  }
-
-  return formatCurrency(tier.priceZar, 'ZAR');
+  return formatCurrency(tier.priceZar, currency);
 };
 
 export const isTierAtLeast = (current: SubscriptionTierId, required: SubscriptionTierId) =>

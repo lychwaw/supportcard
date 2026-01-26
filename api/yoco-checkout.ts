@@ -4,8 +4,6 @@ const getBaseUrl = (req: any) => {
   return process.env.APP_BASE_URL || req.headers?.origin || DEFAULT_BASE_URL;
 };
 
-const ZAR_PER_USD = 16.16;
-
 const getAmountInCents = (tierId: string, currency: string) => {
   switch (tierId) {
     case 'premium':
