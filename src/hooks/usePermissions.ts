@@ -3,7 +3,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { SubscriptionTierId, isTierAtLeast } from '@/lib/subscriptions';
 
 export const usePermissions = () => {
-  const { isParent, isChild, role } = useRole();
+  const { isParent, isChild, isGuardian, role } = useRole();
   const { tier, isActive } = useSubscription();
 
   const effectiveTier = (isActive ? tier : 'free') as SubscriptionTierId;
@@ -11,34 +11,34 @@ export const usePermissions = () => {
 
   return {
     // Can manage settings
-    canManageSettings: isParent,
+    canManageSettings: isGuardian,
     
     // Can change payment methods (parents only)
-    canManagePaymentMethods: isParent,
+    canManagePaymentMethods: isGuardian,
     
     // Can send/transfer money (parents only)
-    canSendMoney: isParent,
+    canSendMoney: isGuardian,
     
     // Can create/edit budgets (premium+)
-    canManageBudgets: isParent && hasTier('premium'),
+    canManageBudgets: isGuardian && hasTier('premium'),
     
     // Can approve/reject expenses (premium+)
-    canApproveExpenses: isParent && hasTier('premium'),
+    canApproveExpenses: isGuardian && hasTier('premium'),
     
     // Can add/edit children (family+)
-    canManageChildren: isParent && hasTier('family_plus'),
+    canManageChildren: isGuardian && hasTier('family_plus'),
     
     // Can view transactions (both)
     canViewTransactions: true,
     
     // Can create expense requests (children can request)
-    canCreateExpenseRequests: isChild || isParent,
+    canCreateExpenseRequests: isChild || isGuardian,
     
     // Can view analytics (premium+)
-    canViewAnalytics: isParent && hasTier('premium'),
+    canViewAnalytics: isGuardian && hasTier('premium'),
     
     // Can add emergency contacts (parents only)
-    canManageContacts: isParent,
+    canManageContacts: isGuardian,
     
     // Can manage calendar events (premium+ for sync-related features)
     canManageCalendar: hasTier('premium'),
@@ -47,58 +47,58 @@ export const usePermissions = () => {
     canSendMessages: true,
     
     // Can upgrade subscription (parents only)
-    canManageSubscription: isParent,
+    canManageSubscription: isGuardian,
     
     // Can view and export reports (premium+)
-    canExportReports: isParent && hasTier('premium'),
+    canExportReports: isGuardian && hasTier('premium'),
     
     // Can add new cards (parents only)
-    canManageCards: isParent,
+    canManageCards: isGuardian,
     
     // Can top up cards (parents only)
-    canTopUpCards: isParent,
+    canTopUpCards: isGuardian,
 
     // Wallet visibility (both can view balances)
     canViewWallet: true,
 
     // Only parents can see sensitive CVV/expiry data
-    canViewWalletSensitive: isParent,
+    canViewWalletSensitive: isGuardian,
 
     // Only parents can remove cards
-    canDeleteCards: isParent,
+    canDeleteCards: isGuardian,
     
     // Legal & executive gated features
-    canViewDocuments: isParent && hasTier('legal'),
-    canViewCompliance: isParent && hasTier('legal'),
-    canAccessExecutiveTools: isParent && hasTier('executive'),
-
+    canViewDocuments: isGuardian && hasTier('legal'),
+    canViewCompliance: isGuardian && hasTier('legal'),
+    canAccessExecutiveTools: isGuardian && hasTier('executive'),
+    
     // Generic permission check
     hasPermission: (permission: string): boolean => {
       const permissions: Record<string, boolean> = {
-        'manage_settings': isParent,
-        'manage_payment_methods': isParent,
-        'send_money': isParent,
-        'manage_budgets': isParent && hasTier('premium'),
-        'approve_expenses': isParent && hasTier('premium'),
-        'manage_children': isParent && hasTier('family_plus'),
+        'manage_settings': isGuardian,
+        'manage_payment_methods': isGuardian,
+        'send_money': isGuardian,
+        'manage_budgets': isGuardian && hasTier('premium'),
+        'approve_expenses': isGuardian && hasTier('premium'),
+        'manage_children': isGuardian && hasTier('family_plus'),
         'view_transactions': true,
-        'create_expense_requests': isChild || isParent,
-        'view_analytics': isParent && hasTier('premium'),
-        'manage_contacts': isParent,
+        'create_expense_requests': isChild || isGuardian,
+        'view_analytics': isGuardian && hasTier('premium'),
+        'manage_contacts': isGuardian,
         'manage_calendar': hasTier('premium'),
         'send_messages': true,
-        'manage_subscription': isParent,
-        'export_reports': isParent && hasTier('premium'),
-        'manage_cards': isParent,
-        'top_up_cards': isParent,
+        'manage_subscription': isGuardian,
+        'export_reports': isGuardian && hasTier('premium'),
+        'manage_cards': isGuardian,
+        'top_up_cards': isGuardian,
         'wallet_view': true,
-        'wallet_manage': isParent,
-        'wallet_top_up': isParent,
-        'wallet_delete': isParent,
-        'wallet_view_sensitive': isParent,
-        'view_documents': isParent && hasTier('legal'),
-        'view_compliance': isParent && hasTier('legal'),
-        'executive_tools': isParent && hasTier('executive'),
+        'wallet_manage': isGuardian,
+        'wallet_top_up': isGuardian,
+        'wallet_delete': isGuardian,
+        'wallet_view_sensitive': isGuardian,
+        'view_documents': isGuardian && hasTier('legal'),
+        'view_compliance': isGuardian && hasTier('legal'),
+        'executive_tools': isGuardian && hasTier('executive'),
       };
       
       return permissions[permission] || false;
@@ -109,5 +109,6 @@ export const usePermissions = () => {
     role,
     isParent,
     isChild,
+    isGuardian,
   };
 };

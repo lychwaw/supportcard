@@ -3,7 +3,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-type AppRole = 'parent' | 'child';
+type AppRole = 'parent' | 'child' | 'co_parent';
 
 interface Child {
   id: string;
@@ -17,6 +17,7 @@ interface RoleContextType {
   children: Child[];
   isParent: boolean;
   isChild: boolean;
+  isGuardian: boolean;
   switchToChild: (childId: string) => void;
   switchToParent: () => void;
   refreshChildren: () => Promise<void>;
@@ -68,11 +69,11 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
 
     try {
-      // Fetch children where user is parent (co_parent_id support added later)
+      // Fetch children where user is parent or co-parent
       const { data, error } = await supabase
         .from('children' as any)
-        .select('id, name, user_id, parent_id')
-        .eq('parent_id', user.id);
+        .select('id, name, user_id, parent_id, co_parent_id')
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
 
       if (error) throw error;
       
@@ -113,12 +114,14 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     await fetchChildren();
   };
 
+  const isGuardian = role === 'parent' || role === 'co_parent';
   const value: RoleContextType = {
     role,
     activeChildId,
     children: childrenList,
-    isParent: role === 'parent' && !activeChildId,
-    isChild: role === 'child' || (role === 'parent' && !!activeChildId),
+    isParent: isGuardian && !activeChildId,
+    isChild: role === 'child' || (isGuardian && !!activeChildId),
+    isGuardian,
     switchToChild,
     switchToParent,
     refreshChildren,

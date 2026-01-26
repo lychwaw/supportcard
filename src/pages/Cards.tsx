@@ -168,6 +168,46 @@ const Cards = () => {
   };
 
 
+  const startTopupCheckout = async (cardId: string, amount: number) => {
+    if (!user) {
+      toast.error('You must be logged in to add money');
+      return;
+    }
+
+    setIsProcessingTopUp(true);
+    try {
+      const response = await fetch('/api/yoco-topup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: user.id,
+          card_id: cardId,
+          amount,
+          currency,
+        }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Failed to start topup checkout');
+      }
+
+      const data = await response.json();
+      if (!data?.checkout_url) {
+        throw new Error('Missing checkout URL');
+      }
+
+      window.location.href = data.checkout_url;
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Error starting topup checkout:', error);
+      }
+      toast.error('Unable to start topup checkout');
+    } finally {
+      setIsProcessingTopUp(false);
+    }
+  };
+
   const handleAddCard = async () => {
     if (!canManageCards) {
       toast.error('Only parents can create balance categories');
@@ -219,7 +259,7 @@ const Cards = () => {
         child_id: selectedChildId || null,
         card_number: balanceId,
         card_type: cardType,
-        balance: balanceNum,
+        balance: 0,
         is_primary: cards.length === 0,
       };
 
@@ -253,7 +293,7 @@ const Cards = () => {
               child_id: selectedChildId || null,
               card_number: balanceId,
               card_type: cardType,
-              balance: balanceNum,
+              balance: 0,
               is_primary: cards.length === 0,
             });
           if (retryError) throw retryError;
@@ -268,6 +308,10 @@ const Cards = () => {
       setInitialBalance('');
       setSelectedChildId('');
       fetchCards();
+
+      if (balanceNum > 0 && data?.id) {
+        await startTopupCheckout(data.id, balanceNum);
+      }
     } catch (error) {
       toast.error('Failed to add card');
       if (import.meta.env.DEV) {
@@ -302,43 +346,7 @@ const Cards = () => {
       return;
     }
 
-    if (!user) {
-      toast.error('You must be logged in to add money');
-      return;
-    }
-
-    setIsProcessingTopUp(true);
-    try {
-      const response = await fetch('/api/yoco-topup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.id,
-          card_id: topUpCard.id,
-          amount,
-          currency,
-        }),
-      });
-
-      if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || 'Failed to start topup checkout');
-      }
-
-      const data = await response.json();
-      if (!data?.checkout_url) {
-        throw new Error('Missing checkout URL');
-      }
-
-      window.location.href = data.checkout_url;
-    } catch (error) {
-      if (import.meta.env.DEV) {
-        console.error('Error starting topup checkout:', error);
-      }
-      toast.error('Unable to start topup checkout');
-    } finally {
-      setIsProcessingTopUp(false);
-    }
+    await startTopupCheckout(topUpCard.id, amount);
   };
 
   const handleDeleteRequest = (card: VirtualCard) => {

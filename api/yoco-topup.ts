@@ -47,7 +47,8 @@ export default async function handler(req: any, res: any) {
     const successUrl = `${baseUrl}/cards?topup=success`;
     const cancelUrl = `${baseUrl}/cards?topup=cancel`;
 
-    const response = await fetch('https://payments.yoco.com/api/checkouts', {
+    const apiBase = process.env.YOCO_API_BASE || 'https://payments.yoco.com/api';
+    const response = await fetch(`${apiBase}/checkouts`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${secretKey}`,
@@ -69,7 +70,11 @@ export default async function handler(req: any, res: any) {
 
     if (!response.ok) {
       const message = await response.text();
-      res.status(502).json({ error: 'Failed to create checkout session', details: message });
+      console.error('Yoco topup error:', message);
+      res.status(502).json({
+        error: 'Failed to create checkout session',
+        details: message || `Yoco responded with ${response.status}`,
+      });
       return;
     }
 
