@@ -26,3 +26,4 @@ const SubscriptionGate = ({ title, description, ctaText = 'View Plans' }: Subscr
 
 export default SubscriptionGate;
 
+

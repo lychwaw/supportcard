@@ -67,11 +67,11 @@ export const usePermissions = () => {
     // Only parents can remove cards
     canDeleteCards: isGuardian,
     
-    // Legal & executive gated features
+    // Legal-tier gated features
     canViewDocuments: isGuardian && hasTier('legal'),
     canViewCompliance: isGuardian && hasTier('legal'),
-    canAccessExecutiveTools: isGuardian && hasTier('executive'),
-    
+    canAccessLegalTools: isGuardian && hasTier('legal'),
+
     // Generic permission check
     hasPermission: (permission: string): boolean => {
       const permissions: Record<string, boolean> = {
@@ -98,7 +98,7 @@ export const usePermissions = () => {
         'wallet_view_sensitive': isGuardian,
         'view_documents': isGuardian && hasTier('legal'),
         'view_compliance': isGuardian && hasTier('legal'),
-        'executive_tools': isGuardian && hasTier('executive'),
+        'legal_tools': isGuardian && hasTier('legal'),
       };
       
       return permissions[permission] || false;

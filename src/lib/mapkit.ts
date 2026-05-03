@@ -3,6 +3,7 @@ const MAPKIT_SCRIPT_URL = 'https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js';
 
 let mapkitInitPromise: Promise<typeof mapkit> | null = null;
 let cachedMapKitToken: string | null = null;
+let tokenExpiresAt: number = 0; // epoch ms
 
 const loadMapKitScript = (): Promise<typeof mapkit> => {
   if (typeof window === 'undefined') {
@@ -39,16 +40,30 @@ const getMapKitToken = async (): Promise<string> => {
     return inlineToken;
   }
 
+  // Refresh 2 minutes before expiry (token lifetime is 30 min).
+  if (cachedMapKitToken && Date.now() < tokenExpiresAt - 120_000) {
+    return cachedMapKitToken;
+  }
+
   const tokenEndpoint =
     (import.meta.env.VITE_MAPKIT_TOKEN_ENDPOINT as string | undefined) || '/api/mapkit-token';
 
-  const response = await fetch(tokenEndpoint, { method: 'GET' });
+  // Include the Supabase session token so the server-side auth gate passes.
+  const { supabase } = await import('@/integrations/supabase/client');
+  const { data: { session } } = await supabase.auth.getSession();
+  const headers: Record<string, string> = {};
+  if (session?.access_token) {
+    headers['Authorization'] = `Bearer ${session.access_token}`;
+  }
+
+  const response = await fetch(tokenEndpoint, { method: 'GET', headers });
   if (!response.ok) {
     throw new Error('Failed to fetch MapKit token');
   }
 
   const token = await response.text();
   cachedMapKitToken = token;
+  tokenExpiresAt = Date.now() + 30 * 60 * 1000; // 30-minute lifetime
   return token;
 };
 

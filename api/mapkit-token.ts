@@ -1,4 +1,12 @@
 import { importPKCS8, SignJWT } from 'jose';
+import { createClient } from '@supabase/supabase-js';
+
+const getSupabaseClient = () => {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  return createClient(url, key, { auth: { persistSession: false } });
+};
 
 const getEnv = (key: string) => {
   const value = process.env[key];
@@ -22,6 +30,20 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    // Gate on a valid session — prevents unauthenticated MapKit token scraping.
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    const bearerToken = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : null;
+    if (!bearerToken) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    const supabase = getSupabaseClient();
+    const { error: authError } = await supabase.auth.getUser(bearerToken);
+    if (authError) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
     const teamId = getEnv('APPLE_TEAM_ID');
     const keyId = getEnv('APPLE_MAPKIT_KEY_ID');
     const privateKeyRaw = getEnv('APPLE_MAPKIT_PRIVATE_KEY');

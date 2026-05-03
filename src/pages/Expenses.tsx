@@ -412,13 +412,14 @@ const Expenses = () => {
 
     setPayingExpenseId(expenseId);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/yoco-expense-approval', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expense_id: expenseId,
-          approver_id: user.id,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ expense_id: expenseId }),
       });
 
       if (!response.ok) {

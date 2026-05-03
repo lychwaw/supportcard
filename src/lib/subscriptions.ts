@@ -1,13 +1,12 @@
 import { formatCurrency } from '@/lib/currency';
 
-export type SubscriptionTierId = 'free' | 'premium' | 'family_plus' | 'legal' | 'executive';
+export type SubscriptionTierId = 'free' | 'premium' | 'family_plus' | 'legal';
 
 export const TIER_RANK: Record<SubscriptionTierId, number> = {
-  free: 0,
-  premium: 1,
+  free:        0,
+  premium:     1,
   family_plus: 2,
-  legal: 3,
-  executive: 4,
+  legal:       3,
 };
 
 export interface SubscriptionTier {
@@ -17,96 +16,103 @@ export interface SubscriptionTier {
   priceZar: number;
   priceUsd: number;
   billingCycle: 'month' | 'year';
+  transferCapZar: number | null; // null = unlimited
   features: string[];
 }
 
 export const subscriptionTiers: SubscriptionTier[] = [
   {
     id: 'free',
-    name: 'Free',
-    description: 'Basic access for essential tracking.',
+    name: 'Basic',
+    description: 'Essential tracking for a single child wallet.',
     priceZar: 0,
     priceUsd: 0,
     billingCycle: 'month',
-    features: ['Basic wallet', 'Transactions', 'Shared expenses', 'Basic notifications'],
+    transferCapZar: 5000,
+    features: [
+      '1 child wallet',
+      'Virtual card',
+      'Expense logging & basic category tracking',
+      'In-app co-parent messaging',
+      'R5,000 / month transfer cap',
+    ],
   },
   {
     id: 'premium',
     name: 'Premium',
-    description: 'Advanced analytics and smart support tools.',
-    priceZar: 100,
-    priceUsd: 0,
+    description: 'Everyday co-parents — analytics, AI insights, and custom cards.',
+    priceZar: 99,
+    priceUsd: 5.49,
     billingCycle: 'month',
+    transferCapZar: 25000,
     features: [
-      'Advanced expense analytics',
-      'Court-ready exportable reports',
-      'Smart notifications & category tracking',
-      'Goal-based saving pockets',
-      'Priority support & calendar sync',
+      'All Basic features',
       'Custom virtual card designs',
+      'Advanced analytics & AI spending insights',
+      'Goal-based saving pockets',
+      'Shared co-parent calendar',
+      'Smart notifications',
+      'International transfers (standard rate)',
+      'Physical card (add-on)',
+      'R25,000 / month transfer cap',
     ],
   },
   {
     id: 'family_plus',
     name: 'Family+',
-    description: 'Multi-child wallets and guardian visibility.',
-    priceZar: 150,
-    priceUsd: 0,
+    description: 'Multi-child households — guardian access and higher limits.',
+    priceZar: 179,
+    priceUsd: 9.99,
     billingCycle: 'month',
+    transferCapZar: 75000,
     features: [
-      'Multiple child wallets',
-      'Guardian viewing access',
-      'International transfer discounts',
-      'Individual child analytics',
-      'Advanced spending analytics',
       'All Premium features',
+      'Up to 5 child wallets',
+      'Guardian viewing access',
+      'Per-child spending insights',
+      'Emergency wallet freeze',
+      '1 physical card included',
+      'International transfers (discounted rate)',
+      'R75,000 / month transfer cap',
     ],
   },
   {
     id: 'legal',
     name: 'SupportCard Legal',
-    description: 'Built for legal workflows and documentation.',
-    priceZar: 500,
-    priceUsd: 0,
+    description: 'Court-grade documentation, audit trails, and legal workflows.',
+    priceZar: 549,
+    priceUsd: 30.00,
     billingCycle: 'month',
+    transferCapZar: null,
     features: [
-      'Multi-client dashboard',
-      'Exportable client reports',
+      'All Family+ features',
+      'Unlimited child wallets',
+      'Court-ready exportable reports',
+      'Full audit trails',
       'Secure document storage',
-      'Legal portal integration',
-      'Digital signing of agreements',
-      'All Premium features',
-    ],
-  },
-  {
-    id: 'executive',
-    name: 'SupportCard Executive',
-    description: 'Global-grade compliance and dispute handling.',
-    priceZar: 1500,
-    priceUsd: 0,
-    billingCycle: 'year',
-    features: [
-      'All Premium/Family+/Legal features',
-      'Court-ready audit trails',
+      'Digital agreement signing',
       'Monthly legal reports',
       'Priority dispute flagging',
-      'Secure lawyer access',
-      'Cross-border payments',
-      'Emergency freeze',
-      'Advanced spend controls',
-      'Dedicated priority support',
+      'Cross-border payment routing',
+      'Physical cards (unlimited)',
+      'International transfers (priority rate)',
+      'Dedicated account manager',
+      'Unlimited transfers',
     ],
   },
 ];
 
 export const getTierPriceDisplay = (tier: SubscriptionTier, currency: string) => {
-  if (tier.id === 'free') {
-    return 'Free';
-  }
-
+  if (tier.id === 'free') return 'Free';
   return formatCurrency(tier.priceZar, currency);
 };
 
 export const isTierAtLeast = (current: SubscriptionTierId, required: SubscriptionTierId) =>
   TIER_RANK[current] >= TIER_RANK[required];
 
+// Normalise a raw DB value to a valid tier ID, mapping any legacy tier to its successor.
+export const normaliseTierId = (raw: string | null | undefined): SubscriptionTierId => {
+  if (raw === 'executive') return 'legal';
+  if (raw && raw in TIER_RANK) return raw as SubscriptionTierId;
+  return 'free';
+};

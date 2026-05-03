@@ -22,9 +22,25 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { expense_id, approver_id } = req.body || {};
-    if (!expense_id || !approver_id) {
-      res.status(400).json({ error: 'Missing expense_id or approver_id' });
+    // Derive approver identity from the verified JWT — never trust the request body for this.
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    const token = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : null;
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized: missing Bearer token' });
+      return;
+    }
+
+    const supabaseForAuth = getSupabaseClient();
+    const { data: { user: authUser }, error: authError } = await supabaseForAuth.auth.getUser(token);
+    if (authError || !authUser) {
+      res.status(401).json({ error: 'Unauthorized: invalid or expired token' });
+      return;
+    }
+    const approver_id = authUser.id;
+
+    const { expense_id } = req.body || {};
+    if (!expense_id) {
+      res.status(400).json({ error: 'Missing expense_id' });
       return;
     }
 

@@ -324,7 +324,9 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">No data available</p>
               ) : (
                 children.map((child) => {
-                  const progress = (child.current_amount / child.target_amount) * 100;
+                  const progress = child.target_amount > 0
+                      ? Math.min((child.current_amount / child.target_amount) * 100, 100)
+                      : 0;
                   return (
                     <div key={child.id} className="space-y-2">
                       <div className="flex items-center justify-between">

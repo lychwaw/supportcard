@@ -205,11 +205,14 @@ const BalanceBudget = () => {
 
     setIsProcessing(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/yoco-topup', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token ?? ''}`,
+        },
         body: JSON.stringify({
-          user_id: user.id,
           card_id: cardId,
           amount,
           currency,

@@ -77,14 +77,14 @@ const Subscriptions = () => {
     setCheckoutError(null);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/yoco-checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tier_id: tierId,
-          user_id: user.id,
-          currency,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token ?? ''}`,
+        },
+        body: JSON.stringify({ tier_id: tierId }),
       });
 
       if (!response.ok) {

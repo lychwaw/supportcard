@@ -63,15 +63,6 @@ const DocumentVault = () => {
   const [documentToDelete, setDocumentToDelete] = useState<LegalDocument | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  if (!canViewDocuments) {
-    return (
-      <SubscriptionGate
-        title="Legal Documents are a Legal tier feature"
-        description="Upgrade to SupportCard Legal (or Executive) to access secure document storage."
-      />
-    );
-  }
-
   useEffect(() => {
     if (user && children.length > 0) {
       setSelectedChildId(children[0].id);
@@ -88,6 +79,15 @@ const DocumentVault = () => {
       }
     }
   }, [user, selectedChildId]);
+
+  if (!canViewDocuments) {
+    return (
+      <SubscriptionGate
+        title="Legal Documents are a Legal tier feature"
+        description="Upgrade to SupportCard Legal to access secure document storage."
+      />
+    );
+  }
 
   const fetchDocuments = async () => {
     if (!user || !selectedChildId) return;

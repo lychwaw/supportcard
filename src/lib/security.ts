@@ -9,14 +9,9 @@ export const sanitizeInput = (input: string): string => {
     .trim();
 };
 
-// SQL Injection Protection
-export const sanitizeForSQL = (input: string): string => {
-  return input
-    .replace(/['"\\]/g, '') // Remove quotes and backslashes
-    .replace(/--/g, '') // Remove SQL comments
-    .replace(/;/g, '') // Remove semicolons
-    .trim();
-};
+// NOTE: Supabase uses parameterised PostgREST queries — raw SQL is never constructed
+// from user input in this app. Do not use string-based sanitizers for SQL; they create
+// false confidence. Use the Supabase client API exclusively.
 
 // Email validation
 export const isValidEmail = (email: string): boolean => {
@@ -142,24 +137,25 @@ export const validateInput = (type: string, value: string): {
   }
 };
 
-// Secure storage utilities
-export const secureStorage = {
+// localStorage wrapper — note: base64 is NOT encryption.
+// Do not store passwords, tokens, or secrets here.
+// Supabase sessions are already managed securely by the Supabase client.
+export const localStore = {
   setItem: (key: string, value: string): void => {
     try {
-      const encrypted = btoa(encodeURIComponent(value));
-      localStorage.setItem(key, encrypted);
+      localStorage.setItem(key, btoa(encodeURIComponent(value)));
     } catch (error) {
-      console.error('Error storing data securely:', error);
+      console.error('Error writing to localStorage:', error);
     }
   },
 
   getItem: (key: string): string | null => {
     try {
-      const encrypted = localStorage.getItem(key);
-      if (!encrypted) return null;
-      return decodeURIComponent(atob(encrypted));
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      return decodeURIComponent(atob(raw));
     } catch (error) {
-      console.error('Error retrieving data securely:', error);
+      console.error('Error reading from localStorage:', error);
       return null;
     }
   },

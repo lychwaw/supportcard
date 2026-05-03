@@ -16,6 +16,7 @@ import {
   FolderOpen,
   Wallet,
   Crown,
+  Layers,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -46,7 +47,8 @@ const navigationGroups = [
       { title: 'Transactions', url: '/transactions', icon: Receipt },
       { title: 'Subscriptions', url: '/subscriptions', icon: Crown },
       { title: 'Balance & Budget', url: '/balance-budget', icon: Wallet },
-      { title: 'Expense Requests', url: '/expenses', icon: FileText },
+      { title: 'Virtual Cards',    url: '/virtual-cards',  icon: Layers },
+      { title: 'Expense Requests', url: '/expenses',        icon: FileText },
     ],
   },
   {

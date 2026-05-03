@@ -249,14 +249,14 @@ const VisitationTracker = () => {
               </div>
               {currentLocation && (
                 <div className="space-y-3">
-                  <div className="p-3 rounded-lg bg-muted">
-                    <p className="text-sm font-medium mb-1">Current Location</p>
-                    <p className="text-xs text-muted-foreground">
-                      Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Accuracy: ±{Math.round(currentLocation.accuracy)}m
-                    </p>
+                <div className="p-3 rounded-lg bg-muted">
+                  <p className="text-sm font-medium mb-1">Current Location</p>
+                  <p className="text-xs text-muted-foreground">
+                    Lat: {currentLocation.lat.toFixed(6)}, Lng: {currentLocation.lng.toFixed(6)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Accuracy: ±{Math.round(currentLocation.accuracy)}m
+                  </p>
                   </div>
                   <MapKitPreview
                     latitude={currentLocation.lat}

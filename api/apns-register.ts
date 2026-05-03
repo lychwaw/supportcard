@@ -16,17 +16,31 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { user_id, device_token, platform, environment } = req.body || {};
-    if (!user_id || !device_token) {
-      res.status(400).json({ error: 'Missing user_id or device_token' });
+    // Verify caller identity — prevents arbitrary users from hijacking device tokens.
+    const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+    const token = typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : null;
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized: missing Bearer token' });
       return;
     }
 
     const supabase = getSupabaseClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authUser) {
+      res.status(401).json({ error: 'Unauthorized: invalid or expired token' });
+      return;
+    }
+
+    const { device_token, platform, environment } = req.body || {};
+    if (!device_token) {
+      res.status(400).json({ error: 'Missing device_token' });
+      return;
+    }
+
     const { error } = await supabase
       .from('push_devices')
       .upsert({
-        user_id,
+        user_id: authUser.id,
         device_token,
         platform: platform || 'ios',
         environment: environment || (process.env.APNS_ENV || 'development'),
@@ -46,4 +60,3 @@ export default async function handler(req: any, res: any) {
     res.status(500).json({ error: 'Unexpected error registering device token' });
   }
 }
-

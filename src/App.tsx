@@ -2,36 +2,64 @@ import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/components/AuthProvider";
-import { ProfileCompletionModal } from "@/components/ProfileCompletionModal";
-import SubscriptionPromptModal from "@/components/SubscriptionPromptModal";
+import { AuthProvider, useAuth } from "@/components/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import AuthCallback from "./pages/AuthCallback";
-import Transactions from "./pages/Transactions";
-import Expenses from "./pages/Expenses";
-import BalanceBudget from "./pages/BalanceBudget";
-import Calendar from "./pages/Calendar";
-import Messages from "./pages/Messages";
-import Contacts from "./pages/Contacts";
-import Settings from "./pages/Settings";
-import Subscriptions from "./pages/Subscriptions";
-import Family from "./pages/Family";
-import NotFound from "./pages/NotFound";
-import ResetPassword from "./pages/ResetPassword";
-import ComplianceDashboard from "./pages/ComplianceDashboard";
-import VisitationTracker from "./pages/VisitationTracker";
-import DocumentVault from "./pages/DocumentVault";
 
-const queryClient = new QueryClient();
+// Public routes — no auth required
+const Auth = React.lazy(() => import("./pages/Auth"));
+const AuthCallback = React.lazy(() => import("./pages/AuthCallback"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
+const Pricing = React.lazy(() => import("./pages/Pricing"));
+
+// Protected routes — each emitted as its own chunk, fetched only when visited
+const Index = React.lazy(() => import("./pages/Index"));
+const Transactions = React.lazy(() => import("./pages/Transactions"));
+const Expenses = React.lazy(() => import("./pages/Expenses"));
+const BalanceBudget = React.lazy(() => import("./pages/BalanceBudget"));
+const Calendar = React.lazy(() => import("./pages/Calendar"));
+const Messages = React.lazy(() => import("./pages/Messages"));
+const Contacts = React.lazy(() => import("./pages/Contacts"));
+const Settings = React.lazy(() => import("./pages/Settings"));
+const Subscriptions = React.lazy(() => import("./pages/Subscriptions"));
+const Family = React.lazy(() => import("./pages/Family"));
+const ComplianceDashboard = React.lazy(() => import("./pages/ComplianceDashboard"));
+const VisitationTracker = React.lazy(() => import("./pages/VisitationTracker"));
+const DocumentVault = React.lazy(() => import("./pages/DocumentVault"));
+const VirtualCards = React.lazy(() => import("./pages/VirtualCards"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+
+// Boot modals — lazy-loaded and only mounted once a user session exists,
+// so unauthenticated page loads never download or execute their code.
+const ProfileCompletionModal = React.lazy(() =>
+  import("@/components/ProfileCompletionModal").then(m => ({ default: m.ProfileCompletionModal }))
+);
+const SubscriptionPromptModal = React.lazy(() =>
+  import("@/components/SubscriptionPromptModal")
+);
+
+const routeFallback = (
+  <div className="flex h-screen items-center justify-center">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+  </div>
+);
+
+// Must be rendered inside AuthProvider to access auth state.
+const AuthGatedModals = () => {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <React.Suspense fallback={null}>
+      <ProfileCompletionModal />
+      <SubscriptionPromptModal />
+    </React.Suspense>
+  );
+};
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => (
   <SidebarProvider>
@@ -48,165 +76,172 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => {
-  // Note: OAuth callback handling is done in AuthProvider
-  // We don't clean up hash fragments here - let Supabase process them first
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <CurrencyProvider>
-              <SubscriptionProvider>
-                <RoleProvider>
-                  <ProfileCompletionModal />
-                  <SubscriptionPromptModal />
-                <Routes>
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="/auth/reset-password" element={<ResetPassword />} />
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <AuthProvider>
+          <CurrencyProvider>
+            <SubscriptionProvider>
+              <RoleProvider>
+                <AuthGatedModals />
+                <React.Suspense fallback={routeFallback}>
+                  <Routes>
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/auth/callback" element={<AuthCallback />} />
+                    <Route path="/auth/reset-password" element={<ResetPassword />} />
+                    <Route path="/pricing" element={<Pricing />} />
 
-                  <Route
-                    path="/"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Index />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/transactions"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Transactions />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/balance-budget"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <BalanceBudget />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/expenses"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Expenses />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/calendar"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Calendar />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/messages"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Messages />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/contacts"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Contacts />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/settings"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Settings />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/subscriptions"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Subscriptions />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/family"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <Family />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/compliance"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <ComplianceDashboard />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/visitation"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <VisitationTracker />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/documents"
-                    element={
-                      <ProtectedRoute>
-                        <AppLayout>
-                          <DocumentVault />
-                        </AppLayout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                </RoleProvider>
-              </SubscriptionProvider>
-            </CurrencyProvider>
+                    <Route
+                      path="/"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Index />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/transactions"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Transactions />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/balance-budget"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <BalanceBudget />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/expenses"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Expenses />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/calendar"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Calendar />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/messages"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Messages />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/contacts"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Contacts />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/settings"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Settings />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/subscriptions"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Subscriptions />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/family"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Family />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/compliance"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <ComplianceDashboard />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/visitation"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <VisitationTracker />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/documents"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <DocumentVault />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/virtual-cards"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <VirtualCards />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </React.Suspense>
+              </RoleProvider>
+            </SubscriptionProvider>
+          </CurrencyProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
-  </QueryClientProvider>
   );
 };
 

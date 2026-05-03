@@ -1,17 +1,21 @@
+import { createClient } from '@supabase/supabase-js';
+
 const DEFAULT_BASE_URL = 'https://supportcard.vercel.app';
 
 const getBaseUrl = (req: any) => {
   return process.env.APP_BASE_URL || req.headers?.origin || DEFAULT_BASE_URL;
 };
 
-const ZAR_PER_UNIT: Record<string, number> = {
-  ZAR: 1,
-  USD: 16.16,
+const getSupabaseClient = () => {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+  return createClient(url, key, { auth: { persistSession: false } });
 };
 
-const convertToZar = (amount: number, currency: string) => {
-  const rate = ZAR_PER_UNIT[currency] || 1;
-  return amount * rate;
+const extractBearer = (req: any): string | null => {
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  return typeof authHeader === 'string' ? authHeader.replace(/^Bearer\s+/i, '') : null;
 };
 
 export default async function handler(req: any, res: any) {
@@ -21,9 +25,36 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const { user_id, card_id, amount, currency } = req.body || {};
-    if (!user_id || !card_id || !amount) {
-      res.status(400).json({ error: 'Missing user_id, card_id, or amount' });
+    // Verify caller identity from JWT — never trust user_id from the body.
+    const token = extractBearer(req);
+    if (!token) {
+      res.status(401).json({ error: 'Unauthorized: missing Bearer token' });
+      return;
+    }
+
+    const supabase = getSupabaseClient();
+    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authUser) {
+      res.status(401).json({ error: 'Unauthorized: invalid or expired token' });
+      return;
+    }
+
+    const { card_id, amount, currency } = req.body || {};
+    if (!card_id || !amount) {
+      res.status(400).json({ error: 'Missing card_id or amount' });
+      return;
+    }
+
+    // Verify the card belongs to the authenticated user.
+    const { data: card, error: cardError } = await supabase
+      .from('virtual_cards')
+      .select('id, user_id')
+      .eq('id', card_id)
+      .eq('user_id', authUser.id)
+      .maybeSingle();
+
+    if (cardError || !card) {
+      res.status(403).json({ error: 'Forbidden: card not found or not owned by you' });
       return;
     }
 
@@ -33,19 +64,23 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const normalizedCurrency = String(currency || 'ZAR').toUpperCase();
     const amountNum = Number(amount);
     if (!Number.isFinite(amountNum) || amountNum <= 0) {
       res.status(400).json({ error: 'Invalid amount' });
       return;
     }
 
-    const amountZar = convertToZar(amountNum, normalizedCurrency);
-    const amountCents = Math.round(amountZar * 100);
+    const normalizedCurrency = String(currency || 'ZAR').toUpperCase();
+    if (normalizedCurrency !== 'ZAR') {
+      // Only ZAR accepted. Other currencies must be converted server-side with a live rate.
+      res.status(400).json({ error: 'Only ZAR is accepted for topups at this time' });
+      return;
+    }
 
+    const amountCents = Math.round(amountNum * 100);
     const baseUrl = getBaseUrl(req);
-    const successUrl = `${baseUrl}/cards?topup=success`;
-    const cancelUrl = `${baseUrl}/cards?topup=cancel`;
+    const successUrl = `${baseUrl}/balance-budget?topup=success`;
+    const cancelUrl  = `${baseUrl}/balance-budget?topup=cancel`;
 
     const apiBase = process.env.YOCO_API_BASE || 'https://payments.yoco.com/api';
     const response = await fetch(`${apiBase}/checkouts`, {
@@ -61,9 +96,9 @@ export default async function handler(req: any, res: any) {
         cancel_url: cancelUrl,
         metadata: {
           type: 'topup',
-          user_id,
+          user_id: authUser.id,
           card_id,
-          amount_zar: amountZar,
+          amount_zar: amountNum,
         },
       }),
     });
@@ -96,4 +131,3 @@ export default async function handler(req: any, res: any) {
     res.status(500).json({ error: 'Unexpected error creating topup checkout' });
   }
 }
-

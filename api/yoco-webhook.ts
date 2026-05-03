@@ -40,15 +40,21 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
+    const webhookSecret = process.env.YOCO_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('YOCO_WEBHOOK_SECRET is not configured — rejecting all webhook requests');
+      res.status(500).json({ error: 'Webhook endpoint not configured' });
+      return;
+    }
+
     const rawBody = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
     const signature =
       req.headers['x-yoco-signature'] ||
       req.headers['x-yoco-hmac-sha256'] ||
       req.headers['x-yoco-hmac'];
 
-    const webhookSecret = process.env.YOCO_WEBHOOK_SECRET;
-    if (webhookSecret && signature && !verifySignature(rawBody, signature, webhookSecret)) {
-      res.status(401).json({ error: 'Invalid signature' });
+    if (!signature || !verifySignature(rawBody, String(signature), webhookSecret)) {
+      res.status(401).json({ error: 'Invalid or missing signature' });
       return;
     }
 
@@ -130,15 +136,30 @@ export default async function handler(req: any, res: any) {
     if (metadata?.type === 'topup') {
       const cardId = metadata.card_id;
       const amountZar = Number(metadata.amount_zar);
+      const paymentReference = getPaymentReference(payload);
 
-      if (!cardId || !Number.isFinite(amountZar)) {
+      if (!cardId || !Number.isFinite(amountZar) || amountZar <= 0) {
         res.status(400).json({ error: 'Missing metadata card_id or amount_zar' });
         return;
       }
 
+      // Idempotency: bail out if this payment reference was already processed.
+      if (paymentReference) {
+        const { data: existing } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('payment_reference', paymentReference)
+          .maybeSingle();
+
+        if (existing) {
+          res.status(200).json({ updated: true, type: 'topup', idempotent: true });
+          return;
+        }
+      }
+
       const { data: card, error: fetchError } = await supabase
         .from('virtual_cards')
-        .select('balance')
+        .select('balance, user_id')
         .eq('id', cardId)
         .single();
 
@@ -151,7 +172,7 @@ export default async function handler(req: any, res: any) {
       const newBalance = Number(card.balance || 0) + amountZar;
       const { error: updateError } = await supabase
         .from('virtual_cards')
-        .update({ balance: newBalance })
+        .update({ balance: newBalance, updated_at: new Date().toISOString() })
         .eq('id', cardId);
 
       if (updateError) {
@@ -159,6 +180,17 @@ export default async function handler(req: any, res: any) {
         res.status(500).json({ error: 'Failed to apply topup' });
         return;
       }
+
+      // Record the transaction so duplicate webhooks are caught on the next delivery.
+      await supabase.from('transactions').insert({
+        user_id: card.user_id,
+        card_id: cardId,
+        merchant_name: 'Wallet Top-up',
+        amount: amountZar,
+        category: 'topup',
+        payment_reference: paymentReference,
+        transaction_date: new Date().toISOString(),
+      });
 
       res.status(200).json({ updated: true, type: 'topup' });
       return;
@@ -172,18 +204,16 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
+    // All current tiers are monthly. Map any legacy 'executive' to 'legal'.
+    const normalisedTierId = tierId === 'executive' ? 'legal' : tierId;
     const nextExpiryDate = new Date();
-    if (tierId === 'executive') {
-      nextExpiryDate.setFullYear(nextExpiryDate.getFullYear() + 1);
-    } else {
-      nextExpiryDate.setMonth(nextExpiryDate.getMonth() + 1);
-    }
+    nextExpiryDate.setMonth(nextExpiryDate.getMonth() + 1);
     const nextExpiry = nextExpiryDate.toISOString();
 
     const { error } = await supabase
       .from('profiles')
       .update({
-        subscription_tier: tierId,
+        subscription_tier: normalisedTierId,
         subscription_status: 'active',
         expiry_date: nextExpiry,
       })

@@ -1,7 +1,7 @@
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
-import { SubscriptionTierId } from '@/lib/subscriptions';
+import { SubscriptionTierId, normaliseTierId } from '@/lib/subscriptions';
 
 interface SubscriptionContextType {
   tier: SubscriptionTierId;
@@ -47,7 +47,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) throw error;
 
-      const nextTier = (data?.subscription_tier || 'free') as SubscriptionTierId;
+      const nextTier = normaliseTierId(data?.subscription_tier);
       const nextStatus = (data?.subscription_status || null) as 'active' | 'expired' | null;
       const nextExpiry = data?.expiry_date ? String(data.expiry_date) : null;
 
@@ -85,4 +85,5 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     </SubscriptionContext.Provider>
   );
 };
+
 

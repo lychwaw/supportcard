@@ -108,15 +108,9 @@ const Family = () => {
         .single();
 
       const members: FamilyMember[] = [];
-      
-      if (currentUserProfile) {
-        members.push({
-          ...currentUserProfile,
-          isCurrentUser: true,
-        });
 
-        // Co-parent lookup disabled until migration runs (co_parent_id column doesn't exist yet)
-        // TODO: Enable co-parent lookup after running migration: 20250104000000_add_family_support.sql
+      if (currentUserProfile) {
+        members.push({ ...currentUserProfile, isCurrentUser: true });
       }
 
       setFamilyMembers(members);
@@ -129,16 +123,45 @@ const Family = () => {
     if (!user) return;
 
     try {
-      // Only query by parent_id for now (co_parent_id column may not exist)
-      const { data: sharedChildren } = await supabase
+      // Find any child where the current user is the co-parent, then look up that child's primary parent
+      const { data: asCoParent } = await supabase
         .from('children')
         .select('parent_id')
-        .eq('parent_id', user.id)
+        .eq('co_parent_id', user.id)
         .limit(1)
         .maybeSingle();
 
-      // For now, co-parent lookup is disabled until migration is run
-      // TODO: Enable when co_parent_id column exists
+      if (asCoParent?.parent_id) {
+        const { data: parentProfile } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, parent_role, avatar_url, phone')
+          .eq('id', asCoParent.parent_id)
+          .maybeSingle();
+
+        setCoParent(parentProfile ?? null);
+        return;
+      }
+
+      // Alternatively, find a child this user owns that has a co-parent assigned
+      const { data: ownedChild } = await supabase
+        .from('children')
+        .select('co_parent_id')
+        .eq('parent_id', user.id)
+        .not('co_parent_id', 'is', null)
+        .limit(1)
+        .maybeSingle();
+
+      if (ownedChild?.co_parent_id) {
+        const { data: coParentProfile } = await supabase
+          .from('profiles')
+          .select('id, full_name, email, parent_role, avatar_url, phone')
+          .eq('id', ownedChild.co_parent_id)
+          .maybeSingle();
+
+        setCoParent(coParentProfile ?? null);
+        return;
+      }
+
       setCoParent(null);
     } catch (error) {
       console.error('Error finding co-parent:', error);
@@ -151,14 +174,11 @@ const Family = () => {
       return;
     }
 
-    console.log('🔍 Fetching children for user:', user.id);
-
     try {
-      // Only query by parent_id for now (co_parent_id column may not exist yet)
       const { data: freshChildren, error } = await supabase
         .from('children')
-        .select('id, name, user_id, target_amount, current_amount, parent_id')
-        .eq('parent_id', user.id)
+        .select('id, name, user_id, co_parent_id, target_amount, current_amount, parent_id')
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -168,7 +188,6 @@ const Family = () => {
       }
 
       const children = freshChildren || [];
-      console.log('📊 Found children:', children.length, children.map(c => c.name));
 
       if (children.length === 0) {
         setChildrenWithDetails([]);
@@ -216,10 +235,9 @@ const Family = () => {
         })
       );
 
-      console.log('✅ Setting children details:', childrenData.length);
       setChildrenWithDetails(childrenData);
     } catch (error) {
-      console.error('❌ Error fetching children details:', error);
+      console.error('Error fetching children details:', error);
       setChildrenWithDetails([]);
     }
   };
@@ -232,8 +250,6 @@ const Family = () => {
 
     setIsLoading(true);
     try {
-      console.log('➕ Adding child:', childName);
-      
       const { data: insertedChild, error } = await supabase
         .from('children')
         .insert({
@@ -245,12 +261,7 @@ const Family = () => {
         .select()
         .single();
 
-      if (error) {
-        console.error('❌ Error inserting child:', error);
-        throw error;
-      }
-
-      console.log('✅ Child inserted:', insertedChild);
+      if (error) throw error;
 
       // Close dialog and clear form immediately
       setChildName('');
@@ -259,12 +270,9 @@ const Family = () => {
       
       toast.success(`✨ ${childName} added successfully!`);
       
-      // Refresh immediately and retry a couple times to ensure DB consistency
-      for (let i = 0; i < 3; i++) {
-        await new Promise(resolve => setTimeout(resolve, 400));
-        console.log(`🔄 Refresh attempt ${i + 1}/3`);
-        await fetchChildrenDetails();
-      }
+      // Give the DB trigger a moment then refresh
+      await new Promise(resolve => setTimeout(resolve, 400));
+      await fetchChildrenDetails();
       
       // Also refresh other components
       await refreshChildren();

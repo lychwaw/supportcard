@@ -10,6 +10,17 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // Gate with ADMIN_SECRET so only operators can register/update the webhook URL.
+  // Set ADMIN_SECRET in your Vercel/server environment variables.
+  const adminSecret = process.env.ADMIN_SECRET;
+  if (adminSecret) {
+    const provided = req.headers['x-admin-secret'];
+    if (provided !== adminSecret) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+  }
+
   try {
     const secretKey = process.env.YOCO_SECRET_KEY;
     if (!secretKey) {
@@ -46,4 +57,5 @@ export default async function handler(req: any, res: any) {
     res.status(500).json({ error: 'Unexpected error registering webhook' });
   }
 }
+
 

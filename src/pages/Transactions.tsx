@@ -79,13 +79,25 @@ const Transactions = () => {
   const categoryOptions = ['Food', 'Clothing', 'School', 'Activities', 'Transportation', 'Healthcare', 'Entertainment', 'Other'];
 
   useEffect(() => {
-    if (user) {
-      fetchTransactions();
-      fetchChildrenList();
-      fetchBalanceCategories();
-    }
+    if (!user) return;
+
+    fetchTransactions();
+    fetchChildrenList();
+    fetchBalanceCategories();
+
+    // Real-time: refresh whenever any transaction for this user is inserted/updated/deleted
+    const channel = supabase
+      .channel('transactions-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'transactions', filter: `user_id=eq.${user.id}` },
+        () => fetchTransactions()
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeChildId]); // Removed children to prevent multiple renders
+  }, [user, activeChildId]);
 
   const fetchChildrenList = async () => {
     if (!user) return;
@@ -93,7 +105,7 @@ const Transactions = () => {
       const { data: childrenData } = await supabase
         .from('children')
         .select('id, name, parent_id')
-        .eq('parent_id', user.id);
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
       if (childrenData) {
         setChildrenList(childrenData);
       }

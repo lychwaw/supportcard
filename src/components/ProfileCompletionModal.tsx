@@ -34,9 +34,6 @@ export const ProfileCompletionModal = () => {
       }
 
       try {
-        // Wait a moment for profile to be created by trigger (if new OAuth user)
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
         // Check if profile exists and has age
         const { data: profile, error } = await supabase
           .from('profiles')

@@ -105,18 +105,16 @@ const Auth = () => {
 
       const { error: uploadError } = await supabase.storage
         .from('id-verifications')
-        .upload(filePath, file);
+        .upload(filePath, file, { upsert: false });
 
       if (uploadError) {
         toast.error('Failed to upload ID verification');
         return null;
       }
 
-      const { data } = supabase.storage
-        .from('id-verifications')
-        .getPublicUrl(filePath);
-
-      return data.publicUrl;
+      // Store only the storage path — never the public URL.
+      // Documents are retrieved via signed URLs server-side only.
+      return filePath;
     } catch (error) {
       toast.error('Failed to upload ID verification');
       return null;
@@ -170,8 +168,8 @@ const Auth = () => {
       return;
     }
 
-    if (signupPassword.length < 6) {
-      toast.error('Password must be at least 6 characters');
+    if (signupPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
       return;
     }
 
@@ -455,7 +453,7 @@ const Auth = () => {
                     <Input
                       id="signup-password"
                       type="password"
-                      placeholder="Min. 6 characters"
+                      placeholder="Min. 8 characters"
                       value={signupPassword}
                       onChange={(e) => setSignupPassword(e.target.value)}
                       disabled={isLoading}

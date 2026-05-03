@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { z } from 'zod';
 import SubscriptionGate from '@/components/SubscriptionGate';
+import { IdVerification } from '@/components/IdVerification';
 
 // Zod schema for compliance score validation
 const ComplianceScoreSchema = z.object({
@@ -53,15 +54,6 @@ const ComplianceDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
-  if (!canViewCompliance) {
-    return (
-      <SubscriptionGate
-        title="Compliance analytics are a Legal tier feature"
-        description="Upgrade to SupportCard Legal (or Executive) to access compliance reporting."
-      />
-    );
-  }
-
   useEffect(() => {
     if (user && children.length > 0) {
       setSelectedChildId(children[0].id);
@@ -73,6 +65,25 @@ const ComplianceDashboard = () => {
       fetchComplianceData();
     }
   }, [user, selectedChildId]);
+
+  if (!canViewCompliance) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-2">
+          <Shield className="w-8 h-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold">Compliance</h1>
+            <p className="text-muted-foreground">Identity verification and compliance analytics</p>
+          </div>
+        </div>
+        <IdVerification />
+        <SubscriptionGate
+          title="Compliance analytics are a Legal tier feature"
+          description="Upgrade to SupportCard Legal to access compliance reporting."
+        />
+      </div>
+    );
+  }
 
   const fetchComplianceData = async () => {
     if (!user || !selectedChildId) return;
@@ -290,6 +301,8 @@ const ComplianceDashboard = () => {
           </Button>
         </div>
       </div>
+
+      <IdVerification />
 
       {!selectedChildId ? (
         <Card>
