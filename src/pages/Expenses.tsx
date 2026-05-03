@@ -304,10 +304,10 @@ const Expenses = () => {
       if (error) throw error;
 
       if (createdExpense?.id) {
-        fetch('/api/apns-notify-expense', {
+        fetch('/api/apns', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ expense_id: createdExpense.id }),
+          body: JSON.stringify({ action: 'notify-expense', expense_id: createdExpense.id }),
         }).catch(() => undefined);
       }
 

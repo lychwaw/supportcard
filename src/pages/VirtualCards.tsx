@@ -145,10 +145,11 @@ const VirtualCards = () => {
     setIsSubmitting(true);
     try {
       const headers = await authHeader();
-      const response = await fetch('/api/korapay-create-card', {
+      const response = await fetch('/api/korapay', {
         method: 'POST',
         headers,
         body: JSON.stringify({
+          action: 'create-card',
           name_on_card: nameOnCard.trim(),
           initial_amount: amount,
           currency: cardCurrency,
@@ -186,10 +187,10 @@ const VirtualCards = () => {
     setIsSubmitting(true);
     try {
       const headers = await authHeader();
-      const response = await fetch('/api/korapay-fund-card', {
+      const response = await fetch('/api/korapay', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ card_id: selectedCard.id, amount }),
+        body: JSON.stringify({ action: 'fund-card', card_id: selectedCard.id, amount }),
       });
 
       if (!response.ok) {
@@ -209,13 +210,13 @@ const VirtualCards = () => {
   };
 
   const handleFreezeToggle = async (card: KorapayCard) => {
-    const action = card.status === 'blocked' ? 'unfreeze' : 'freeze';
+    const freeze_action = card.status === 'blocked' ? 'unfreeze' : 'freeze';
     try {
       const headers = await authHeader();
-      const response = await fetch('/api/korapay-freeze-card', {
+      const response = await fetch('/api/korapay', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ card_id: card.id, action }),
+        body: JSON.stringify({ action: 'freeze-card', card_id: card.id, freeze_action }),
       });
 
       if (!response.ok) {
@@ -223,10 +224,10 @@ const VirtualCards = () => {
         throw new Error(data?.error || `Request failed (${response.status})`);
       }
 
-      toast.success(action === 'freeze' ? 'Card frozen' : 'Card unfrozen');
+      toast.success(freeze_action === 'freeze' ? 'Card frozen' : 'Card unfrozen');
       fetchCards();
     } catch (err: any) {
-      toast.error(err?.message || `Failed to ${action} card`);
+      toast.error(err?.message || `Failed to ${freeze_action} card`);
     }
   };
 

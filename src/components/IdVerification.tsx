@@ -104,13 +104,14 @@ export const IdVerification = () => {
     setIsSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch('/api/korapay-verify-id', {
+      const response = await fetch('/api/korapay', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token ?? ''}`,
         },
         body: JSON.stringify({
+          action:                'verify-id',
           id_number:             idNumber,
           first_name:            firstName.trim() || undefined,
           last_name:             lastName.trim()  || undefined,
