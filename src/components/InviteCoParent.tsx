@@ -51,17 +51,11 @@ export const InviteCoParent = ({ childId, childName, onInviteSent }: InviteCoPar
 
       if (inviteError) throw inviteError;
 
-      // TODO: Send email invitation (requires email service setup)
-      // For now, show the invite link
-      toast.success(
-        `Invitation created! Share this link: ${inviteUrl}`,
-        { duration: 8000 }
-      );
-
-      // Copy to clipboard if possible
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(inviteUrl);
-        toast.info('Invite link copied to clipboard');
+        await navigator.clipboard.writeText(inviteUrl);
+        toast.success('Invite link copied to clipboard — share it with the co-parent');
+      } else {
+        toast.success('Invitation created — copy this link and share it', { description: inviteUrl, duration: 10000 });
       }
 
       setInviteEmail('');

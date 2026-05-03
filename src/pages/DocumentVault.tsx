@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
@@ -63,40 +63,15 @@ const DocumentVault = () => {
   const [documentToDelete, setDocumentToDelete] = useState<LegalDocument | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (user && children.length > 0) {
-      setSelectedChildId(children[0].id);
-    }
-  }, [user, children]);
-
-  useEffect(() => {
-    if (user) {
-      if (selectedChildId) {
-        fetchDocuments();
-      } else {
-        setLoading(false);
-        setDocuments([]);
-      }
-    }
-  }, [user, selectedChildId]);
-
-  if (!canViewDocuments) {
-    return (
-      <SubscriptionGate
-        title="Legal Documents are a Legal tier feature"
-        description="Upgrade to SupportCard Legal to access secure document storage."
-      />
-    );
-  }
-
-  const fetchDocuments = async () => {
-    if (!user || !selectedChildId) return;
+  // Defined before any early returns so it is always in scope for useEffects.
+  const fetchDocuments = useCallback(async (childId: string) => {
+    if (!user || !childId) return;
 
     setLoading(true);
     try {
       const { data, error } = await (supabase.from as any)('legal_documents')
         .select('*')
-        .eq('child_id', selectedChildId)
+        .eq('child_id', childId)
         .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
@@ -107,7 +82,37 @@ const DocumentVault = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user && children.length > 0 && !selectedChildId) {
+      setSelectedChildId(children[0].id);
+    }
+  }, [user, children, selectedChildId]);
+
+  useEffect(() => {
+    if (!canViewDocuments) {
+      setLoading(false);
+      return;
+    }
+    if (user) {
+      if (selectedChildId) {
+        fetchDocuments(selectedChildId);
+      } else {
+        setLoading(false);
+        setDocuments([]);
+      }
+    }
+  }, [user, selectedChildId, canViewDocuments, fetchDocuments]);
+
+  if (!canViewDocuments) {
+    return (
+      <SubscriptionGate
+        title="Legal Documents are a Legal tier feature"
+        description="Upgrade to SupportCard Legal to access secure document storage."
+      />
+    );
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -194,7 +199,7 @@ const DocumentVault = () => {
       setIsDialogOpen(false);
       setSelectedFile(null);
       setDescription('');
-      fetchDocuments();
+      fetchDocuments(selectedChildId);
     } catch (error: any) {
       console.error('Error uploading document:', error);
       if (error instanceof z.ZodError) {
@@ -238,7 +243,7 @@ const DocumentVault = () => {
       toast.success('Document deleted successfully');
       setIsDeleteDialogOpen(false);
       setDocumentToDelete(null);
-      fetchDocuments();
+      fetchDocuments(selectedChildId);
     } catch (error) {
       console.error('Error deleting document:', error);
       toast.error('Failed to delete document');

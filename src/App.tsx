@@ -10,6 +10,7 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Public routes — no auth required
 const Auth = React.lazy(() => import("./pages/Auth"));
@@ -69,7 +70,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => (
         <div className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4">
           <SidebarTrigger />
         </div>
-        <div className="p-6">{children}</div>
+        <div className="p-6">
+          <ErrorBoundary>{children}</ErrorBoundary>
+        </div>
       </main>
     </div>
   </SidebarProvider>
