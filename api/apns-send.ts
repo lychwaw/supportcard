@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendApnsToToken } from './_apns';
+import { sendApnsToToken } from './_apns.js';
 
 const getSupabaseClient = () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
