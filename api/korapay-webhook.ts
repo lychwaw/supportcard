@@ -8,9 +8,13 @@ const getSupabaseClient = () => {
   return createClient(url, key, { auth: { persistSession: false } });
 };
 
-const verifySignature = (rawBody: string, signature: string, secret: string): boolean => {
+// KoraPay signs ONLY the `data` object using the merchant secret key.
+// Ref: https://developers.korapay.com/docs/webhooks
+const verifySignature = (data: unknown, signature: string, secretKey: string): boolean => {
   try {
-    const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+    const expected = createHmac('sha256', secretKey)
+      .update(JSON.stringify(data))
+      .digest('hex');
     const a = Buffer.from(expected, 'utf8');
     const b = Buffer.from(signature, 'utf8');
     if (a.length !== b.length) return false;
@@ -26,50 +30,40 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  const webhookSecret = process.env.KORAPAY_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    console.error('KORAPAY_WEBHOOK_SECRET is not configured — rejecting all webhook requests');
+  // KoraPay uses the merchant secret key for HMAC — no separate webhook secret.
+  const secretKey = process.env.KORAPAY_SECRET_KEY;
+  if (!secretKey) {
+    console.error('KORAPAY_SECRET_KEY is not configured — rejecting webhook');
     res.status(500).json({ error: 'Webhook endpoint not configured' });
-    return;
-  }
-
-  // Collect raw body for signature verification.
-  let rawBody = '';
-  try {
-    if (typeof req.body === 'string') {
-      rawBody = req.body;
-    } else if (Buffer.isBuffer(req.body)) {
-      rawBody = req.body.toString('utf8');
-    } else {
-      rawBody = JSON.stringify(req.body);
-    }
-  } catch {
-    res.status(400).json({ error: 'Failed to read request body' });
-    return;
-  }
-
-  const signature = req.headers['x-korapay-signature'] as string | undefined;
-  if (!signature || !verifySignature(rawBody, signature, webhookSecret)) {
-    res.status(401).json({ error: 'Invalid or missing webhook signature' });
     return;
   }
 
   let payload: any;
   try {
-    payload = typeof req.body === 'string' ? JSON.parse(rawBody) : req.body;
+    payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
   } catch {
     res.status(400).json({ error: 'Invalid JSON payload' });
     return;
   }
 
-  const event = payload?.event as string | undefined;
+  const signature = req.headers['x-korapay-signature'] as string | undefined;
   const data = payload?.data;
 
-  if (!event || !data) {
-    res.status(400).json({ error: 'Malformed webhook payload' });
+  if (!signature || !data || !verifySignature(data, signature, secretKey)) {
+    res.status(401).json({ error: 'Invalid or missing webhook signature' });
     return;
   }
 
+  const event = payload?.event as string | undefined;
+  if (!event) {
+    res.status(400).json({ error: 'Missing event field' });
+    return;
+  }
+
+  // Always acknowledge immediately — KoraPay retries on anything other than 200.
+  res.status(200).json({ received: true, event });
+
+  // Process asynchronously after responding so we never time out.
   try {
     const supabase = getSupabaseClient();
 
@@ -77,24 +71,22 @@ export default async function handler(req: any, res: any) {
       await handleCardTransaction(supabase, data);
     } else if (event === 'virtualcard.status_change') {
       await handleStatusChange(supabase, data);
+    } else if (event === 'charge.success' || event === 'charge.failed') {
+      await handleCharge(supabase, event, data);
     }
-    // Unknown events are acknowledged and ignored.
-
-    res.status(200).json({ received: true, event });
+    // transfer.success / transfer.failed / refund.* — logged but no action needed.
   } catch (error) {
     console.error('korapay-webhook processing error:', error);
-    // Return 200 to prevent KoraPay from retrying a server-side error we've already logged.
-    res.status(200).json({ received: true, error: 'Internal processing error' });
   }
 }
 
 async function handleCardTransaction(supabase: any, data: any) {
   const korapayCardId = data?.card_id ?? data?.virtual_card_id;
-  const transactionId = data?.id ?? data?.transaction_id;
+  const transactionId = data?.id ?? data?.transaction_id ?? data?.reference;
 
   if (!korapayCardId || !transactionId) return;
 
-  // Idempotency: skip if we've already processed this transaction.
+  // Idempotency: skip already-processed transactions.
   const { data: existing } = await supabase
     .from('korapay_card_transactions')
     .select('id')
@@ -120,7 +112,6 @@ async function handleCardTransaction(supabase: any, data: any) {
     transaction_date: data?.created_at ?? data?.transaction_date ?? new Date().toISOString(),
   });
 
-  // Sync balance if KoraPay includes the updated card balance.
   const newBalance = data?.card_balance ?? data?.balance;
   if (newBalance !== undefined && Number.isFinite(Number(newBalance))) {
     await supabase
@@ -135,7 +126,6 @@ async function handleStatusChange(supabase: any, data: any) {
   if (!korapayCardId) return;
 
   const rawStatus = String(data?.status ?? '').toLowerCase();
-  // Map KoraPay status values to our local enum.
   let localStatus: string;
   if (rawStatus === 'terminated' || rawStatus === 'deactivated') {
     localStatus = 'terminated';
@@ -144,11 +134,36 @@ async function handleStatusChange(supabase: any, data: any) {
   } else if (rawStatus === 'active') {
     localStatus = 'active';
   } else {
-    return; // Unknown status — do not overwrite.
+    return;
   }
 
   await supabase
     .from('korapay_cards')
     .update({ status: localStatus })
     .eq('korapay_card_id', String(korapayCardId));
+}
+
+async function handleCharge(supabase: any, event: string, data: any) {
+  const reference = data?.reference;
+  if (!reference) return;
+
+  // Idempotency check on the transactions table using the KoraPay reference.
+  const { data: existing } = await supabase
+    .from('transactions')
+    .select('id')
+    .eq('payment_reference', String(reference))
+    .maybeSingle();
+
+  if (existing) return;
+
+  if (event === 'charge.success') {
+    await supabase.from('transactions').insert({
+      user_id: null, // KoraPay charges are not user-scoped at webhook level
+      amount: Number(data?.amount ?? 0),
+      category: 'KoraPay Charge',
+      merchant_name: 'KoraPay',
+      transaction_date: new Date().toISOString(),
+      payment_reference: String(reference),
+    });
+  }
 }
