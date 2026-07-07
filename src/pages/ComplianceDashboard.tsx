@@ -165,8 +165,8 @@ const ComplianceDashboard = () => {
         </div>
         <IdVerification />
         <SubscriptionGate
-          title="Compliance analytics are a Legal tier feature"
-          description="Upgrade to SupportCard Legal to access compliance reporting."
+          title="Compliance analytics are a Premium feature"
+          description="Upgrade to Premium to access compliance reporting."
         />
       </div>
     );

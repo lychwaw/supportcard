@@ -24,6 +24,7 @@ export interface CountryConfig {
   maxLength: number;
   pattern: RegExp;
   ageCalculation: (id: string) => { age: number; dateOfBirth: string; gender?: 'male' | 'female' };
+  validateChecksum?: (id: string) => boolean;
 }
 
 const COUNTRY_CONFIGS: Record<string, CountryConfig> = {
@@ -34,6 +35,15 @@ const COUNTRY_CONFIGS: Record<string, CountryConfig> = {
     minLength: 13,
     maxLength: 13,
     pattern: /^\d{13}$/,
+    validateChecksum: (id: string) => {
+      let sum = 0;
+      for (let i = 0; i < 12; i++) {
+        let digit = parseInt(id[i], 10);
+        if (i % 2 === 1) { digit *= 2; if (digit > 9) digit -= 9; }
+        sum += digit;
+      }
+      return (10 - (sum % 10)) % 10 === parseInt(id[12], 10);
+    },
     ageCalculation: (id: string) => {
       const year = parseInt(id.substring(0, 2));
       const month = parseInt(id.substring(2, 4));
@@ -190,6 +200,14 @@ export function validateGlobalID(idNumber: string, countryCode?: string): IDVali
     return {
       isValid: false,
       error: `Invalid ${config.name} ID number format. Expected format: ${config.idFormat}`
+    };
+  }
+
+  // Checksum validation (e.g. Luhn for SA IDs)
+  if (config.validateChecksum && !config.validateChecksum(idNumber)) {
+    return {
+      isValid: false,
+      error: `Invalid ${config.name} ID number (checksum failed)`
     };
   }
 

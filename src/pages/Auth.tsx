@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { CreditCard, Shield, Upload, FileCheck, UserCheck, Wallet } from 'lucide-react';
+import { CreditCard, Shield, Upload, FileCheck, UserCheck, FileText, Users, Scale, Heart } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const Auth = () => {
@@ -20,12 +20,22 @@ const Auth = () => {
   const [signupFullName, setSignupFullName] = useState('');
   const [signupAge, setSignupAge] = useState<number | ''>('');
   const [parentRole, setParentRole] = useState<'payer' | 'receiver' | 'both'>('payer');
+  const [accountType, setAccountType] = useState<'parent' | 'professional'>('parent');
   const [idFile, setIdFile] = useState<File | null>(null);
   const [idFileName, setIdFileName] = useState('');
   const [resetRequesting, setResetRequesting] = useState(false);
 
   const callbackUrl = `${window.location.origin}/auth/callback`;
   const recoveryRedirectUrl = `${callbackUrl}?type=recovery`;
+
+  // A professional invite link (?ptoken=...) pre-selects the Professional
+  // account type so the signup form matches what the link promised.
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('ptoken')) {
+      setAccountType('professional');
+    }
+  }, []);
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -174,11 +184,13 @@ const Auth = () => {
     }
 
     setIsLoading(true);
-    
+
     try {
-      // Check for invitation token in URL
+      // Check for invitation tokens in URL — co-parent (?token=) or professional (?ptoken=)
       const urlParams = new URLSearchParams(window.location.search);
       const inviteToken = urlParams.get('token');
+      const professionalToken = urlParams.get('ptoken');
+      const isProfessionalSignup = accountType === 'professional' || !!professionalToken;
 
       const { data, error } = await supabase.auth.signUp({
         email: signupEmail,
@@ -196,7 +208,59 @@ const Auth = () => {
       } else if (data.user) {
         // Upload ID verification
         const idUrl = await uploadIdVerification(data.user.id, idFile);
-        
+
+        if (isProfessionalSignup) {
+          // Professionals have no family_id / parent_role of their own — they
+          // get scoped read-only access via professional_links once claimed.
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              id_verification_url: idUrl || null,
+              id_verified: false,
+              email: signupEmail,
+              full_name: signupFullName,
+              age: signupAge,
+            } as any)
+            .eq('id', data.user.id);
+
+          if (updateError) {
+            console.error('Error updating profile:', updateError);
+          }
+
+          if (professionalToken) {
+            const { error: claimError } = await (supabase as any)
+              .from('professional_links')
+              .update({
+                professional_id: data.user.id,
+                status: 'active',
+                accepted_at: new Date().toISOString(),
+              })
+              .eq('token', professionalToken)
+              .eq('status', 'pending');
+
+            if (claimError) {
+              console.error('Error claiming professional link:', claimError);
+            }
+          }
+
+          const { error: roleError } = await supabase
+            .from('user_roles' as any)
+            .insert({
+              user_id: data.user.id,
+              role: 'professional',
+            } as any);
+
+          if (roleError) {
+            console.error('Error assigning role:', roleError);
+          }
+
+          toast.success(professionalToken
+            ? 'Account created! You are now linked to the family.'
+            : 'Account created! Ask a parent to invite you to a family to get access.');
+          navigate('/');
+          return;
+        }
+
         // Generate family_id (unique for new families, or use existing from invite)
         let familyId = `family_${data.user.id}_${Date.now()}`;
         let childId: string | null = null;
@@ -226,18 +290,18 @@ const Auth = () => {
             // Update invite status
             await supabase
               .from('parent_invites')
-              .update({ 
+              .update({
                 status: 'accepted',
                 accepted_at: new Date().toISOString()
               })
               .eq('id', inviteData.id);
           }
         }
-        
+
         // Update profile with ID verification, parent_role, family_id, and age
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({ 
+          .update({
             id_verification_url: idUrl || null,
             id_verified: false,
             parent_role: parentRole,
@@ -271,9 +335,9 @@ const Auth = () => {
         if (roleError) {
           console.error('Error assigning role:', roleError);
         }
-        
-        toast.success(inviteToken 
-          ? 'Account created! You are now connected to the child profile.' 
+
+        toast.success(inviteToken
+          ? 'Account created! You are now connected to the child profile.'
           : 'Account created successfully! Please check your email to verify your account.');
         navigate('/');
       }
@@ -426,6 +490,36 @@ const Auth = () => {
 
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
+                  <div className="space-y-3">
+                    <Label className="text-base font-medium">Account Type</Label>
+                    <RadioGroup
+                      value={accountType}
+                      onValueChange={(value) => setAccountType(value as 'parent' | 'professional')}
+                      disabled={isLoading}
+                      className="grid grid-cols-2 gap-3"
+                    >
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="parent" id="account-parent" className="mt-0" />
+                        <Label htmlFor="account-parent" className="cursor-pointer flex-1 flex flex-col">
+                          <span className="font-medium flex items-center gap-1">
+                            <Heart className="w-4 h-4" />
+                            Parent
+                          </span>
+                          <span className="text-xs text-muted-foreground">Co-parenting a child</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                        <RadioGroupItem value="professional" id="account-professional" className="mt-0" />
+                        <Label htmlFor="account-professional" className="cursor-pointer flex-1 flex flex-col">
+                          <span className="font-medium flex items-center gap-1">
+                            <Scale className="w-4 h-4" />
+                            Professional
+                          </span>
+                          <span className="text-xs text-muted-foreground">Lawyer or mediator</span>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-name">Full Name</Label>
                     <Input
@@ -491,49 +585,61 @@ const Auth = () => {
                     </p>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label className="text-base font-medium">Your Role</Label>
-                    <RadioGroup
-                      value={parentRole}
-                      onValueChange={(value) => setParentRole(value as 'payer' | 'receiver' | 'both')}
-                      disabled={isLoading}
-                      className="grid grid-cols-3 gap-3"
-                    >
-                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
-                        <RadioGroupItem value="payer" id="payer" className="mt-0" />
-                        <Label htmlFor="payer" className="cursor-pointer flex-1 flex flex-col">
-                          <span className="font-medium flex items-center gap-1">
-                            <Wallet className="w-4 h-4" />
-                            Payer
-                          </span>
-                          <span className="text-xs text-muted-foreground">Send money</span>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
-                        <RadioGroupItem value="receiver" id="receiver" className="mt-0" />
-                        <Label htmlFor="receiver" className="cursor-pointer flex-1 flex flex-col">
-                          <span className="font-medium flex items-center gap-1">
-                            <UserCheck className="w-4 h-4" />
-                            Receiver
-                          </span>
-                          <span className="text-xs text-muted-foreground">Manage spending</span>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
-                        <RadioGroupItem value="both" id="both" className="mt-0" />
-                        <Label htmlFor="both" className="cursor-pointer flex-1 flex flex-col">
-                          <span className="font-medium flex items-center gap-1">
-                            <CreditCard className="w-4 h-4" />
-                            Both
-                          </span>
-                          <span className="text-xs text-muted-foreground">Send & receive</span>
-                        </Label>
-                      </div>
-                    </RadioGroup>
-                    <p className="text-xs text-muted-foreground">
-                      Select your role: Payer sends money, Receiver manages spending
-                    </p>
-                  </div>
+                  {accountType === 'parent' && (
+                    <div className="space-y-3">
+                      <Label className="text-base font-medium">Your Role</Label>
+                      <RadioGroup
+                        value={parentRole}
+                        onValueChange={(value) => setParentRole(value as 'payer' | 'receiver' | 'both')}
+                        disabled={isLoading}
+                        className="grid grid-cols-3 gap-3"
+                      >
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                          <RadioGroupItem value="payer" id="payer" className="mt-0" />
+                          <Label htmlFor="payer" className="cursor-pointer flex-1 flex flex-col">
+                            <span className="font-medium flex items-center gap-1">
+                              <FileText className="w-4 h-4" />
+                              Payer
+                            </span>
+                            <span className="text-xs text-muted-foreground">Usually logs receipts</span>
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                          <RadioGroupItem value="receiver" id="receiver" className="mt-0" />
+                          <Label htmlFor="receiver" className="cursor-pointer flex-1 flex flex-col">
+                            <span className="font-medium flex items-center gap-1">
+                              <UserCheck className="w-4 h-4" />
+                              Receiver
+                            </span>
+                            <span className="text-xs text-muted-foreground">Usually approves receipts</span>
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 border rounded-lg p-3 hover:bg-accent cursor-pointer">
+                          <RadioGroupItem value="both" id="both" className="mt-0" />
+                          <Label htmlFor="both" className="cursor-pointer flex-1 flex flex-col">
+                            <span className="font-medium flex items-center gap-1">
+                              <Users className="w-4 h-4" />
+                              Both
+                            </span>
+                            <span className="text-xs text-muted-foreground">Logs and approves</span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                      <p className="text-xs text-muted-foreground">
+                        Select your role: Payer typically logs receipts, Receiver typically approves them
+                      </p>
+                    </div>
+                  )}
+
+                  {accountType === 'professional' && (
+                    <div className="rounded-lg bg-muted p-3 text-sm">
+                      <p className="font-medium mb-1">Professional accounts</p>
+                      <p className="text-muted-foreground">
+                        You'll get read-only access to a family's logs, messages, and documents once a parent invites you.
+                        Ask them to send an invite from their Family page.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="id-verification" className="flex items-center gap-2">

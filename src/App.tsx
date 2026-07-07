@@ -21,8 +21,6 @@ const Pricing = React.lazy(() => import("./pages/Pricing"));
 // Protected routes — each emitted as its own chunk, fetched only when visited
 const Index = React.lazy(() => import("./pages/Index"));
 const Transactions = React.lazy(() => import("./pages/Transactions"));
-const Expenses = React.lazy(() => import("./pages/Expenses"));
-const BalanceBudget = React.lazy(() => import("./pages/BalanceBudget"));
 const Calendar = React.lazy(() => import("./pages/Calendar"));
 const Messages = React.lazy(() => import("./pages/Messages"));
 const Contacts = React.lazy(() => import("./pages/Contacts"));
@@ -32,7 +30,11 @@ const Family = React.lazy(() => import("./pages/Family"));
 const ComplianceDashboard = React.lazy(() => import("./pages/ComplianceDashboard"));
 const VisitationTracker = React.lazy(() => import("./pages/VisitationTracker"));
 const DocumentVault = React.lazy(() => import("./pages/DocumentVault"));
-const VirtualCards = React.lazy(() => import("./pages/VirtualCards"));
+const ReceiptLedger = React.lazy(() => import("./pages/ReceiptLedger"));
+const Goals = React.lazy(() => import("./pages/ChildCoffers"));
+const CustodyClock = React.lazy(() => import("./pages/CustodyClock"));
+const MyScai = React.lazy(() => import("./pages/MyScai"));
+const ProfessionalPortal = React.lazy(() => import("./pages/ProfessionalPortal"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 // Boot modals — lazy-loaded and only mounted once a user session exists,
@@ -112,26 +114,6 @@ const App = () => {
                         <ProtectedRoute>
                           <AppLayout>
                             <Transactions />
-                          </AppLayout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/balance-budget"
-                      element={
-                        <ProtectedRoute>
-                          <AppLayout>
-                            <BalanceBudget />
-                          </AppLayout>
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/expenses"
-                      element={
-                        <ProtectedRoute>
-                          <AppLayout>
-                            <Expenses />
                           </AppLayout>
                         </ProtectedRoute>
                       }
@@ -227,11 +209,51 @@ const App = () => {
                       }
                     />
                     <Route
-                      path="/virtual-cards"
+                      path="/receipt-ledger"
                       element={
                         <ProtectedRoute>
                           <AppLayout>
-                            <VirtualCards />
+                            <ReceiptLedger />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/goals"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <Goals />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/custody-clock"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <CustodyClock />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/my-scai"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <MyScai />
+                          </AppLayout>
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/professional"
+                      element={
+                        <ProtectedRoute>
+                          <AppLayout>
+                            <ProfessionalPortal />
                           </AppLayout>
                         </ProtectedRoute>
                       }

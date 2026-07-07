@@ -1,0 +1,87 @@
+import { useState, useEffect } from 'react';
+import { ScrollView, View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { brand } from '@/theme/colors';
+import { supabase } from '@/lib/supabase';
+
+const DOC_TYPES = ['All', 'Legal', 'Medical', 'School', 'Financial', 'Other'];
+const DOC_EMOJI: Record<string, string> = { Legal: '⚖️', Medical: '🏥', School: '🎓', Financial: '💰', Other: '📄', all: '📁' };
+
+type Document = { id: string; document_type: string; description: string | null; file_name: string | null; created_at: string };
+
+export default function DocumentsScreen() {
+  const insets = useSafeAreaInsets();
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeType, setActiveType] = useState('All');
+
+  useEffect(() => {
+    supabase.from('legal_documents' as any).select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setDocuments((data as any) || []); setLoading(false); });
+  }, []);
+
+  const filtered = documents.filter(d => activeType === 'All' || d.document_type === activeType.toLowerCase());
+
+  return (
+    <ScrollView
+      contentInsetAdjustmentBehavior="automatic"
+      style={{ flex: 1, backgroundColor: brand.lightBg }}
+      contentContainerStyle={{ paddingBottom: 40 }}
+    >
+      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+          <View style={{ width: 36, height: 36, backgroundColor: brand.blue, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+            <Text style={{ color: '#fff', fontSize: 20 }}>♥</Text>
+          </View>
+          <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18 }}>SupportCard</Text>
+        </View>
+        <Text style={{ fontSize: 28, fontWeight: '800', color: brand.dark, marginTop: 12, marginBottom: 20 }}>Documents</Text>
+
+        {/* Filter pills */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, marginHorizontal: -4 }}>
+          <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 4 }}>
+            {DOC_TYPES.map(type => (
+              <Pressable key={type} onPress={() => setActiveType(type)}
+                style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20,
+                  backgroundColor: activeType === type ? brand.blue : brand.card,
+                  boxShadow: activeType === type ? '0 2px 8px rgba(43,116,214,0.20)' : undefined }}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: activeType === type ? '#fff' : brand.body }}>{type}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+
+        {loading ? (
+          <ActivityIndicator color={brand.blue} style={{ marginTop: 40 }} />
+        ) : filtered.length === 0 ? (
+          <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 40, alignItems: 'center', boxShadow: '0 2px 12px rgba(43,116,214,0.08)' }}>
+            <Text style={{ fontSize: 40, marginBottom: 12 }}>📄</Text>
+            <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No documents yet</Text>
+            <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>Store legal, school, and medical documents securely</Text>
+          </View>
+        ) : (
+          <View style={{ gap: 10 }}>
+            {filtered.map(doc => (
+              <Pressable key={doc.id}
+                style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
+                <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Text style={{ fontSize: 24 }}>{DOC_EMOJI[doc.document_type] || '📄'}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }} numberOfLines={1}>
+                    {doc.file_name || doc.document_type}
+                  </Text>
+                  {doc.description && <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }} numberOfLines={1}>{doc.description}</Text>}
+                  <Text style={{ fontSize: 12, color: brand.body, marginTop: 2 }}>
+                    {new Date(doc.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 20, color: brand.body }}>›</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+}

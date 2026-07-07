@@ -1,23 +1,22 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
 import { usePermissions } from '@/hooks/usePermissions';
-import { formatCurrency, getCurrencySymbol } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  Plus, 
-  UserCircle, 
-  Users, 
-  Mail, 
-  Phone, 
+import {
+  Plus,
+  UserCircle,
+  Users,
+  Mail,
+  Phone,
   UserPlus,
   CheckCircle2,
   AlertCircle,
@@ -25,11 +24,15 @@ import {
   Heart,
   Baby,
   Crown,
-  Wallet
+  Scale,
+  ArrowUpRight,
+  ShieldOff,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { InviteCoParent } from '@/components/InviteCoParent';
+import { InviteProfessional } from '@/components/InviteProfessional';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
+import SubscriptionGate from '@/components/SubscriptionGate';
 import { useNavigate } from 'react-router-dom';
 
 interface CoParentInfo {
@@ -41,13 +44,14 @@ interface CoParentInfo {
   phone: string | null;
 }
 
+const CUSTODY_SPLITS = [50, 60, 70, 80];
+
 interface ChildWithDetails {
   id: string;
   name: string;
   user_id: string | null;
   co_parent_id: string | null;
-  target_amount: number;
-  current_amount: number;
+  custody_split_pct: number;
   coParent?: CoParentInfo | null;
 }
 
@@ -61,19 +65,28 @@ interface FamilyMember {
   isCurrentUser?: boolean;
 }
 
+interface ProfessionalLink {
+  id: string;
+  invited_email: string;
+  status: string;
+  created_at: string;
+  professional?: { full_name: string | null; email: string | null } | null;
+}
+
 const Family = () => {
   const { user } = useAuth();
   const { refreshChildren, isParent } = useRole();
-  const { currency } = useCurrency();
-  const { canManageChildren } = usePermissions();
+  const { canManageChildren, canInviteProfessional } = usePermissions();
   const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [childName, setChildName] = useState('');
-  const [targetAmount, setTargetAmount] = useState('');
+  const [custodySplit, setCustodySplit] = useState('50');
   const [isLoading, setIsLoading] = useState(false);
+  const [updatingSplitId, setUpdatingSplitId] = useState<string | null>(null);
   const [childrenWithDetails, setChildrenWithDetails] = useState<ChildWithDetails[]>([]);
   const [coParent, setCoParent] = useState<CoParentInfo | null>(null);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [professionalLinks, setProfessionalLinks] = useState<ProfessionalLink[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Load initial data
@@ -90,7 +103,8 @@ const Family = () => {
       await Promise.all([
         fetchFamilyData(),
         fetchChildrenDetails(),
-        findCoParent()
+        findCoParent(),
+        fetchProfessionalLinks(),
       ]);
     } finally {
       setLoading(false);
@@ -175,9 +189,9 @@ const Family = () => {
     }
 
     try {
-      const { data: freshChildren, error } = await supabase
+      const { data: freshChildren, error } = await (supabase as any)
         .from('children')
-        .select('id, name, user_id, co_parent_id, target_amount, current_amount, parent_id')
+        .select('id, name, user_id, co_parent_id, custody_split_pct, parent_id')
         .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
@@ -229,8 +243,7 @@ const Family = () => {
             user_id: child.user_id,
             co_parent_id: child.co_parent_id || null,
             coParent,
-            target_amount: child.target_amount || 0,
-            current_amount: child.current_amount || 0,
+            custody_split_pct: child.custody_split_pct ?? 50,
           } as ChildWithDetails;
         })
       );
@@ -243,20 +256,19 @@ const Family = () => {
   };
 
   const handleAddChild = async () => {
-    if (!user || !childName || !targetAmount) {
-      toast.error('Please fill in all fields');
+    if (!user || !childName) {
+      toast.error('Please enter a name');
       return;
     }
 
     setIsLoading(true);
     try {
-      const { data: insertedChild, error } = await supabase
+      const { data: insertedChild, error } = await (supabase as any)
         .from('children')
         .insert({
           parent_id: user.id,
           name: childName,
-          target_amount: parseFloat(targetAmount),
-          current_amount: 0,
+          custody_split_pct: parseInt(custodySplit, 10) || 50,
         })
         .select()
         .single();
@@ -265,7 +277,7 @@ const Family = () => {
 
       // Close dialog and clear form immediately
       setChildName('');
-      setTargetAmount('');
+      setCustodySplit('50');
       setIsDialogOpen(false);
       
       toast.success(`✨ ${childName} added successfully!`);
@@ -289,10 +301,65 @@ const Family = () => {
     }
   };
 
+  const fetchProfessionalLinks = async () => {
+    if (!user) return;
+
+    try {
+      const { data, error } = await (supabase as any)
+        .from('professional_links')
+        .select('id, invited_email, status, created_at, professional:professional_id(full_name, email)')
+        .eq('parent_id', user.id)
+        .neq('status', 'revoked')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setProfessionalLinks(data || []);
+    } catch (error) {
+      console.error('Error fetching professional links:', error);
+      setProfessionalLinks([]);
+    }
+  };
+
+  const handleRevokeProfessional = async (linkId: string) => {
+    try {
+      const { error } = await (supabase as any)
+        .from('professional_links')
+        .update({ status: 'revoked' })
+        .eq('id', linkId);
+
+      if (error) throw error;
+      toast.success('Access revoked');
+      fetchProfessionalLinks();
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to revoke access');
+    }
+  };
+
+  const handleUpdateSplit = async (childId: string, pct: string) => {
+    setUpdatingSplitId(childId);
+    try {
+      const { error } = await (supabase as any)
+        .from('children')
+        .update({ custody_split_pct: parseInt(pct, 10) || 50 })
+        .eq('id', childId);
+
+      if (error) throw error;
+
+      setChildrenWithDetails(prev =>
+        prev.map(c => (c.id === childId ? { ...c, custody_split_pct: parseInt(pct, 10) || 50 } : c))
+      );
+      toast.success('Custody split updated');
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to update custody split');
+    } finally {
+      setUpdatingSplitId(null);
+    }
+  };
+
   const getParentRoleBadge = (role: string | null) => {
     switch (role) {
       case 'payer':
-        return <Badge className="bg-primary/10 text-primary border-primary/20"><Wallet className="w-3 h-3 mr-1" />Payer</Badge>;
+        return <Badge className="bg-primary/10 text-primary border-primary/20"><ArrowUpRight className="w-3 h-3 mr-1" />Payer</Badge>;
       case 'receiver':
         return <Badge className="bg-green-500/10 text-green-600 border-green-500/20"><Heart className="w-3 h-3 mr-1" />Receiver</Badge>;
       case 'both':
@@ -350,15 +417,20 @@ const Family = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="target-amount">Monthly Support Target ({getCurrencySymbol(currency)}) *</Label>
-                  <Input
-                    id="target-amount"
-                    type="number"
-                    placeholder="0.00"
-                    value={targetAmount}
-                    onChange={(e) => setTargetAmount(e.target.value)}
-                    disabled={isLoading}
-                  />
+                  <Label htmlFor="custody-split">Custody Split</Label>
+                  <Select value={custodySplit} onValueChange={setCustodySplit} disabled={isLoading}>
+                    <SelectTrigger id="custody-split">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CUSTODY_SPLITS.map(pct => (
+                        <SelectItem key={pct} value={String(pct)}>
+                          {pct}/{100 - pct}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Your share of shared expenses for this child</p>
                 </div>
               </div>
               <DialogFooter>
@@ -512,25 +584,33 @@ const Family = () => {
                     </div>
                   </div>
 
-                  {child.target_amount > 0 && (
-                    <div className="mt-4 p-3 rounded-lg bg-muted/50 border">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-medium text-muted-foreground">Support Progress</span>
-                        <span className="text-xs font-bold text-primary">
-                          {formatCurrency(child.current_amount, currency)} / {formatCurrency(child.target_amount, currency)}
-                        </span>
-                      </div>
-                      <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-primary rounded-full transition-all duration-500"
-                          style={{ width: `${Math.min((child.current_amount / child.target_amount) * 100, 100)}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {((child.current_amount / child.target_amount) * 100).toFixed(0)}% complete
-                      </p>
+                  <div className="mt-4 p-3 rounded-lg bg-muted/50 border">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                        <Scale className="w-3 h-3" aria-hidden="true" />
+                        Custody Split
+                      </span>
+                      <Select
+                        value={String(child.custody_split_pct)}
+                        onValueChange={(v) => handleUpdateSplit(child.id, v)}
+                        disabled={updatingSplitId === child.id}
+                      >
+                        <SelectTrigger className="h-7 w-24 text-xs" aria-label={`Custody split for ${child.name}`}>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {CUSTODY_SPLITS.map(pct => (
+                            <SelectItem key={pct} value={String(pct)}>
+                              {pct}/{100 - pct}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Your share of shared expenses used in the Receipt Ledger 50/50 calculator
+                    </p>
+                  </div>
                 </CardHeader>
 
                 <CardContent className="space-y-3">
@@ -582,6 +662,67 @@ const Family = () => {
           </div>
         )}
       </div>
+
+      {/* Professionals Section */}
+      {isParent && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Scale className="w-5 h-5 text-primary" />
+              <h2 className="text-xl font-semibold">Professionals</h2>
+              {professionalLinks.length > 0 && (
+                <Badge variant="secondary" className="ml-2">{professionalLinks.length}</Badge>
+              )}
+            </div>
+            {canInviteProfessional && <InviteProfessional onInviteSent={fetchProfessionalLinks} />}
+          </div>
+
+          {!canInviteProfessional ? (
+            <SubscriptionGate
+              title="Inviting a professional is a Premium feature"
+              description="Give a lawyer or mediator read-only access to your family's records."
+              ctaText="Upgrade to Premium"
+            />
+          ) : professionalLinks.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-10">
+                <Scale className="w-10 h-10 text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-sm">No professionals linked yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Invite a lawyer or mediator for read-only access</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {professionalLinks.map((link) => (
+                <Card key={link.id}>
+                  <CardContent className="pt-4 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">
+                        {link.professional?.full_name || link.invited_email}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant={link.status === 'active' ? 'default' : 'secondary'} className="text-xs">
+                          {link.status === 'active' ? 'Active' : 'Pending'}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground">Read-only</span>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive shrink-0"
+                      onClick={() => handleRevokeProfessional(link.id)}
+                      aria-label={`Revoke access for ${link.professional?.full_name || link.invited_email}`}
+                    >
+                      <ShieldOff className="w-4 h-4" aria-hidden="true" />
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

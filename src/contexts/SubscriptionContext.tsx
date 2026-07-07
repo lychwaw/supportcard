@@ -24,14 +24,14 @@ export const useSubscription = () => {
 
 export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
-  const [tier, setTier] = useState<SubscriptionTierId>('free');
+  const [tier, setTier] = useState<SubscriptionTierId>('preview');
   const [status, setStatus] = useState<'active' | 'expired' | null>(null);
   const [expiryDate, setExpiryDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshSubscription = async () => {
     if (!user) {
-      setTier('free');
+      setTier('preview');
       setStatus(null);
       setExpiryDate(null);
       setLoading(false);
@@ -56,7 +56,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       setExpiryDate(nextExpiry);
     } catch (error) {
       console.error('Error fetching subscription:', error);
-      setTier('free');
+      setTier('preview');
       setStatus(null);
       setExpiryDate(null);
     } finally {

@@ -16,6 +16,18 @@ dist-ssr
 .env
 .env.local
 .env.*.local
+FIX_ENV_NOW.txt
+
+# AI agent rules/steering files — treat as security-critical config (OWASP AI §6)
+.agents/
+.claude/
+CLAUDE.md
+AGENTS.md
+.cursorrules
+.cursor/
+.windsurfrules
+.aider.conf.yml
+skills-lock.json
 
 # Editor directories and files
 .vscode/*

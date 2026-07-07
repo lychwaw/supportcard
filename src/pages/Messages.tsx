@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
+import { usePermissions } from '@/hooks/usePermissions';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -30,6 +31,7 @@ interface CoParent {
 
 const Messages = () => {
   const { user } = useAuth();
+  const { canUseAITone } = usePermissions();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [coParent, setCoParent] = useState<CoParent | null>(null);
@@ -281,6 +283,7 @@ const Messages = () => {
                 onSend={handleSendMessage}
                 placeholder="Type your message..."
                 disabled={!coParent}
+                aiEnabled={canUseAITone}
               />
             </>
           )}

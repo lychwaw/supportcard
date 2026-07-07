@@ -34,12 +34,6 @@ const loadMapKitScript = (): Promise<typeof mapkit> => {
 };
 
 const getMapKitToken = async (): Promise<string> => {
-  const inlineToken = import.meta.env.VITE_MAPKIT_TOKEN as string | undefined;
-  if (inlineToken) {
-    cachedMapKitToken = inlineToken;
-    return inlineToken;
-  }
-
   // Refresh 2 minutes before expiry (token lifetime is 30 min).
   if (cachedMapKitToken && Date.now() < tokenExpiresAt - 120_000) {
     return cachedMapKitToken;

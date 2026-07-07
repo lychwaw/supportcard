@@ -7,16 +7,17 @@ import {
   MessageSquare,
   Settings,
   PhoneCall,
-  TrendingUp,
   FileText,
   LogOut,
   Users,
   Shield,
   Navigation,
   FolderOpen,
-  Wallet,
   Crown,
-  Layers,
+  Star,
+  MapPin,
+  Scale,
+  Bot,
 } from 'lucide-react';
 import {
   Sidebar,
@@ -31,9 +32,10 @@ import {
   SidebarFooter,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/components/AuthProvider';
+import { useRole } from '@/contexts/RoleContext';
 import { Button } from '@/components/ui/button';
 
-const navigationGroups = [
+const parentNavigationGroups = [
   {
     label: 'Main',
     items: [
@@ -44,11 +46,10 @@ const navigationGroups = [
   {
     label: 'Financial',
     items: [
-      { title: 'Transactions', url: '/transactions', icon: Receipt },
-      { title: 'Subscriptions', url: '/subscriptions', icon: Crown },
-      { title: 'Balance & Budget', url: '/balance-budget', icon: Wallet },
-      { title: 'Virtual Cards',    url: '/virtual-cards',  icon: Layers },
-      { title: 'Expense Requests', url: '/expenses',        icon: FileText },
+      { title: 'Transactions',     url: '/transactions',    icon: Receipt },
+      { title: 'Subscriptions',    url: '/subscriptions',   icon: Crown },
+      { title: 'Receipt Ledger',   url: '/receipt-ledger',  icon: FileText },
+      { title: 'Goals & Wishlist', url: '/goals',           icon: Star },
     ],
   },
   {
@@ -56,14 +57,16 @@ const navigationGroups = [
     items: [
       { title: 'Messages', url: '/messages', icon: MessageSquare },
       { title: 'Calendar', url: '/calendar', icon: Calendar },
+      { title: 'My SCAI', url: '/my-scai', icon: Bot },
     ],
   },
   {
     label: 'Legal & Compliance',
     items: [
-      { title: 'Compliance', url: '/compliance', icon: Shield },
-      { title: 'Visitation Tracker', url: '/visitation', icon: Navigation },
-      { title: 'Documents', url: '/documents', icon: FolderOpen },
+      { title: 'Compliance',       url: '/compliance',     icon: Shield },
+      { title: 'Custody Clock',    url: '/custody-clock',  icon: MapPin },
+      { title: 'Visitation Tracker', url: '/visitation',   icon: Navigation },
+      { title: 'Documents',        url: '/documents',      icon: FolderOpen },
     ],
   },
   {
@@ -75,8 +78,25 @@ const navigationGroups = [
   },
 ];
 
+const professionalNavigationGroups = [
+  {
+    label: 'Main',
+    items: [
+      { title: 'Professional Portal', url: '/professional', icon: Scale },
+    ],
+  },
+  {
+    label: 'Other',
+    items: [
+      { title: 'Settings', url: '/settings', icon: Settings },
+    ],
+  },
+];
+
 export function AppSidebar() {
   const { signOut } = useAuth();
+  const { isProfessional } = useRole();
+  const navigationGroups = isProfessional ? professionalNavigationGroups : parentNavigationGroups;
 
   return (
     <Sidebar collapsible="icon">

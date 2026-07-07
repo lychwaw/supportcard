@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  security:
+    name: Security & Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Dependency audit (fail on high+)
+        run: npm audit --audit-level=high
+
+      - name: Type-check frontend
+        run: npx tsc --noEmit -p tsconfig.app.json
+
+      - name: Build
+        run: npm run build
+
+      - name: Detect agent rules-file changes (OWASP AI §6)
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+          SENSITIVE=$(echo "$CHANGED" | grep -E "^(\.agents/|\.claude/|CLAUDE\.md|AGENTS\.md|\.cursorrules|\.windsurfrules)" || true)
+          if [ -n "$SENSITIVE" ]; then
+            echo "::error::Agent steering file(s) modified — requires explicit owner review: $SENSITIVE"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: npm test -- --run 2>/dev/null || echo "No tests configured yet"

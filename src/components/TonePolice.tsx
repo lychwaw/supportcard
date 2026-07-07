@@ -3,10 +3,19 @@ import { useToneAnalysis } from '@/hooks/useToneAnalysis';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, Shield, CheckCircle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { AlertCircle, Shield, CheckCircle, Sparkles } from 'lucide-react';
 import { z } from 'zod';
 
-// Zod schema for message
 const MessageSchema = z.object({
   content: z.string().min(1, 'Message cannot be empty').max(5000, 'Message too long'),
 });
@@ -16,47 +25,67 @@ interface TonePoliceProps {
   initialValue?: string;
   placeholder?: string;
   disabled?: boolean;
+  /** AI Tone-Check is a Basic+ feature — Free tier falls back to local heuristics only. */
+  aiEnabled?: boolean;
 }
 
-const TonePolice = ({ onSend, initialValue = '', placeholder = 'Type your message...', disabled = false }: TonePoliceProps) => {
+const TonePolice = ({ onSend, initialValue = '', placeholder = 'Type your message...', disabled = false, aiEnabled = false }: TonePoliceProps) => {
   const [message, setMessage] = useState(initialValue);
-  const [isBlocked, setIsBlocked] = useState(false);
+  const [showHeatedModal, setShowHeatedModal] = useState(false);
   const { analysis, isAnalyzing, analyze, reset } = useToneAnalysis();
 
   useEffect(() => {
     if (message.length > 10) {
       const timeoutId = setTimeout(() => {
-        analyze(message);
+        analyze(message, aiEnabled);
       }, 500); // Debounce analysis
 
       return () => clearTimeout(timeoutId);
     } else {
       reset();
     }
-  }, [message, analyze, reset]);
+  }, [message, aiEnabled, analyze, reset]);
 
-  useEffect(() => {
-    setIsBlocked(analysis?.isHostile || analysis?.isAggressive || false);
-  }, [analysis]);
-
-  const handleSend = async () => {
+  const validate = (): string | null => {
     try {
-      // Validate with Zod
-      const validated = MessageSchema.parse({ content: message });
-      
-      if (isBlocked) {
-        return; // Prevent sending
-      }
-
-      onSend(validated.content);
-      setMessage('');
-      reset();
+      MessageSchema.parse({ content: message });
+      return null;
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        // Handle validation error
-        console.error('Validation error:', error.errors);
-      }
+      if (error instanceof z.ZodError) return error.errors[0].message;
+      return 'Invalid message';
     }
+  };
+
+  const handleSendClick = () => {
+    const validationError = validate();
+    if (validationError) {
+      console.error('Validation error:', validationError);
+      return;
+    }
+
+    if (analysis?.isHostile) {
+      setShowHeatedModal(true);
+      return;
+    }
+
+    onSend(message);
+    setMessage('');
+    reset();
+  };
+
+  const handleSendAnyway = () => {
+    onSend(message);
+    setMessage('');
+    reset();
+    setShowHeatedModal(false);
+  };
+
+  const handleUseRewrite = () => {
+    if (analysis?.rewrite) {
+      setMessage(analysis.rewrite);
+    }
+    setShowHeatedModal(false);
+    reset();
   };
 
   const getToneColor = () => {
@@ -75,7 +104,7 @@ const TonePolice = ({ onSend, initialValue = '', placeholder = 'Type your messag
           onChange={(e) => setMessage(e.target.value)}
           placeholder={placeholder}
           rows={4}
-          className={`${getToneColor()} ${isBlocked ? 'border-red-500' : ''}`}
+          className={getToneColor()}
           disabled={isAnalyzing || disabled}
         />
         {isAnalyzing && (
@@ -87,18 +116,11 @@ const TonePolice = ({ onSend, initialValue = '', placeholder = 'Type your messag
 
       {analysis && (
         <div className="space-y-2">
-          {analysis.warningMessage && (
-            <Alert variant={isBlocked ? 'destructive' : 'default'} className="border-orange-500">
+          {analysis.warningMessage && !analysis.isHostile && (
+            <Alert className="border-orange-500">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Conflict Detection</AlertTitle>
-              <AlertDescription>
-                {analysis.warningMessage}
-                {isBlocked && (
-                  <span className="block mt-2 font-semibold">
-                    ⚠️ Send button blocked. This message may be used against you in court.
-                  </span>
-                )}
-              </AlertDescription>
+              <AlertDescription>{analysis.warningMessage}</AlertDescription>
             </Alert>
           )}
 
@@ -114,8 +136,7 @@ const TonePolice = ({ onSend, initialValue = '', placeholder = 'Type your messag
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <Shield className="w-3 h-3" />
             <span>
-              Conflict Score: {analysis.confidence.toFixed(0)}% | 
-              Tone: {analysis.suggestedTone}
+              {aiEnabled ? 'AI Tone-Check' : 'Basic conflict detection'} | Tone: {analysis.suggestedTone}
             </span>
           </div>
         </div>
@@ -126,28 +147,55 @@ const TonePolice = ({ onSend, initialValue = '', placeholder = 'Type your messag
           {message.length}/5000 characters
         </p>
         <Button
-          onClick={handleSend}
-          disabled={isBlocked || message.length === 0 || isAnalyzing || disabled}
-          variant={isBlocked ? 'destructive' : 'default'}
+          onClick={handleSendClick}
+          disabled={message.length === 0 || isAnalyzing || disabled}
         >
-          {isBlocked ? 'Blocked - Revise Message' : 'Send'}
+          Send
         </Button>
       </div>
+
+      {/* Brief's exact UX: "This seems heated. Want to rephrase?" with a
+          non-editable suggested rewrite, or Send Anyway. */}
+      <AlertDialog open={showHeatedModal} onOpenChange={setShowHeatedModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-destructive" />
+              This seems heated. Want to rephrase?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {analysis?.warningMessage || 'This message may be perceived as hostile and could be used against you in a dispute.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          {analysis?.rewrite && (
+            <div className="rounded-lg border bg-muted/50 p-3 space-y-1">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <Sparkles className="w-3 h-3" aria-hidden="true" />
+                Suggested calmer rewrite
+              </p>
+              <p className="text-sm">{analysis.rewrite}</p>
+            </div>
+          )}
+
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel className="sm:mr-auto">Let me edit it</AlertDialogCancel>
+            {analysis?.rewrite && (
+              <Button variant="outline" onClick={handleUseRewrite}>
+                Use Suggested Rewrite
+              </Button>
+            )}
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleSendAnyway}
+            >
+              Send Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
 export default TonePolice;
-
-
-
-
-
-
-
-
-
-
-
-
-

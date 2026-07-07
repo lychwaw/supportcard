@@ -1,0 +1,28 @@
+# CODEOWNERS — changes to these paths require explicit review from the repo owner.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Payment and webhook handlers — any change here affects billing integrity
+/api/dodo-checkout.ts @lychwaw
+/api/dodo-webhook.ts  @lychwaw
+/api/korapay.ts       @lychwaw
+/api/korapay-webhook.ts @lychwaw
+
+# AI endpoint — any change here affects data sent to Anthropic
+/api/ai.ts @lychwaw
+
+# Infrastructure config — CSP, rewrites, headers
+/vercel.json @lychwaw
+
+# Database schema — migrations are irreversible in production
+/supabase/migrations/ @lychwaw
+
+# Auth and subscription context — tier-gating logic lives here
+/src/contexts/ @lychwaw
+/src/hooks/usePermissions.ts @lychwaw
+/src/lib/subscriptions.ts @lychwaw
+
+# AI agent steering files — must not be modified by external contributors
+/.agents/ @lychwaw
+/.claude/ @lychwaw
+/CLAUDE.md @lychwaw
+/AGENTS.md @lychwaw

@@ -123,6 +123,14 @@ export const formatCurrency = (
   return formatter.format(displayAmount);
 };
 
+// For prices whose canonical value is USD (subscription tiers), rather than
+// the rest of the app's ZAR-denominated transaction amounts. Converts USD
+// straight to the target display currency without the ZAR round-trip.
+export const formatCurrencyFromUsd = (usdAmount: number, currency: string = 'ZAR'): string => {
+  const displayAmount = currency === 'USD' ? usdAmount : convertToZar(usdAmount, 'USD');
+  return formatCurrency(displayAmount, currency, false);
+};
+
 export const getCurrencySymbol = (currency: string = 'ZAR'): string => {
   const symbols: Record<string, string> = {
     ZAR: 'R',

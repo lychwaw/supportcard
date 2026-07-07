@@ -1,0 +1,108 @@
+{
+  "expo": {
+    "name": "SupportCard",
+    "slug": "supportcard",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "supportcard",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "co.za.supportcard.app",
+      "buildNumber": "1",
+      "config": {
+        "googleMapsApiKey": ""
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "SupportCard uses your location to verify custody handoffs and log check-ins at specific locations.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SupportCard uses your location to log custody check-ins.",
+        "NSCameraUsageDescription": "SupportCard uses your camera to upload receipts and documents.",
+        "NSPhotoLibraryUsageDescription": "SupportCard accesses your photo library to attach images to expense requests and documents.",
+        "NSPhotoLibraryAddUsageDescription": "SupportCard saves exported court records to your photo library."
+      }
+    },
+    "android": {
+      "package": "co.za.supportcard.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#2B74D6",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "VIBRATE",
+        "RECEIVE_BOOT_COMPLETED"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "SupportCard accesses your photos to attach receipts and documents to expense requests.",
+          "cameraPermission": "SupportCard uses your camera to scan receipts and upload proof of expenses."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "SupportCard uses your location to verify custody handoffs and log check-ins.",
+          "isIosBackgroundLocationEnabled": false
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2B74D6",
+          "defaultChannel": "default",
+          "sounds": []
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#EBF4FF"
+        }
+      ],
+      [
+        "expo-updates",
+        {
+          "username": "supportcard"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "updates": {
+      "url": "https://u.expo.dev/supportcard",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

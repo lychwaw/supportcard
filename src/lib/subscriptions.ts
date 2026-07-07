@@ -1,118 +1,181 @@
-import { formatCurrency } from '@/lib/currency';
+import { formatCurrencyFromUsd } from '@/lib/currency';
 
-export type SubscriptionTierId = 'free' | 'premium' | 'family_plus' | 'legal';
+export type SubscriptionTierId = 'preview' | 'essential' | 'plus' | 'premium';
 
 export const TIER_RANK: Record<SubscriptionTierId, number> = {
-  free:        0,
-  premium:     1,
-  family_plus: 2,
-  legal:       3,
+  preview:   0,
+  essential: 1,
+  plus:      2,
+  premium:   3,
 };
+
+export interface TierLimits {
+  childProfiles: number | 'unlimited';
+  calendarEvents: number | 'unlimited'; // total for preview, per-month for paid tiers
+  expenseRequestsPerMonth: number | 'unlimited';
+  parentMessagesPerMonth: number | 'unlimited';
+  storedDocuments: number | 'unlimited';
+  documentStorageGB?: number;
+  pdfExportsPerMonth: number;
+  coParentingCircles?: number;
+  /** Can this tier's holder invite a Professional (lawyer/mediator) into their family? */
+  professionalAccess: boolean;
+}
 
 export interface SubscriptionTier {
   id: SubscriptionTierId;
   name: string;
+  tagline: string;
   description: string;
-  priceZar: number;
-  priceUsd: number;
+  priceUsd: number; // canonical price — ZAR (or any other currency) is derived via formatCurrencyFromUsd
   billingCycle: 'month' | 'year';
-  transferCapZar: number | null; // null = unlimited
+  limits: TierLimits;
+  myScai: boolean;
+  advancedMyScai?: boolean;
+  aiToneCheck: boolean;
   features: string[];
 }
 
 export const subscriptionTiers: SubscriptionTier[] = [
   {
-    id: 'free',
-    name: 'Basic',
-    description: 'Essential tracking for a single child wallet.',
-    priceZar: 0,
+    id: 'preview',
+    name: 'Preview',
+    tagline: 'Tiny trial access',
+    description: 'For testing the basics.',
     priceUsd: 0,
     billingCycle: 'month',
-    transferCapZar: 5000,
+    limits: {
+      childProfiles: 1,
+      calendarEvents: 5,
+      expenseRequestsPerMonth: 3,
+      parentMessagesPerMonth: 30,
+      storedDocuments: 3,
+      pdfExportsPerMonth: 0,
+      professionalAccess: false,
+    },
+    myScai: false,
+    aiToneCheck: false,
     features: [
-      '1 child wallet',
-      'Virtual card',
-      'Expense logging & basic category tracking',
-      'In-app co-parent messaging',
-      'R5,000 / month transfer cap',
+      '1 child profile',
+      '5 calendar events to try',
+      'Basic expense log (3 requests)',
+      'Drop-off & pickup logs',
+    ],
+  },
+  {
+    id: 'essential',
+    name: 'Essential',
+    tagline: 'Basic capped use',
+    description: 'For simple structure without AI.',
+    priceUsd: 4.99,
+    billingCycle: 'month',
+    limits: {
+      childProfiles: 1,
+      calendarEvents: 40,
+      expenseRequestsPerMonth: 20,
+      parentMessagesPerMonth: 500,
+      storedDocuments: 25,
+      pdfExportsPerMonth: 0,
+      professionalAccess: false,
+    },
+    myScai: false,
+    aiToneCheck: false,
+    features: [
+      'All Preview features',
+      '40 calendar events / month',
+      '20 expense requests / month',
+      '25 stored documents',
+    ],
+  },
+  {
+    id: 'plus',
+    name: 'Plus',
+    tagline: 'Advanced features',
+    description: 'The smart co-parenting system.',
+    priceUsd: 9.99,
+    billingCycle: 'month',
+    limits: {
+      childProfiles: 3,
+      calendarEvents: 150,
+      expenseRequestsPerMonth: 100,
+      parentMessagesPerMonth: 2500,
+      storedDocuments: 'unlimited',
+      pdfExportsPerMonth: 5,
+      professionalAccess: false,
+    },
+    myScai: true,
+    aiToneCheck: true,
+    features: [
+      'All Essential features',
+      'Up to 3 children',
+      'My SCAI assistant',
+      'AI Tone-Check on messages',
+      '5 PDF exports / month',
     ],
   },
   {
     id: 'premium',
     name: 'Premium',
-    description: 'Everyday co-parents — analytics, AI insights, and custom cards.',
-    priceZar: 99,
-    priceUsd: 5.49,
+    tagline: 'Advanced records',
+    description: 'For stronger proof and reports.',
+    priceUsd: 14.99,
     billingCycle: 'month',
-    transferCapZar: 25000,
+    limits: {
+      childProfiles: 'unlimited',
+      calendarEvents: 'unlimited',
+      expenseRequestsPerMonth: 'unlimited',
+      parentMessagesPerMonth: 'unlimited',
+      storedDocuments: 'unlimited',
+      documentStorageGB: 25,
+      pdfExportsPerMonth: 25,
+      coParentingCircles: 2,
+      professionalAccess: true,
+    },
+    myScai: true,
+    advancedMyScai: true,
+    aiToneCheck: true,
     features: [
-      'All Basic features',
-      'Custom virtual card designs',
-      'Advanced analytics & AI spending insights',
-      'Goal-based saving pockets',
-      'Shared co-parent calendar',
-      'Smart notifications',
-      'International transfers (standard rate)',
-      'Physical card (add-on)',
-      'R25,000 / month transfer cap',
-    ],
-  },
-  {
-    id: 'family_plus',
-    name: 'Family+',
-    description: 'Multi-child households — guardian access and higher limits.',
-    priceZar: 179,
-    priceUsd: 9.99,
-    billingCycle: 'month',
-    transferCapZar: 75000,
-    features: [
-      'All Premium features',
-      'Up to 5 child wallets',
-      'Guardian viewing access',
-      'Per-child spending insights',
-      'Emergency wallet freeze',
-      '1 physical card included',
-      'International transfers (discounted rate)',
-      'R75,000 / month transfer cap',
-    ],
-  },
-  {
-    id: 'legal',
-    name: 'SupportCard Legal',
-    description: 'Court-grade documentation, audit trails, and legal workflows.',
-    priceZar: 549,
-    priceUsd: 30.00,
-    billingCycle: 'month',
-    transferCapZar: null,
-    features: [
-      'All Family+ features',
-      'Unlimited child wallets',
-      'Court-ready exportable reports',
-      'Full audit trails',
-      'Secure document storage',
-      'Digital agreement signing',
-      'Monthly legal reports',
-      'Priority dispute flagging',
-      'Cross-border payment routing',
-      'Physical cards (unlimited)',
-      'International transfers (priority rate)',
-      'Dedicated account manager',
-      'Unlimited transfers',
+      'All Plus features',
+      'Unlimited children, events & expenses',
+      'Court-admissible record exports (25/month)',
+      'Verified Handoffs (GPS required)',
+      'Invite a Professional (lawyer/mediator) — read-only access',
+      'Priority support',
     ],
   },
 ];
 
-export const getTierPriceDisplay = (tier: SubscriptionTier, currency: string) => {
-  if (tier.id === 'free') return 'Free';
-  return formatCurrency(tier.priceZar, currency);
+export const FOUNDER_OFFER = {
+  applicableTier: 'plus' as SubscriptionTierId,
+  priceUsd: 6.99,
+  slotLimit: 5000,
+  lockMonths: 12,
+  label: 'Founder Offer',
+  description: 'SupportCard Plus for $6.99/month for the first 5,000 families — locked for 12 months.',
+};
+
+export const getTierPriceDisplay = (tier: SubscriptionTier, currency: string, useFounderPrice = false) => {
+  if (tier.priceUsd === 0) return 'Free';
+  const price = useFounderPrice && tier.id === FOUNDER_OFFER.applicableTier ? FOUNDER_OFFER.priceUsd : tier.priceUsd;
+  return formatCurrencyFromUsd(price, currency);
 };
 
 export const isTierAtLeast = (current: SubscriptionTierId, required: SubscriptionTierId) =>
   TIER_RANK[current] >= TIER_RANK[required];
 
-// Normalise a raw DB value to a valid tier ID, mapping any legacy tier to its successor.
+export const canUseMyScai = (tier: SubscriptionTierId): boolean =>
+  subscriptionTiers.find(t => t.id === tier)?.myScai ?? false;
+
+export const canUseToneCheck = (tier: SubscriptionTierId): boolean =>
+  subscriptionTiers.find(t => t.id === tier)?.aiToneCheck ?? false;
+
+// Normalise a raw DB value to a valid tier ID, mapping any legacy/retired tier to its successor.
 export const normaliseTierId = (raw: string | null | undefined): SubscriptionTierId => {
-  if (raw === 'executive') return 'legal';
+  if (raw === 'executive' || raw === 'legal') return 'premium';
+  if (raw === 'family_plus') return 'plus';
+  if (raw === 'free') return 'preview';
+  if (raw === 'basic') return 'essential';
+  if (raw === 'professional') return 'premium'; // retired standalone tier — folded into Premium
   if (raw && raw in TIER_RANK) return raw as SubscriptionTierId;
-  return 'free';
+  return 'preview';
 };

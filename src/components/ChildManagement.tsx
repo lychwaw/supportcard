@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
-import { getCurrencySymbol } from '@/lib/currency';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,10 +30,8 @@ interface ChildWithCoParent {
 export const ChildManagement = () => {
   const { user } = useAuth();
   const { children, refreshChildren } = useRole();
-  const { currency } = useCurrency();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [childName, setChildName] = useState('');
-  const [targetAmount, setTargetAmount] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [childrenWithCoParents, setChildrenWithCoParents] = useState<ChildWithCoParent[]>([]);
 
@@ -82,8 +78,8 @@ export const ChildManagement = () => {
   };
 
   const handleAddChild = async () => {
-    if (!user || !childName || !targetAmount) {
-      toast.error('Please fill in all fields');
+    if (!user || !childName) {
+      toast.error('Please enter a name');
       return;
     }
 
@@ -94,15 +90,12 @@ export const ChildManagement = () => {
         .insert({
           parent_id: user.id,
           name: childName,
-          target_amount: parseFloat(targetAmount),
-          current_amount: 0,
         });
 
       if (error) throw error;
 
       toast.success(`${childName} added successfully`);
       setChildName('');
-      setTargetAmount('');
       setIsDialogOpen(false);
       
       // Refresh children list
@@ -140,7 +133,7 @@ export const ChildManagement = () => {
               <DialogHeader>
                 <DialogTitle>Add Child</DialogTitle>
                 <DialogDescription>
-                  Create a new child account with support payment tracking
+                  Create a new child profile. Set the custody split from the Family page.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
@@ -151,17 +144,6 @@ export const ChildManagement = () => {
                     placeholder="Enter name"
                     value={childName}
                     onChange={(e) => setChildName(e.target.value)}
-                    disabled={isLoading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="target-amount">Monthly Support Target ({getCurrencySymbol(currency)})</Label>
-                  <Input
-                    id="target-amount"
-                    type="number"
-                    placeholder="0.00"
-                    value={targetAmount}
-                    onChange={(e) => setTargetAmount(e.target.value)}
                     disabled={isLoading}
                   />
                 </div>

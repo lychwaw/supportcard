@@ -36,20 +36,23 @@ export const usePermissions = () => {
         .eq('user_id', user.id)
         .single();
 
+      // Determine the safe role BEFORE branching so the permissions query always
+      // uses the same value that state is being set to (prevents the race where
+      // setUserRole('child') fires but currentRole still resolves to 'parent').
+      const safeRole = roleError ? 'child' : (roleData?.role || 'parent');
+
       if (roleError) {
         console.error('Error fetching user role:', roleError);
-        setUserRole('parent'); // Default to parent
+        setUserRole('child'); // Fail closed — deny elevated access on error
       } else {
-        setUserRole(roleData?.role || 'parent');
+        setUserRole(safeRole);
       }
-
-      const currentRole = roleData?.role || 'parent';
 
       // Get permissions for the user's role
       const { data: permissionsData, error: permissionsError } = await supabase
         .from('permissions')
         .select('*')
-        .eq('role', currentRole);
+        .eq('role', safeRole);
 
       if (permissionsError) {
         console.error('Error fetching permissions:', permissionsError);
@@ -65,8 +68,8 @@ export const usePermissions = () => {
 
   const hasPermission = (resource: string, action: string): boolean => {
     if (!userRole || permissions.length === 0) {
-      // Default permissions for parent role if not loaded yet
-      return userRole === 'parent' || userRole === null;
+      // Deny all while role is loading or on error — never grant access to an unconfirmed role
+      return userRole === 'parent';
     }
 
     const permission = permissions.find(

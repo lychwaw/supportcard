@@ -1,8 +1,9 @@
 import { importPKCS8, SignJWT } from 'jose';
 import { createClient } from '@supabase/supabase-js';
+import { setCorsHeaders } from './_cors.js';
 
 const getSupabaseClient = () => {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   return createClient(url, key, { auth: { persistSession: false } });
@@ -24,6 +25,14 @@ const normalizePrivateKey = (value: string) => {
 };
 
 export default async function handler(req: any, res: any) {
+  setCorsHeaders(res);
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'GET') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

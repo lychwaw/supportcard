@@ -6,19 +6,16 @@ import { useCurrency } from '@/contexts/CurrencyContext';
 import { formatCurrency } from '@/lib/currency';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowUpRight, ArrowDownRight, TrendingUp, Wallet, Tag, CreditCard, ArrowRight } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, TrendingUp, Tag, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { ChildManagement } from '@/components/ChildManagement';
 import { AccountSwitcher } from '@/components/AccountSwitcher';
 import { Notifications } from '@/components/Notifications';
-import { useNavigate } from 'react-router-dom';
 
 interface Child {
   id: string;
   name: string;
-  target_amount: number;
-  current_amount: number;
 }
 
 interface Transaction {
@@ -34,17 +31,25 @@ interface CategorySpending {
   amount: number;
 }
 
+interface ActivityItem {
+  id: string;
+  status: string | null;
+  category: string;
+  description: string | null;
+  amount: number;
+  created_at: string | null;
+  requester?: { full_name: string | null } | null;
+}
+
 const Index = () => {
   const { user } = useAuth();
-  const { activeChildId, isParent, children: roleChildren } = useRole();
+  const { activeChildId, isParent, isChild, children: roleChildren } = useRole();
   const { currency } = useCurrency();
-  const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
-  const [totalBalance, setTotalBalance] = useState(0);
   const [monthlySpending, setMonthlySpending] = useState(0);
   const [categorySpending, setCategorySpending] = useState<CategorySpending[]>([]);
-  const [balanceCategories, setBalanceCategories] = useState<{category: string; balance: number}[]>([]);
+  const [activityFeed, setActivityFeed] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -123,29 +128,29 @@ const Index = () => {
         
         if (transactionsData) setRecentTransactions(transactionsData);
 
-        // Fetch virtual cards/balances to calculate total balance and categories
-        const { data: cardsData } = await supabase
-          .from('virtual_cards')
-          .select('balance, card_type')
-          .eq('user_id', queryUserId);
-        
-        if (cardsData) {
-          const total = cardsData.reduce((sum, card) => sum + Number(card.balance || 0), 0);
-          setTotalBalance(total);
-          
-          // Group by category (card_type)
-          const categoryMap = new Map<string, number>();
-          cardsData.forEach(card => {
-            const category = card.card_type || 'General';
-            const current = categoryMap.get(category) || 0;
-            categoryMap.set(category, current + Number(card.balance || 0));
-          });
-          
-          const categories = Array.from(categoryMap.entries())
-            .map(([category, balance]) => ({ category, balance }))
-            .sort((a, b) => b.balance - a.balance);
-          
-          setBalanceCategories(categories);
+        // Child role: Neutral Activity Feed — what was spent on them and its
+        // approval status. Never a balance or wallet figure, just the record.
+        if (isChild && activeChildId) {
+          const { data: feedData } = await supabase
+            .from('expense_requests')
+            .select('id, status, category, description, amount, created_at, profiles:requester_id(full_name)')
+            .eq('child_id', activeChildId)
+            .order('created_at', { ascending: false })
+            .limit(8);
+
+          if (feedData) {
+            setActivityFeed(
+              (feedData as any[]).map(f => ({
+                id: f.id,
+                status: f.status,
+                category: f.category,
+                description: f.description,
+                amount: f.amount,
+                created_at: f.created_at,
+                requester: f.profiles,
+              }))
+            );
+          }
         }
 
         // Calculate monthly spending
@@ -196,7 +201,7 @@ const Index = () => {
     return () => {
       window.removeEventListener('children-updated', handleChildrenUpdate);
     };
-  }, [user, activeChildId, isParent, roleChildren]);
+  }, [user, activeChildId, isParent, isChild, roleChildren]);
 
   if (loading) {
     return (
@@ -215,130 +220,84 @@ const Index = () => {
 
       <AccountSwitcher />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card 
-          className="shadow-soft hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
-          onClick={() => navigate('/balance-budget')}
-        >
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Available Balance</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold group-hover:text-primary transition-colors">
-              {formatCurrency(totalBalance, currency)}
-            </div>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-muted-foreground">View balances</p>
-              <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Financial summary — parents only. Children never see a spending or balance figure. */}
+      {isParent && (
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Monthly Spending</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{formatCurrency(monthlySpending, currency)}</div>
+              <p className="text-xs text-muted-foreground">This month</p>
+            </CardContent>
+          </Card>
 
-        <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Monthly Spending</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{formatCurrency(monthlySpending, currency)}</div>
-            <p className="text-xs text-muted-foreground">This month</p>
-          </CardContent>
-        </Card>
+          <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Children</CardTitle>
+              <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{children.length}</div>
+              <p className="text-xs text-muted-foreground">Managed accounts</p>
+            </CardContent>
+          </Card>
 
-        <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Children</CardTitle>
-            <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{children.length}</div>
-            <p className="text-xs text-muted-foreground">Managed accounts</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-            <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{recentTransactions.length}</div>
-            <p className="text-xs text-muted-foreground">Recent activity</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Balance Categories Widget */}
-      {balanceCategories.length > 0 && (
-        <Card 
-          className="shadow-soft hover:shadow-lg transition-all duration-300 cursor-pointer group border-2 hover:border-primary/50"
-          onClick={() => navigate('/balance-budget')}
-        >
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Wallet className="w-5 h-5" />
-                  Balance Categories
-                </CardTitle>
-                <CardDescription>Click to manage balances</CardDescription>
-              </div>
-              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {balanceCategories.slice(0, 3).map((item) => (
-                <div 
-                  key={item.category} 
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline">{item.category}</Badge>
-                  </div>
-                  <span className="font-semibold">{formatCurrency(item.balance, currency)}</span>
-                </div>
-              ))}
-              {balanceCategories.length > 3 && (
-                <p className="text-xs text-muted-foreground text-center pt-2">
-                  +{balanceCategories.length - 3} more category{balanceCategories.length - 3 > 1 ? 'ies' : ''}
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Transactions</CardTitle>
+              <ArrowDownRight className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{recentTransactions.length}</div>
+              <p className="text-xs text-muted-foreground">Recent activity</p>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       <div className="grid gap-4 md:grid-cols-2">
         {isParent ? (
           <ChildManagement />
         ) : (
-          <Card className="shadow-soft">
+          <Card className="shadow-soft md:col-span-2">
             <CardHeader>
-              <CardTitle>Support Target</CardTitle>
-              <CardDescription>Track your support payment progress</CardDescription>
+              <CardTitle>Activity Feed</CardTitle>
+              <CardDescription>What's been logged for your care</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {children.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No data available</p>
+            <CardContent className="space-y-3">
+              {activityFeed.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No activity yet</p>
               ) : (
-                children.map((child) => {
-                  const progress = child.target_amount > 0
-                      ? Math.min((child.current_amount / child.target_amount) * 100, 100)
-                      : 0;
+                activityFeed.map((item) => {
+                  const who = item.requester?.full_name || 'A parent';
+                  const what = item.description || item.category;
+                  const cost = formatCurrency(item.amount, currency);
                   return (
-                    <div key={child.id} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{child.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {formatCurrency(child.current_amount, currency)} / {formatCurrency(child.target_amount, currency)}
-                        </span>
+                    <div key={item.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                      {item.status === 'approved' ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" aria-hidden="true" />
+                      ) : item.status === 'rejected' ? (
+                        <XCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" aria-hidden="true" />
+                      ) : (
+                        <Clock className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" aria-hidden="true" />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm">
+                          {item.status === 'approved' ? (
+                            <>{who}'s receipt for <span className="font-medium">{what}</span> — {cost} <span className="text-muted-foreground">was approved</span></>
+                          ) : item.status === 'rejected' ? (
+                            <>{who}'s receipt for <span className="font-medium">{what}</span> — {cost} <span className="text-muted-foreground">was disputed</span></>
+                          ) : (
+                            <>{who} submitted a receipt for <span className="font-medium">{what}</span> — {cost} <span className="text-muted-foreground">(pending approval)</span></>
+                          )}
+                        </p>
+                        {item.created_at && (
+                          <p className="text-xs text-muted-foreground mt-0.5">{format(new Date(item.created_at), 'dd MMM yyyy')}</p>
+                        )}
                       </div>
-                      <Progress value={progress} className="h-2" />
-                      <p className="text-xs text-muted-foreground">
-                        {progress >= 100 ? 'Target fully paid' : `${progress.toFixed(0)}% complete`}
-                      </p>
                     </div>
                   );
                 })
@@ -347,49 +306,51 @@ const Index = () => {
           </Card>
         )}
 
-        <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>Latest payment activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentTransactions.length === 0 ? (
-              <div className="text-center py-6">
-                <p className="text-sm text-muted-foreground">No transactions yet</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentTransactions.map((transaction) => (
-                  <div 
-                    key={transaction.id} 
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
-                  >
-                    <div className="flex-1">
-                      <p className="font-medium group-hover:text-primary transition-colors">
-                        {transaction.merchant_name || 'Transaction'}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {transaction.category || 'Uncategorized'}
-                        </Badge>
-                        <span className="text-xs text-muted-foreground">
-                          {format(new Date(transaction.transaction_date), 'MMM dd')}
-                        </span>
+        {isParent && (
+          <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
+            <CardHeader>
+              <CardTitle>Recent Transactions</CardTitle>
+              <CardDescription>Latest logged activity</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentTransactions.length === 0 ? (
+                <div className="text-center py-6">
+                  <p className="text-sm text-muted-foreground">No transactions yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {recentTransactions.map((transaction) => (
+                    <div
+                      key={transaction.id}
+                      className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+                    >
+                      <div className="flex-1">
+                        <p className="font-medium group-hover:text-primary transition-colors">
+                          {transaction.merchant_name || 'Transaction'}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="outline" className="text-xs">
+                            {transaction.category || 'Uncategorized'}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            {format(new Date(transaction.transaction_date), 'MMM dd')}
+                          </span>
+                        </div>
                       </div>
+                      <span className="font-semibold text-destructive ml-2">
+                        -{formatCurrency(transaction.amount, currency)}
+                      </span>
                     </div>
-                    <span className="font-semibold text-destructive ml-2">
-                      -{formatCurrency(transaction.amount, currency)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {categorySpending.length > 0 && (
+        {isParent && categorySpending.length > 0 && (
           <Card className="shadow-soft hover:shadow-lg transition-shadow duration-300">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -401,12 +362,12 @@ const Index = () => {
             <CardContent>
               <div className="space-y-4">
                 {categorySpending.map((item) => {
-                  const percentage = monthlySpending > 0 
-                    ? (item.amount / monthlySpending) * 100 
+                  const percentage = monthlySpending > 0
+                    ? (item.amount / monthlySpending) * 100
                     : 0;
                   return (
-                    <div 
-                      key={item.category} 
+                    <div
+                      key={item.category}
                       className="space-y-2 p-3 rounded-lg hover:bg-muted/50 transition-colors group"
                     >
                       <div className="flex items-center justify-between">

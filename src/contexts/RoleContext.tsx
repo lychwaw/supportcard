@@ -3,7 +3,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-type AppRole = 'parent' | 'child' | 'co_parent';
+type AppRole = 'parent' | 'child' | 'co_parent' | 'professional';
 
 interface Child {
   id: string;
@@ -18,6 +18,7 @@ interface RoleContextType {
   isParent: boolean;
   isChild: boolean;
   isGuardian: boolean;
+  isProfessional: boolean;
   switchToChild: (childId: string) => void;
   switchToParent: () => void;
   refreshChildren: () => Promise<void>;
@@ -122,6 +123,7 @@ export const RoleProvider = ({ children }: { children: ReactNode }) => {
     isParent: isGuardian && !activeChildId,
     isChild: role === 'child' || (isGuardian && !!activeChildId),
     isGuardian,
+    isProfessional: role === 'professional',
     switchToChild,
     switchToParent,
     refreshChildren,

@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/AuthProvider';
 import { useRole } from '@/contexts/RoleContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
-import { usePermissions } from '@/hooks/usePermissions';
 import { formatCurrency } from '@/lib/currency';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -39,10 +38,6 @@ interface Transaction {
     id: string;
     name: string;
   };
-  virtual_cards?: {
-    id: string;
-    card_type: string;
-  };
   profiles?: {
     id: string;
     full_name: string;
@@ -53,7 +48,6 @@ const Transactions = () => {
   const { user } = useAuth();
   const { activeChildId, children, isParent, isChild } = useRole();
   const { currency } = useCurrency();
-  const { canManageCards } = usePermissions();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -63,8 +57,7 @@ const Transactions = () => {
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'parent' | 'child'>('all');
   const [childrenList, setChildrenList] = useState<any[]>([]);
-  const [balanceCategories, setBalanceCategories] = useState<any[]>([]);
-  
+
   // Form state
   const [merchantName, setMerchantName] = useState('');
   const [amount, setAmount] = useState('');
@@ -73,7 +66,6 @@ const Transactions = () => {
   const [location, setLocation] = useState('');
   const [notes, setNotes] = useState('');
   const [selectedChildId, setSelectedChildId] = useState<string>('');
-  const [selectedCardId, setSelectedCardId] = useState<string>('');
   const [transactionType, setTransactionType] = useState<'past' | 'future' | 'planned'>('past');
 
   const categoryOptions = ['Food', 'Clothing', 'School', 'Activities', 'Transportation', 'Healthcare', 'Entertainment', 'Other'];
@@ -83,7 +75,6 @@ const Transactions = () => {
 
     fetchTransactions();
     fetchChildrenList();
-    fetchBalanceCategories();
 
     // Real-time: refresh whenever any transaction for this user is inserted/updated/deleted
     const channel = supabase
@@ -114,28 +105,6 @@ const Transactions = () => {
     }
   };
 
-  const fetchBalanceCategories = async () => {
-    if (!user) return;
-    try {
-      let cardsQuery = supabase
-        .from('virtual_cards')
-        .select('id, card_type, child_id')
-        .eq('user_id', user.id);
-
-      if (activeChildId) {
-        cardsQuery = cardsQuery.eq('child_id', activeChildId);
-      }
-
-      const { data: cardsData } = await cardsQuery;
-
-      if (cardsData) {
-        setBalanceCategories(cardsData);
-      }
-    } catch (error) {
-      console.error('Error fetching balance categories:', error);
-    }
-  };
-
   const fetchTransactions = async () => {
     if (!user) return;
 
@@ -147,7 +116,6 @@ const Transactions = () => {
         .select(`
           *,
           children:child_id(id, name),
-          virtual_cards:card_id(id, card_type),
           profiles:logged_by(id, full_name)
         `)
         .eq('user_id', user.id)
@@ -207,7 +175,6 @@ const Transactions = () => {
           transaction_type: transactionType,
           is_parent_logged: isParent,
           child_id: selectedChildId || activeChildId || null,
-          card_id: selectedCardId || null,
         });
 
       if (error) throw error;
@@ -252,7 +219,6 @@ const Transactions = () => {
           notes: notes || null,
           transaction_type: transactionType,
           child_id: selectedChildId || null,
-          card_id: selectedCardId || null,
         })
         .eq('id', editingTransaction.id);
 
@@ -306,7 +272,6 @@ const Transactions = () => {
     setLocation('');
     setNotes('');
     setSelectedChildId('');
-    setSelectedCardId('');
     setTransactionType('past');
   };
 
@@ -325,7 +290,6 @@ const Transactions = () => {
     setLocation(transaction.location || '');
     setNotes(transaction.notes || '');
     setSelectedChildId(transaction.child_id || '');
-    setSelectedCardId(transaction.card_id || '');
     setTransactionType(transaction.transaction_type);
     setIsEditDialogOpen(true);
   };
@@ -434,26 +398,6 @@ const Transactions = () => {
                           {child.name}
                         </SelectItem>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-              {balanceCategories.length > 0 && (
-                <div className="space-y-2">
-                  <Label htmlFor="card">Balance Category (Optional)</Label>
-                  <Select value={selectedCardId} onValueChange={setSelectedCardId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">No Category</SelectItem>
-                      {balanceCategories
-                        .filter(c => !selectedChildId || c.child_id === selectedChildId)
-                        .map((card) => (
-                          <SelectItem key={card.id} value={card.id}>
-                            {card.card_type}
-                          </SelectItem>
-                        ))}
                     </SelectContent>
                   </Select>
                 </div>

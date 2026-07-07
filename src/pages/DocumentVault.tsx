@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { z } from 'zod';
 import SubscriptionGate from '@/components/SubscriptionGate';
+import { generateCourtRecordPdf } from '@/lib/courtExport';
 
 // Zod schema for document upload validation
 const DocumentUploadSchema = z.object({
@@ -51,12 +52,13 @@ interface LegalDocument {
 const DocumentVault = () => {
   const { user } = useAuth();
   const { children } = useRole();
-  const { canViewDocuments } = usePermissions();
+  const { canViewDocuments, canExportCourtRecord } = usePermissions();
   const [selectedChildId, setSelectedChildId] = useState<string>('');
   const [documents, setDocuments] = useState<LegalDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [documentType, setDocumentType] = useState<'court_order' | 'medical_card' | 'agreement' | 'other'>('court_order');
   const [description, setDescription] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -108,8 +110,8 @@ const DocumentVault = () => {
   if (!canViewDocuments) {
     return (
       <SubscriptionGate
-        title="Legal Documents are a Legal tier feature"
-        description="Upgrade to SupportCard Legal to access secure document storage."
+        title="Legal Documents are a Premium feature"
+        description="Upgrade to Premium to access secure document storage."
       />
     );
   }
@@ -250,11 +252,11 @@ const DocumentVault = () => {
     }
   };
 
-  const handleDownload = async (document: LegalDocument) => {
+  const handleDownload = async (doc: LegalDocument) => {
     try {
       const { data, error } = await supabase.storage
         .from('legal-docs')
-        .download(document.file_path);
+        .download(doc.file_path);
 
       if (error) throw error;
       if (!data) {
@@ -265,7 +267,7 @@ const DocumentVault = () => {
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = document.file_name;
+      a.download = doc.file_name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -276,8 +278,8 @@ const DocumentVault = () => {
     }
   };
 
-  const canDelete = (document: LegalDocument) => {
-    return user?.id === document.uploaded_by;
+  const canDelete = (doc: LegalDocument) => {
+    return user?.id === doc.uploaded_by;
   };
 
   const getDocumentTypeLabel = (type: string) => {
@@ -288,6 +290,63 @@ const DocumentVault = () => {
       other: 'Other',
     };
     return labels[type] || type;
+  };
+
+  const handleExportCourtRecord = async () => {
+    if (!user || !selectedChildId) return;
+
+    setIsExporting(true);
+    try {
+      const child = children.find(c => c.id === selectedChildId);
+
+      const { data: receiptData } = await supabase
+        .from('expense_requests')
+        .select('id, amount, category, description, status, created_at, profiles:requester_id(full_name)')
+        .eq('child_id', selectedChildId)
+        .order('created_at', { ascending: false });
+
+      const { data: messageData } = await supabase
+        .from('messages')
+        .select('id, content, created_at, profiles:sender_id(full_name)')
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      const { data: checkins } = await (supabase as any)
+        .from('custody_checkins')
+        .select('id, created_at, notes, event_type')
+        .eq('child_id', selectedChildId)
+        .order('created_at', { ascending: false });
+
+      const { data: exchanges } = await (supabase as any)
+        .from('exchange_logs')
+        .select('id, created_at, notes, handoff_from, handoff_to')
+        .eq('child_id', selectedChildId)
+        .order('created_at', { ascending: false });
+
+      const logs = [
+        ...(checkins || []).map((c: any) => ({
+          id: c.id, created_at: c.created_at, notes: c.notes, detail: `Check-in (${c.event_type})`,
+        })),
+        ...(exchanges || []).map((e: any) => ({
+          id: e.id, created_at: e.created_at, notes: e.notes, detail: `Exchange: ${e.handoff_from || '?'} → ${e.handoff_to || '?'}`,
+        })),
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      await generateCourtRecordPdf({
+        title: `Court Record — ${child?.name || 'Child'}`,
+        receipts: (receiptData || []).map((r: any) => ({ ...r, requester: r.profiles })),
+        messages: (messageData || []).map((m: any) => ({ ...m, sender: m.profiles })),
+        logs,
+      });
+
+      toast.success('Court record exported');
+    } catch (error) {
+      console.error('Error exporting court record:', error);
+      toast.error('Failed to export court record');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   if (loading) {
@@ -324,6 +383,12 @@ const DocumentVault = () => {
                 ))}
               </SelectContent>
             </Select>
+          )}
+          {canExportCourtRecord && selectedChildId && (
+            <Button variant="outline" onClick={handleExportCourtRecord} disabled={isExporting}>
+              <Download className="w-4 h-4 mr-2" />
+              {isExporting ? 'Exporting...' : 'Export Court Record'}
+            </Button>
           )}
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

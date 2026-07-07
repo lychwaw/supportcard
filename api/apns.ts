@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { sendApnsToToken } from './_apns.js';
+import { handleCors } from './_cors.js';
 
 const getSupabaseClient = () => {
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   return createClient(url, key, { auth: { persistSession: false } });
@@ -157,6 +158,8 @@ async function handleTest(req: any, res: any) {
 }
 
 export default async function handler(req: any, res: any) {
+  if (handleCors(req, res)) return;
+
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Method not allowed' });
     return;

@@ -4,77 +4,59 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Check, Star, Shield, FileText, CreditCard,
-  Globe, Lock, Bell, Target, BarChart3, Download,
-  Calendar, Palette, Headphones, Wallet, TrendingUp, Users,
+  Globe, Lock, Bell, BarChart3, Calendar,
+  TrendingUp, Users, Scale, Gift, Sparkles,
 } from 'lucide-react';
-import { subscriptionTiers, SubscriptionTier } from '@/lib/subscriptions';
+import { subscriptionTiers, SubscriptionTier, FOUNDER_OFFER, getTierPriceDisplay } from '@/lib/subscriptions';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const getFeatureIcon = (feature: string) => {
   const f = feature.toLowerCase();
-  if (f.includes('analytic') || f.includes('insight')) return <BarChart3 className="h-4 w-4" />;
-  if (f.includes('report') || f.includes('export')) return <Download className="h-4 w-4" />;
+  if (f.includes('insight') || f.includes('scai')) return <Sparkles className="h-4 w-4" />;
+  if (f.includes('export') || f.includes('court')) return <FileText className="h-4 w-4" />;
   if (f.includes('notif') || f.includes('alert')) return <Bell className="h-4 w-4" />;
-  if (f.includes('security') || f.includes('audit') || f.includes('court') || f.includes('legal')) return <Shield className="h-4 w-4" />;
-  if (f.includes('support') || f.includes('manager')) return <Headphones className="h-4 w-4" />;
+  if (f.includes('security') || f.includes('audit') || f.includes('verified') || f.includes('support')) return <Shield className="h-4 w-4" />;
   if (f.includes('calendar') || f.includes('sync')) return <Calendar className="h-4 w-4" />;
-  if (f.includes('design') || f.includes('theme') || f.includes('custom')) return <Palette className="h-4 w-4" />;
-  if (f.includes('guardian') || f.includes('wallet') || f.includes('child')) return <Users className="h-4 w-4" />;
-  if (f.includes('transfer') || f.includes('cap') || f.includes('payment')) return <Wallet className="h-4 w-4" />;
-  if (f.includes('goal') || f.includes('saving')) return <Target className="h-4 w-4" />;
-  if (f.includes('document') || f.includes('signing') || f.includes('agreement')) return <FileText className="h-4 w-4" />;
+  if (f.includes('child')) return <Users className="h-4 w-4" />;
+  if (f.includes('professional') || f.includes('lawyer')) return <Scale className="h-4 w-4" />;
+  if (f.includes('document') || f.includes('stored')) return <BarChart3 className="h-4 w-4" />;
   return <Check className="h-4 w-4" />;
 };
 
 const TIER_STYLE: Record<string, { color: string; popular: boolean; buttonVariant: string }> = {
-  free:        { color: 'bg-gray-50 dark:bg-gray-900/30',     popular: false, buttonVariant: 'outline' },
-  premium:     { color: 'bg-blue-50 dark:bg-blue-900/20',     popular: true,  buttonVariant: 'default' },
-  family_plus: { color: 'bg-green-50 dark:bg-green-900/20',   popular: false, buttonVariant: 'default' },
-  legal:       { color: 'bg-purple-50 dark:bg-purple-900/20', popular: false, buttonVariant: 'default' },
+  preview:   { color: 'bg-gray-50 dark:bg-gray-900/30',     popular: false, buttonVariant: 'outline' },
+  essential: { color: 'bg-blue-50 dark:bg-blue-900/20',     popular: false, buttonVariant: 'default' },
+  plus:      { color: 'bg-purple-50 dark:bg-purple-900/20', popular: true,  buttonVariant: 'default' },
+  premium:   { color: 'bg-green-50 dark:bg-green-900/20',   popular: false, buttonVariant: 'default' },
 };
 
 const TIER_BUTTON_LABEL: Record<string, string> = {
-  free:        'Get Started Free',
-  premium:     'Upgrade to Premium',
-  family_plus: 'Choose Family+',
-  legal:       'Start Legal Plan',
-};
-
-const formatPrice = (tier: SubscriptionTier) => {
-  if (tier.id === 'free') return 'R0';
-  return `R${tier.priceZar.toLocaleString()}`;
+  preview:   'Start Preview',
+  essential: 'Get Organised',
+  plus:      'Choose Plus',
+  premium:   'Protect Records',
 };
 
 const FEATURE_MATRIX = [
-  { label: 'Virtual Card',              free: true,  premium: true,  family_plus: true,  legal: true  },
-  { label: 'Expense Logging',           free: true,  premium: true,  family_plus: true,  legal: true  },
-  { label: 'In-App Messaging',          free: true,  premium: true,  family_plus: true,  legal: true  },
-  { label: 'Custom Card Designs',       free: false, premium: true,  family_plus: true,  legal: true  },
-  { label: 'AI Spending Insights',      free: false, premium: true,  family_plus: true,  legal: true  },
-  { label: 'Goal-Based Saving',         free: false, premium: true,  family_plus: true,  legal: true  },
-  { label: 'Shared Calendar',           free: false, premium: true,  family_plus: true,  legal: true  },
-  { label: 'Smart Notifications',       free: false, premium: true,  family_plus: true,  legal: true  },
-  { label: 'Multiple Child Wallets',    free: false, premium: false, family_plus: true,  legal: true  },
-  { label: 'Guardian Viewing Access',   free: false, premium: false, family_plus: true,  legal: true  },
-  { label: 'Per-Child Insights',        free: false, premium: false, family_plus: true,  legal: true  },
-  { label: 'Emergency Wallet Freeze',   free: false, premium: false, family_plus: true,  legal: true  },
-  { label: 'Court-Ready Reports',       free: false, premium: false, family_plus: false, legal: true  },
-  { label: 'Audit Trails',             free: false, premium: false, family_plus: false, legal: true  },
-  { label: 'Secure Document Storage',   free: false, premium: false, family_plus: false, legal: true  },
-  { label: 'Digital Agreement Signing', free: false, premium: false, family_plus: false, legal: true  },
-  { label: 'Cross-Border Payments',     free: false, premium: false, family_plus: false, legal: true  },
-  { label: 'Priority Dispute Flagging', free: false, premium: false, family_plus: false, legal: true  },
-  { label: 'Dedicated Account Manager', free: false, premium: false, family_plus: false, legal: true  },
+  { label: 'Calendar',                          preview: true,  essential: true,  plus: true,  premium: true  },
+  { label: 'Expense Logging',                   preview: true,  essential: true,  plus: true,  premium: true  },
+  { label: 'Drop-off & Pickup Logs',            preview: true,  essential: true,  plus: true,  premium: true  },
+  { label: 'Private Co-Parent Messaging',       preview: true,  essential: true,  plus: true,  premium: true  },
+  { label: 'My SCAI Assistant',                 preview: false, essential: false, plus: true,  premium: true  },
+  { label: 'AI Tone-Check',                     preview: false, essential: false, plus: true,  premium: true  },
+  { label: 'PDF Exports',                       preview: false, essential: false, plus: true,  premium: true  },
+  { label: 'Unlimited Children',                preview: false, essential: false, plus: false, premium: true  },
+  { label: 'Court-Admissible Record Exports',   preview: false, essential: false, plus: false, premium: true  },
+  { label: 'Verified Handoffs (GPS Required)',  preview: false, essential: false, plus: false, premium: true  },
+  { label: 'Invite a Professional',             preview: false, essential: false, plus: false, premium: true  },
+  { label: 'Priority Support',                  preview: false, essential: false, plus: false, premium: true  },
 ];
 
-const TRANSFER_CAPS: Record<string, string> = {
-  free:        'R5,000 / month',
-  premium:     'R25,000 / month',
-  family_plus: 'R75,000 / month',
-  legal:       'Unlimited',
-};
+const formatLimit = (value: number | 'unlimited') => (value === 'unlimited' ? 'Unlimited' : String(value));
 
 const Pricing = () => {
   const navigate = useNavigate();
+  const { currency } = useCurrency();
 
   const handleSelectPlan = () => navigate('/subscriptions');
 
@@ -91,17 +73,17 @@ const Pricing = () => {
             SupportCard Plans
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            From basic tracking to full legal documentation — pick the plan that fits your family.
+            From quick scheduling to court-ready records — pick the plan that fits your family.
           </p>
           <Badge className="bg-gradient-primary text-primary-foreground px-4 py-2 text-sm">
-            South African Rand (ZAR) · Cancel any month
+            Priced in USD · Shown in your local currency · Cancel any month
           </Badge>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-16">
-          {subscriptionTiers.map((tier) => {
-            const style = TIER_STYLE[tier.id] ?? TIER_STYLE.free;
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+          {subscriptionTiers.map((tier: SubscriptionTier) => {
+            const style = TIER_STYLE[tier.id] ?? TIER_STYLE.preview;
             return (
               <Card
                 key={tier.id}
@@ -123,16 +105,16 @@ const Pricing = () => {
                 <CardHeader className="text-center pb-4">
                   <CardTitle className="text-xl font-bold">{tier.name}</CardTitle>
                   <div className="flex items-baseline justify-center gap-1 mt-2">
-                    <span className="text-3xl font-bold text-primary">{formatPrice(tier)}</span>
-                    {tier.id !== 'free' && (
+                    <span className="text-3xl font-bold text-primary">{getTierPriceDisplay(tier, currency)}</span>
+                    {tier.priceUsd > 0 && (
                       <span className="text-muted-foreground text-sm">/{tier.billingCycle}</span>
                     )}
                   </div>
                   <div className="text-xs font-medium text-primary/80 mt-1">
-                    {TRANSFER_CAPS[tier.id]} transfer cap
+                    {formatLimit(tier.limits.childProfiles)} child profile{tier.limits.childProfiles === 1 ? '' : 's'}
                   </div>
                   <CardDescription className="text-xs mt-2 leading-snug">
-                    {tier.description}
+                    {tier.tagline} — {tier.description}
                   </CardDescription>
                 </CardHeader>
 
@@ -155,11 +137,31 @@ const Pricing = () => {
                   >
                     {TIER_BUTTON_LABEL[tier.id] ?? 'Choose Plan'}
                   </Button>
+
+                  {tier.id === FOUNDER_OFFER.applicableTier && (
+                    <p className="text-xs text-center text-primary font-medium">
+                      Or lock in the Founder Offer — see below
+                    </p>
+                  )}
                 </CardContent>
               </Card>
             );
           })}
         </div>
+
+        {/* Founder Offer banner */}
+        <Card className="mb-16 bg-blue-50 dark:bg-blue-900/20 border-primary/30">
+          <CardContent className="py-6 flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <Gift className="w-10 h-10 text-primary shrink-0" aria-hidden="true" />
+            <div className="flex-1">
+              <p className="font-bold text-lg">{FOUNDER_OFFER.label}</p>
+              <p className="text-muted-foreground text-sm">{FOUNDER_OFFER.description}</p>
+            </div>
+            <Button onClick={handleSelectPlan} className="shrink-0">
+              Claim Founder Pricing
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Feature Comparison Table */}
         <Card className="mb-16 overflow-hidden">
@@ -177,14 +179,6 @@ const Pricing = () => {
                     <th className="text-left p-3 font-semibold w-1/3">Feature</th>
                     {subscriptionTiers.map(t => (
                       <th key={t.id} className="text-center p-3 font-semibold">{t.name}</th>
-                    ))}
-                  </tr>
-                  <tr className="border-b bg-muted/30">
-                    <td className="p-3 text-xs text-muted-foreground font-medium">Monthly transfer cap</td>
-                    {subscriptionTiers.map(t => (
-                      <td key={t.id} className="text-center p-3 text-xs font-medium text-primary">
-                        {TRANSFER_CAPS[t.id]}
-                      </td>
                     ))}
                   </tr>
                 </thead>
@@ -214,9 +208,9 @@ const Pricing = () => {
         {/* Trust signals */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {[
-            { icon: <TrendingUp className="h-6 w-6 text-primary-foreground" />, title: 'Transparent Pricing', body: 'One price, every feature listed. No hidden fees or odd-cent conversions.' },
-            { icon: <Globe className="h-6 w-6 text-primary-foreground" />, title: 'Global Trust', body: 'Built for co-parents worldwide — starting in South Africa.' },
-            { icon: <Lock className="h-6 w-6 text-primary-foreground" />, title: 'Court-Grade Security', body: 'Encrypted records and audit trails accepted in legal proceedings.' },
+            { icon: <TrendingUp className="h-6 w-6 text-primary-foreground" />, title: 'Transparent Pricing', body: 'One price, every feature listed. No hidden fees.' },
+            { icon: <Globe className="h-6 w-6 text-primary-foreground" />, title: 'Global Pricing', body: 'Priced in USD, shown automatically in your local currency.' },
+            { icon: <Lock className="h-6 w-6 text-primary-foreground" />, title: 'Court-Grade Security', body: 'Encrypted records and hash-verified exports accepted in legal proceedings.' },
           ].map(({ icon, title, body }) => (
             <Card key={title} className="text-center p-6">
               <div className="w-12 h-12 bg-gradient-primary rounded-full flex items-center justify-center mx-auto mb-4">
@@ -232,7 +226,7 @@ const Pricing = () => {
         <Card className="text-center p-8 bg-gradient-to-r from-primary/5 to-purple-500/5">
           <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
           <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Sign up free — upgrade any time. Cancel any month. No long-term commitment.
+            Start free with Preview — upgrade any time. Cancel any month. No long-term commitment.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="bg-gradient-primary" onClick={() => navigate('/auth')}>
