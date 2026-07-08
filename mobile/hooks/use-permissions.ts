@@ -88,8 +88,8 @@ export function usePermissions(): { permissions: Permissions; loading: boolean }
           canSendMessages: isParent || isChild,
           canViewExpenses: isParent,
           canManageCalendar: isParent && atLeast('essential'),
-          canUseMyScai: atLeast('plus'),
-          canUseAIToneCheck: atLeast('plus'),
+          canUseMyScai: true, // TEMP: open for testing — revert to atLeast('plus')
+          canUseAIToneCheck: true, // TEMP: open for testing — revert to atLeast('plus')
           canExportCourtRecord: isParent && atLeast('premium'),
           canUseVerifiedHandoffs: isParent && atLeast('premium'),
           canViewDocuments: isParent && atLeast('essential'),

@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { router } from 'expo-router';
-import { ScrollView, View, Text, Pressable, StatusBar } from 'react-native';
+import { ScrollView, View, Text, Pressable, StatusBar, Linking, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
+import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
 import { formatPrice, CURRENCY_OPTIONS } from '@/lib/currency';
 
@@ -95,10 +97,11 @@ function TierIcon({
   );
 }
 
-function OutlinedCTA({ label, onPress }: { label: string; onPress: () => void }) {
+function OutlinedCTA({ label, onPress, loading }: { label: string; onPress: () => void; loading?: boolean }) {
   return (
     <Pressable
       onPress={onPress}
+      disabled={loading}
       style={({ pressed }) => ({
         height: 56,
         borderRadius: 14,
@@ -111,21 +114,42 @@ function OutlinedCTA({ label, onPress }: { label: string; onPress: () => void })
         marginTop: 20,
       })}
     >
-      <Text style={{ color: brand.dark, fontWeight: '700', fontSize: 16 }}>{label}</Text>
+      {loading
+        ? <ActivityIndicator color={brand.dark} />
+        : <Text style={{ color: brand.dark, fontWeight: '700', fontSize: 16 }}>{label}</Text>}
     </Pressable>
   );
 }
 
 export default function PricingScreen() {
   const { currency, setCurrency } = useCurrency();
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   const p = (usd: number) => formatPrice(usd, currency);
 
-  const handleCTA = (tier: string, free?: boolean) => {
-    if (free) {
-      router.replace('/(tabs)/');
-    } else {
-      router.push('/subscriptions' as any);
+  const handleCTA = async (tier: string, free?: boolean) => {
+    if (free) { router.replace('/(tabs)/'); return; }
+
+    setCheckoutLoading(tier);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { Alert.alert('Sign in required', 'Please sign in to subscribe.'); return; }
+
+      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard.vercel.app';
+      const res = await fetch(`${apiBase}/api/dodo-checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ tier }),
+      });
+
+      const json = await res.json();
+      if (!res.ok) { Alert.alert('Error', json.error ?? 'Could not start checkout.'); return; }
+
+      await Linking.openURL(json.payment_link);
+    } catch {
+      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } finally {
+      setCheckoutLoading(null);
     }
   };
 
@@ -226,7 +250,7 @@ export default function PricingScreen() {
           <FeatureRow text="500 parent messages / month" />
           <FeatureRow text="25 stored documents" />
           <FeatureRow text="No My SCAI" />
-          <OutlinedCTA label="Get Organised" onPress={() => handleCTA('essential')} />
+          <OutlinedCTA label="Get Organised" loading={checkoutLoading === 'essential'} onPress={() => handleCTA('essential')} />
         </View>
 
         {/* Plus Card — MOST POPULAR */}
@@ -279,6 +303,7 @@ export default function PricingScreen() {
 
           <Pressable
             onPress={() => handleCTA('plus')}
+            disabled={checkoutLoading === 'plus'}
             style={({ pressed }) => ({
               height: 56,
               borderRadius: 14,
@@ -286,12 +311,14 @@ export default function PricingScreen() {
               backgroundColor: brand.blue,
               alignItems: 'center',
               justifyContent: 'center',
-              opacity: pressed ? 0.85 : 1,
+              opacity: pressed || checkoutLoading === 'plus' ? 0.85 : 1,
               marginTop: 20,
               boxShadow: '0 4px 12px rgba(43,116,214,0.30)',
             })}
           >
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Choose Plus</Text>
+            {checkoutLoading === 'plus'
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>Choose Plus</Text>}
           </Pressable>
         </View>
 
@@ -324,7 +351,7 @@ export default function PricingScreen() {
           <FeatureRow text="25 PDF exports / month" />
           <FeatureRow text="Professional access" />
           <FeatureRow text="Advanced My SCAI" />
-          <OutlinedCTA label="Protect Records" onPress={() => handleCTA('premium')} />
+          <OutlinedCTA label="Protect Records" loading={checkoutLoading === 'premium'} onPress={() => handleCTA('premium')} />
         </View>
 
         {/* Founder Offer Card */}
