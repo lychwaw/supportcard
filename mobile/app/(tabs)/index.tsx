@@ -138,22 +138,22 @@ export default function HomeScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
           {/* Wordmark */}
           <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: -0.5 }}>SC</Text>
+            <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>SC</Text>
             </View>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark, letterSpacing: -0.3 }}>SupportCard</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: brand.blue }}>SupportCard</Text>
           </View>
-          <Pressable hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+          <Pressable hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
             <Ionicons name="notifications-outline" size={22} color={brand.dark} />
           </Pressable>
         </View>
 
-        <Text style={{ fontSize: 26, fontWeight: '700', color: brand.dark, letterSpacing: -0.5, marginBottom: 4 }}>
-          Activity
+        <Text style={{ fontSize: 28, fontWeight: '800', color: brand.dark, marginBottom: 4 }}>
+          Activity Feed
         </Text>
         {permissions.tier !== 'preview' && (
           <Text style={{ fontSize: 13, color: brand.body, marginBottom: 12 }}>
-            {permissions.tier.charAt(0).toUpperCase() + permissions.tier.slice(1)}
+            {permissions.tier.charAt(0).toUpperCase() + permissions.tier.slice(1)} plan
           </Text>
         )}
 
@@ -275,8 +275,8 @@ function FeedCard({ item }: { item: FeedItem }) {
         backgroundColor: brand.card, borderRadius: 16, padding: 16,
         flexDirection: 'row', alignItems: 'flex-start', gap: 12,
         marginHorizontal: 16, marginBottom: 10,
-        shadowColor: brand.blue, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 8,
-        elevation: 2, opacity: pressed ? 0.92 : 1,
+        boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
+        opacity: pressed ? 0.92 : 1,
       })}>
       <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
         <Ionicons name={icon} size={18} color="#fff" />

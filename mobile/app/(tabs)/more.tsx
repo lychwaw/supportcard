@@ -35,10 +35,9 @@ function SectionHeading({ title }: { title: string }) {
 function MenuCard({ rows }: { rows: MenuRow[] }) {
   return (
     <View style={{
-      backgroundColor: brand.card, borderRadius: 16,
+      backgroundColor: brand.card, borderRadius: 20,
+      boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
       overflow: 'hidden',
-      shadowColor: brand.blue, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 8,
-      elevation: 2,
     }}>
       {rows.map((row, index) => {
         const isLast = index === rows.length - 1;
@@ -56,11 +55,11 @@ function MenuCard({ rows }: { rows: MenuRow[] }) {
             })}
           >
             <View style={{
-              width: 36, height: 36, borderRadius: 10,
+              width: 40, height: 40, borderRadius: 12,
               backgroundColor: row.iconColor,
               alignItems: 'center', justifyContent: 'center',
             }}>
-              <Ionicons name={row.icon} size={18} color="#fff" />
+              <Ionicons name={row.icon} size={20} color="#fff" />
             </View>
 
             <View style={{ flex: 1 }}>

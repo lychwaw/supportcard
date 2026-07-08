@@ -42,7 +42,7 @@ function SectionCard({ children }: { children: React.ReactNode }) {
     <View
       style={{
         backgroundColor: brand.card,
-        borderRadius: 16,
+        borderRadius: 20,
         boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
         overflow: 'hidden',
         marginBottom: 12,
