@@ -56,11 +56,11 @@ function MenuCard({ rows }: { rows: MenuRow[] }) {
             })}
           >
             <View style={{
-              width: 40, height: 40, borderRadius: 10,
-              backgroundColor: row.iconColor + '1A',
+              width: 36, height: 36, borderRadius: 10,
+              backgroundColor: row.iconColor,
               alignItems: 'center', justifyContent: 'center',
             }}>
-              <Ionicons name={row.icon} size={20} color={row.iconColor} />
+              <Ionicons name={row.icon} size={18} color="#fff" />
             </View>
 
             <View style={{ flex: 1 }}>

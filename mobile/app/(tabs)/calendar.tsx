@@ -224,8 +224,8 @@ export default function CalendarScreen() {
               {selectedEvents.map(event => (
                 <Pressable key={event.id} onLongPress={() => deleteEvent(event.id)}
                   style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.06)' }}>
-                  <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                    <Ionicons name="calendar-outline" size={22} color={brand.blue} />
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                    <Ionicons name="calendar-outline" size={20} color="#fff" />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>{event.event_type || 'Event'}</Text>

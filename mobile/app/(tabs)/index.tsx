@@ -183,13 +183,16 @@ export default function HomeScreen() {
             {/* Preview tier nudge */}
             {permissions.tier === 'preview' && (
               <Pressable onPress={() => router.push('/pricing')}
-                style={{ margin: 16, backgroundColor: brand.card, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderLeftWidth: 3, borderLeftColor: brand.blue }}>
-                <Ionicons name="arrow-up-circle-outline" size={24} color={brand.blue} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: brand.dark }}>Preview plan</Text>
-                  <Text style={{ fontSize: 12, color: brand.body, marginTop: 2 }}>Upgrade to unlock all features</Text>
+                style={{ margin: 16, backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderLeftWidth: 4, borderLeftColor: brand.blue,
+                  shadowColor: brand.blue, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="arrow-up" size={18} color="#fff" />
                 </View>
-                <Ionicons name="chevron-forward" size={16} color={brand.body} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: brand.dark }}>You're on Preview</Text>
+                  <Text style={{ fontSize: 12, color: brand.body, marginTop: 2 }}>Upgrade to unlock unlimited features</Text>
+                </View>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: brand.blue }}>Upgrade</Text>
               </Pressable>
             )}
 
@@ -228,27 +231,33 @@ export default function HomeScreen() {
         )}
       </ScrollView>
 
-      {/* SCAI floating action */}
-      <Pressable
-        onPress={() => router.push('/my-scai')}
-        style={({ pressed }) => ({
-          position: 'absolute', left: 16, right: 16,
-          bottom: tabBarHeight + insets.bottom + 8,
-          backgroundColor: brand.dark, borderRadius: 14,
-          flexDirection: 'row', alignItems: 'center',
-          paddingHorizontal: 16, paddingVertical: 14,
-          gap: 12, opacity: pressed ? 0.85 : 1,
-        })}
-      >
-        <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' }}>
+      {/* SCAI floating banner */}
+      <View style={{
+        position: 'absolute', left: 16, right: 16,
+        bottom: tabBarHeight + insets.bottom + 8,
+        backgroundColor: brand.card, borderRadius: 16,
+        borderLeftWidth: 4, borderLeftColor: brand.teal,
+        flexDirection: 'row', alignItems: 'center',
+        paddingHorizontal: 16, paddingVertical: 12,
+        shadowColor: brand.blue, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 16,
+        elevation: 4, gap: 12,
+      }}>
+        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="flash" size={16} color="#fff" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>My SCAI</Text>
-          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 1 }}>Schedule, request, log — just ask</Text>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Chat with My SCAI</Text>
+          <Text style={{ fontSize: 12, color: brand.body, marginTop: 1 }}>Schedule, request, log — just ask</Text>
         </View>
-        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
-      </Pressable>
+        <Pressable onPress={() => router.push('/my-scai')}
+          style={({ pressed }) => ({
+            backgroundColor: brand.blue, borderRadius: 10,
+            paddingHorizontal: 14, paddingVertical: 8,
+            opacity: pressed ? 0.8 : 1,
+          })}>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Chat</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -263,13 +272,14 @@ function FeedCard({ item }: { item: FeedItem }) {
   return (
     <Pressable onPress={() => dest && router.push(dest as any)}
       style={({ pressed }) => ({
-        backgroundColor: brand.card, borderRadius: 12, padding: 16,
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        marginHorizontal: 16, marginBottom: 8,
-        opacity: pressed ? 0.9 : 1,
+        backgroundColor: brand.card, borderRadius: 16, padding: 16,
+        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+        marginHorizontal: 16, marginBottom: 10,
+        shadowColor: brand.blue, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 8,
+        elevation: 2, opacity: pressed ? 0.92 : 1,
       })}>
-      <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: bg + '18', alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name={icon} size={20} color={bg} />
+      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={18} color="#fff" />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>{item.title}</Text>
@@ -291,20 +301,15 @@ function ScaiSuggestionCard() {
   return (
     <Pressable onPress={() => router.push('/my-scai')}
       style={({ pressed }) => ({
-        backgroundColor: brand.card, borderRadius: 12, padding: 16,
-        marginHorizontal: 16, marginBottom: 8,
-        borderLeftWidth: 3, borderLeftColor: brand.teal,
-        flexDirection: 'row', alignItems: 'center', gap: 12,
-        opacity: pressed ? 0.85 : 1,
+        backgroundColor: brand.card, borderRadius: 16, padding: 16,
+        marginHorizontal: 16, marginBottom: 10,
+        borderLeftWidth: 4, borderLeftColor: brand.blue,
+        shadowColor: brand.blue, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.07, shadowRadius: 8,
+        elevation: 2, gap: 6, opacity: pressed ? 0.85 : 1,
       })}>
-      <View style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center' }}>
-        <Ionicons name="flash-outline" size={18} color={brand.teal} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 14, fontWeight: '600', color: brand.dark }}>My SCAI is ready to help</Text>
-        <Text style={{ fontSize: 13, color: brand.body, marginTop: 1 }}>Ask about your schedule, expenses, or custody</Text>
-      </View>
-      <Ionicons name="chevron-forward" size={16} color={brand.body} />
+      <Text style={{ fontSize: 11, fontWeight: '700', color: brand.blue, textTransform: 'uppercase', letterSpacing: 0.5 }}>Proactive Insight</Text>
+      <Text style={{ fontSize: 15, color: brand.dark, lineHeight: 22 }}>My SCAI can help you schedule, log expenses and track custody time. Try asking it something.</Text>
+      <Text style={{ fontSize: 14, fontWeight: '600', color: brand.blue }}>Open My SCAI</Text>
     </Pressable>
   );
 }

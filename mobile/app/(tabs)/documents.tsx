@@ -73,11 +73,11 @@ export default function DocumentsScreen() {
             {filtered.map(doc => (
               <Pressable key={doc.id}
                 style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-                <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: DOC_ICON[doc.document_type]?.color ?? brand.body, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                   <Ionicons
                     name={DOC_ICON[doc.document_type]?.icon ?? 'document-outline'}
-                    size={22}
-                    color={DOC_ICON[doc.document_type]?.color ?? brand.body}
+                    size={20}
+                    color="#fff"
                   />
                 </View>
                 <View style={{ flex: 1 }}>
