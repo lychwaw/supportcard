@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { ScrollView, View, Text, Pressable, StatusBar } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { useCurrency } from '@/hooks/use-currency';
 import { formatPrice, CURRENCY_OPTIONS } from '@/lib/currency';
@@ -68,11 +69,13 @@ function Divider() {
 }
 
 function TierIcon({
-  emoji,
+  icon,
+  iconColor,
   bg,
   size = 52,
 }: {
-  emoji: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
   bg: string;
   size?: number;
 }) {
@@ -82,13 +85,12 @@ function TierIcon({
         width: size,
         height: size,
         borderRadius: 14,
-        borderCurve: 'continuous',
         backgroundColor: bg,
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
-      <Text style={{ fontSize: 26 }}>{emoji}</Text>
+      <Ionicons name={icon} size={26} color={iconColor} />
     </View>
   );
 }
@@ -174,7 +176,7 @@ export default function PricingScreen() {
             boxShadow: '0 2px 16px rgba(43,116,214,0.08)',
           }}
         >
-          <TierIcon emoji="🚀" bg={brand.lightBg} />
+          <TierIcon icon="gift-outline" iconColor={brand.blue} bg={brand.lightBg} />
           <Text style={{ fontWeight: '700', fontSize: 32, color: brand.dark, marginTop: 12 }}>
             Preview
           </Text>
@@ -205,7 +207,7 @@ export default function PricingScreen() {
             boxShadow: '0 2px 16px rgba(43,116,214,0.08)',
           }}
         >
-          <TierIcon emoji="📅" bg={brand.lightBg} />
+          <TierIcon icon="calendar-outline" iconColor={brand.blue} bg={brand.lightBg} />
           <Text style={{ fontWeight: '700', fontSize: 32, color: brand.dark, marginTop: 12 }}>
             Essential
           </Text>
@@ -255,7 +257,7 @@ export default function PricingScreen() {
             </Text>
           </View>
 
-          <TierIcon emoji="⚡" bg={brand.teal} />
+          <TierIcon icon="flash" iconColor="#fff" bg={brand.teal} />
           <Text style={{ fontWeight: '700', fontSize: 32, color: brand.dark, marginTop: 12 }}>
             Plus
           </Text>
@@ -303,7 +305,7 @@ export default function PricingScreen() {
             boxShadow: '0 2px 16px rgba(43,116,214,0.08)',
           }}
         >
-          <TierIcon emoji="🛡️" bg={brand.lightBg} />
+          <TierIcon icon="shield-checkmark-outline" iconColor={brand.blue} bg={brand.lightBg} />
           <Text style={{ fontWeight: '700', fontSize: 32, color: brand.dark, marginTop: 12 }}>
             Premium
           </Text>

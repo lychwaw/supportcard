@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
@@ -41,7 +42,7 @@ function SectionCard({ children }: { children: React.ReactNode }) {
     <View
       style={{
         backgroundColor: brand.card,
-        borderRadius: 20,
+        borderRadius: 16,
         boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
         overflow: 'hidden',
         marginBottom: 12,
@@ -121,7 +122,7 @@ function SettingsRow({
             <Text style={{ fontSize: 15, color: brand.body }}>{value}</Text>
           ) : null}
           {showChevron && (
-            <Text style={{ fontSize: 16, color: brand.body, opacity: 0.5 }}>›</Text>
+            <Ionicons name="chevron-forward" size={16} color={brand.body} style={{ opacity: 0.5 }} />
           )}
         </View>
       )}

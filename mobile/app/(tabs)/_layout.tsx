@@ -1,14 +1,7 @@
 import { Tabs } from 'expo-router';
-import { Platform, View, Text } from 'react-native';
+import { Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
-
-function TabIcon({ emoji, focused }: { emoji: string; focused: boolean }) {
-  return (
-    <View style={{ alignItems: 'center', justifyContent: 'center', width: 28, height: 28, opacity: focused ? 1 : 0.5 }}>
-      <Text style={{ fontSize: 22 }}>{emoji}</Text>
-    </View>
-  );
-}
 
 export default function TabLayout() {
   return (
@@ -35,35 +28,35 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="calendar"
         options={{
           title: 'Calendar',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📅" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="expenses"
         options={{
           title: 'Expenses',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="💰" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="documents"
         options={{
           title: 'Documents',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="📄" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="document-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
           title: 'More',
-          tabBarIcon: ({ focused }) => <TabIcon emoji="☰" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" size={size} color={color} />,
         }}
       />
     </Tabs>

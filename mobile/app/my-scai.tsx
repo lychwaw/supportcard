@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 
 const brand = {
@@ -35,12 +36,12 @@ interface Message {
   actions?: Action[];
 }
 
-const SUGGESTIONS = [
-  { emoji: '📅', text: 'Schedule a pickup' },
-  { emoji: '💰', text: 'Request funds' },
-  { emoji: '🎓', text: 'Add school event' },
-  { emoji: '📷', text: 'Upload a receipt' },
-  { emoji: '📊', text: 'Generate a report' },
+const SUGGESTIONS: Array<{ icon: keyof typeof Ionicons.glyphMap; text: string }> = [
+  { icon: 'calendar-outline',   text: 'Schedule a pickup' },
+  { icon: 'cash-outline',       text: 'Request funds' },
+  { icon: 'school-outline',     text: 'Add school event' },
+  { icon: 'camera-outline',     text: 'Upload a receipt' },
+  { icon: 'stats-chart-outline', text: 'Generate a report' },
 ];
 
 function ActionChip({ summary }: { summary: string }) {
@@ -132,7 +133,7 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
           justifyContent: 'center',
         }}
       >
-        <Text style={{ fontSize: 40 }}>🤖</Text>
+        <Ionicons name="flash-outline" size={40} color="#0EA968" />
       </View>
 
       <View style={{ gap: 6, alignItems: 'center', marginTop: 20 }}>
@@ -166,9 +167,11 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Text style={{ fontSize: 22, width: 36 }}>{s.emoji}</Text>
+            <View style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name={s.icon} size={18} color={brand.blue} />
+            </View>
             <Text style={{ color: brand.dark, fontSize: 15, flex: 1 }}>{s.text}</Text>
-            <Text style={{ color: brand.body, fontSize: 17 }}>›</Text>
+            <Ionicons name="chevron-forward" size={16} color={brand.body} style={{ opacity: 0.5 }} />
           </Pressable>
         ))}
       </View>
@@ -285,7 +288,7 @@ export default function MyScaiScreen() {
 
           <View style={{ flexDirection: 'row', gap: 16, alignItems: 'center' }}>
             <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-              <Text style={{ color: brand.dark, fontSize: 20 }}>🔔</Text>
+              <Ionicons name="notifications-outline" size={22} color={brand.dark} />
             </Pressable>
             <Pressable style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
               <Text style={{ color: brand.blue, fontSize: 24, fontWeight: '300' }}>+</Text>

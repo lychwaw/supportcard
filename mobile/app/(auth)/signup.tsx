@@ -199,7 +199,7 @@ export default function SignupScreen() {
               boxShadow: '0 4px 12px rgba(43,116,214,0.30)',
             }}
           >
-            <Text style={{ fontSize: 22, color: '#FFFFFF' }}>♥</Text>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#FFFFFF' }}>SC</Text>
           </View>
           <Text
             style={{

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, Alert, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -12,11 +13,11 @@ type ProfessionalLink = {
   parent?: { full_name: string | null; email: string | null } | null;
 };
 
-const RECORD_ROWS = [
-  { emoji: '📝', title: 'Expense Records' },
-  { emoji: '📅', title: 'Calendar & Handoffs' },
-  { emoji: '📄', title: 'Documents' },
-] as const;
+const RECORD_ROWS: Array<{ icon: 'receipt-outline' | 'calendar-outline' | 'document-outline'; title: string }> = [
+  { icon: 'receipt-outline',  title: 'Expense Records' },
+  { icon: 'calendar-outline', title: 'Calendar & Handoffs' },
+  { icon: 'document-outline', title: 'Documents' },
+];
 
 export default function ProfessionalPortalScreen() {
   const insets = useSafeAreaInsets();
@@ -181,7 +182,7 @@ export default function ProfessionalPortalScreen() {
                       onPress={() => Alert.alert('View Records', 'Viewing family records — read only.')}
                       style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
                     >
-                      <Text style={{ color: brand.blue, fontSize: 13, fontWeight: '500' }}>View Records →</Text>
+                      <Text style={{ color: brand.blue, fontSize: 13, fontWeight: '500' }}>View Records</Text>
                     </Pressable>
                   </View>
                 </View>
@@ -217,9 +218,11 @@ export default function ProfessionalPortalScreen() {
                   opacity: pressed ? 0.6 : 1,
                 })}
               >
-                <Text style={{ fontSize: 20, width: 32 }}>{row.emoji}</Text>
+                <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name={row.icon} size={18} color={brand.blue} />
+                </View>
                 <Text style={{ flex: 1, fontSize: 15, color: brand.dark }}>{row.title}</Text>
-                <Text style={{ color: brand.body, fontSize: 18 }}>›</Text>
+                <Ionicons name="chevron-forward" size={16} color={brand.body} style={{ opacity: 0.5 }} />
               </Pressable>
             </View>
           ))}

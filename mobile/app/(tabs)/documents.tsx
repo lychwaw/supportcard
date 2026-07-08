@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
 import { ScrollView, View, Text, Pressable, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
 const DOC_TYPES = ['All', 'Legal', 'Medical', 'School', 'Financial', 'Other'];
-const DOC_EMOJI: Record<string, string> = { Legal: '⚖️', Medical: '🏥', School: '🎓', Financial: '💰', Other: '📄', all: '📁' };
+const DOC_ICON: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
+  Legal:     { icon: 'briefcase-outline',    color: brand.blue },
+  Medical:   { icon: 'medical-outline',      color: '#EF4444' },
+  School:    { icon: 'school-outline',       color: '#8B5CF6' },
+  Financial: { icon: 'receipt-outline',      color: '#F59E0B' },
+  Other:     { icon: 'document-outline',     color: brand.body },
+};
 
 type Document = { id: string; document_type: string; description: string | null; file_name: string | null; created_at: string };
 
@@ -31,7 +38,7 @@ export default function DocumentsScreen() {
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
           <View style={{ width: 36, height: 36, backgroundColor: brand.blue, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
-            <Text style={{ color: '#fff', fontSize: 20 }}>♥</Text>
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>SC</Text>
           </View>
           <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18 }}>SupportCard</Text>
         </View>
@@ -54,8 +61,10 @@ export default function DocumentsScreen() {
         {loading ? (
           <ActivityIndicator color={brand.blue} style={{ marginTop: 40 }} />
         ) : filtered.length === 0 ? (
-          <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 40, alignItems: 'center', boxShadow: '0 2px 12px rgba(43,116,214,0.08)' }}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>📄</Text>
+          <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 40, alignItems: 'center', boxShadow: '0 2px 12px rgba(43,116,214,0.08)' }}>
+            <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+              <Ionicons name="document-outline" size={28} color={brand.body} />
+            </View>
             <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No documents yet</Text>
             <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>Store legal, school, and medical documents securely</Text>
           </View>
@@ -65,7 +74,11 @@ export default function DocumentsScreen() {
               <Pressable key={doc.id}
                 style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
                 <View style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                  <Text style={{ fontSize: 24 }}>{DOC_EMOJI[doc.document_type] || '📄'}</Text>
+                  <Ionicons
+                    name={DOC_ICON[doc.document_type]?.icon ?? 'document-outline'}
+                    size={22}
+                    color={DOC_ICON[doc.document_type]?.color ?? brand.body}
+                  />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }} numberOfLines={1}>
@@ -76,7 +89,7 @@ export default function DocumentsScreen() {
                     {new Date(doc.created_at).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </Text>
                 </View>
-                <Text style={{ fontSize: 20, color: brand.body }}>›</Text>
+                <Ionicons name="chevron-forward" size={16} color={brand.body} style={{ opacity: 0.5 }} />
               </Pressable>
             ))}
           </View>

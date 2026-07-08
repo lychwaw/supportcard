@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { scanReceiptFromCamera, scanReceiptFromLibrary } from '@/lib/receipt-scanner';
@@ -107,7 +108,7 @@ export default function ExpensesScreen() {
         <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
             <View style={{ width: 36, height: 36, backgroundColor: brand.blue, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
-              <Text style={{ color: '#fff', fontSize: 20 }}>♥</Text>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>SC</Text>
             </View>
             <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18 }}>SupportCard</Text>
           </View>
@@ -137,8 +138,10 @@ export default function ExpensesScreen() {
           {loading ? (
             <ActivityIndicator color={brand.blue} style={{ marginTop: 40 }} />
           ) : filtered.length === 0 ? (
-            <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 40, alignItems: 'center', boxShadow: '0 2px 12px rgba(43,116,214,0.08)' }}>
-              <Text style={{ fontSize: 40, marginBottom: 12 }}>💰</Text>
+            <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 40, alignItems: 'center', boxShadow: '0 2px 12px rgba(43,116,214,0.08)' }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                <Ionicons name="receipt-outline" size={28} color={brand.body} />
+              </View>
               <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No expense requests</Text>
               <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>Tap + to log a shared expense</Text>
             </View>

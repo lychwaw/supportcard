@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Platform, ActivityIndicator, RefreshControl } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -20,12 +21,12 @@ interface FeedItem {
   section: 'today' | 'earlier';
 }
 
-const ICON_MAP: Record<FeedType, { bg: string; emoji: string }> = {
-  event:   { bg: brand.blue,    emoji: '📅' },
-  expense: { bg: '#F59E0B',     emoji: '💰' },
-  document:{ bg: '#8B5CF6',     emoji: '📄' },
-  checkin: { bg: brand.teal,    emoji: '📍' },
-  message: { bg: '#22C55E',     emoji: '💬' },
+const ICON_MAP: Record<FeedType, { bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  event:    { bg: brand.blue,    icon: 'calendar-outline' },
+  expense:  { bg: '#F59E0B',     icon: 'receipt-outline' },
+  document: { bg: '#8B5CF6',     icon: 'document-outline' },
+  checkin:  { bg: brand.teal,    icon: 'location-outline' },
+  message:  { bg: '#22C55E',     icon: 'chatbubble-outline' },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -56,7 +57,6 @@ export default function HomeScreen() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Parallel fetch of all recent activity
       const [expenses, events, checkins, messages] = await Promise.all([
         permissions.isParent
           ? supabase.from('expense_requests' as any).select('id, amount, category, status, created_at, description').eq('requester_id', user.id).order('created_at', { ascending: false }).limit(20)
@@ -71,8 +71,8 @@ export default function HomeScreen() {
       for (const e of (expenses.data || []) as any[]) {
         feed.push({
           id: `exp-${e.id}`, type: 'expense',
-          title: `${e.category} Expense`,
-          subtitle: `R${Number(e.amount).toFixed(2)}${e.description ? ` — ${e.description}` : ''}`,
+          title: `${e.category}`,
+          subtitle: `R${Number(e.amount).toFixed(2)}${e.description ? ` · ${e.description}` : ''}`,
           time: formatTime(e.created_at),
           badge: e.status.charAt(0).toUpperCase() + e.status.slice(1),
           badgeColor: STATUS_COLORS[e.status] || brand.body,
@@ -84,7 +84,7 @@ export default function HomeScreen() {
         feed.push({
           id: `cal-${ev.id}`, type: 'event',
           title: ev.event_type || 'Calendar Event',
-          subtitle: ev.event_date + (ev.notes ? ` — ${ev.notes}` : ''),
+          subtitle: ev.event_date + (ev.notes ? ` · ${ev.notes}` : ''),
           time: formatTime(ev.created_at),
           section: isToday(ev.created_at) ? 'today' : 'earlier',
         });
@@ -93,8 +93,8 @@ export default function HomeScreen() {
       for (const c of (checkins.data || []) as any[]) {
         feed.push({
           id: `ci-${c.id}`, type: 'checkin',
-          title: c.event_type === 'enter' ? 'Pickup Logged' : c.event_type === 'exit' ? 'Drop-off Logged' : 'Check-in Logged',
-          subtitle: c.notes || 'Manual custody log',
+          title: c.event_type === 'enter' ? 'Pickup' : c.event_type === 'exit' ? 'Drop-off' : 'Check-in',
+          subtitle: c.notes || 'Custody log',
           time: formatTime(c.created_at),
           section: isToday(c.created_at) ? 'today' : 'earlier',
         });
@@ -103,14 +103,13 @@ export default function HomeScreen() {
       for (const m of (messages.data || []) as any[]) {
         feed.push({
           id: `msg-${m.id}`, type: 'message',
-          title: 'Message Sent',
+          title: 'Message',
           subtitle: (m.content as string).slice(0, 80),
           time: formatTime(m.created_at),
           section: isToday(m.created_at) ? 'today' : 'earlier',
         });
       }
 
-      // Sort by created_at descending — all items together
       feed.sort((a, b) => b.time.localeCompare(a.time));
       setItems(feed);
     } finally {
@@ -137,26 +136,30 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 16, backgroundColor: brand.lightBg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-          <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 18 }}>♥</Text>
+          {/* Wordmark */}
+          <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: -0.5 }}>SC</Text>
+            </View>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark, letterSpacing: -0.3 }}>SupportCard</Text>
           </View>
-          <Text style={{ fontSize: 18, fontWeight: '700', color: brand.blue, marginLeft: 8, flex: 1 }}>SupportCard</Text>
-          <Pressable hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}>
-            <Text style={{ fontSize: 22 }}>🔔</Text>
+          <Pressable hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+            <Ionicons name="notifications-outline" size={22} color={brand.dark} />
           </Pressable>
         </View>
 
-        {/* Greeting */}
-        <Text style={{ fontSize: 28, fontWeight: '800', color: brand.dark, marginBottom: 4 }}>Activity Feed</Text>
+        <Text style={{ fontSize: 26, fontWeight: '700', color: brand.dark, letterSpacing: -0.5, marginBottom: 4 }}>
+          Activity
+        </Text>
         {permissions.tier !== 'preview' && (
           <Text style={{ fontSize: 13, color: brand.body, marginBottom: 12 }}>
-            {permissions.tier.charAt(0).toUpperCase() + permissions.tier.slice(1)} plan
+            {permissions.tier.charAt(0).toUpperCase() + permissions.tier.slice(1)}
           </Text>
         )}
 
         {/* Filter tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }} style={{ marginBottom: 4 }}>
-          {(['All','Events','Expenses','Updates'] as TabFilter[]).map(tab => (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }} style={{ marginBottom: 0 }}>
+          {(['All', 'Events', 'Expenses', 'Updates'] as TabFilter[]).map(tab => (
             <Pressable key={tab} onPress={() => setActiveTab(tab)}
               style={{ paddingHorizontal: 16, paddingVertical: 8, borderBottomWidth: 2, borderBottomColor: tab === activeTab ? brand.blue : 'transparent', marginRight: 4 }}>
               <Text style={{ fontSize: 14, fontWeight: '600', color: tab === activeTab ? brand.blue : brand.body }}>{tab}</Text>
@@ -180,68 +183,78 @@ export default function HomeScreen() {
             {/* Preview tier nudge */}
             {permissions.tier === 'preview' && (
               <Pressable onPress={() => router.push('/pricing')}
-                style={{ margin: 16, backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderLeftWidth: 4, borderLeftColor: brand.blue, boxShadow: '0 1px 8px rgba(43,116,214,0.08)' }}>
-                <Text style={{ fontSize: 24 }}>✨</Text>
+                style={{ margin: 16, backgroundColor: brand.card, borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderLeftWidth: 3, borderLeftColor: brand.blue }}>
+                <Ionicons name="arrow-up-circle-outline" size={24} color={brand.blue} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: brand.dark }}>You're on Preview</Text>
-                  <Text style={{ fontSize: 12, color: brand.body, marginTop: 2 }}>Upgrade to unlock unlimited features</Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: brand.dark }}>Preview plan</Text>
+                  <Text style={{ fontSize: 12, color: brand.body, marginTop: 2 }}>Upgrade to unlock all features</Text>
                 </View>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: brand.blue }}>Upgrade →</Text>
+                <Ionicons name="chevron-forward" size={16} color={brand.body} />
               </Pressable>
             )}
 
             {todayItems.length > 0 && (
               <>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, marginHorizontal: 16, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: brand.body, textTransform: 'uppercase', letterSpacing: 0.6 }}>Today</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 16, marginHorizontal: 16, marginBottom: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: brand.body, textTransform: 'uppercase', letterSpacing: 0.8 }}>Today</Text>
                   <Text style={{ fontSize: 12, color: brand.body }}>{new Date().toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}</Text>
                 </View>
                 {todayItems.map(item => <FeedCard key={item.id} item={item} />)}
-                {permissions.canUseMyScai && <ProactiveCard />}
+                {permissions.canUseMyScai && <ScaiSuggestionCard />}
               </>
             )}
 
             {earlierItems.length > 0 && (
               <>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 24, marginHorizontal: 16, marginBottom: 10 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: brand.body, textTransform: 'uppercase', letterSpacing: 0.6 }}>Earlier</Text>
+                <View style={{ marginTop: 24, marginHorizontal: 16, marginBottom: 8 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: brand.body, textTransform: 'uppercase', letterSpacing: 0.8 }}>Earlier</Text>
                 </View>
                 {earlierItems.map(item => <FeedCard key={item.id} item={item} />)}
               </>
             )}
 
             {filtered.length === 0 && !loading && (
-              <View style={{ alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 }}>
-                <Text style={{ fontSize: 40, marginBottom: 12 }}>📭</Text>
-                <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No activity yet</Text>
-                <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>Log a custody check-in, add a calendar event, or send a message to get started</Text>
+              <View style={{ alignItems: 'center', paddingTop: 64, paddingHorizontal: 32, gap: 12 }}>
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="time-outline" size={28} color={brand.body} />
+                </View>
+                <Text style={{ fontSize: 16, fontWeight: '600', color: brand.dark }}>No activity yet</Text>
+                <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center', lineHeight: 20 }}>
+                  Log a custody check-in, add a calendar event, or send a message to get started
+                </Text>
               </View>
             )}
           </>
         )}
       </ScrollView>
 
-      {/* SCAI floating banner */}
-      <View style={{ position: 'absolute', left: 16, right: 16, bottom: tabBarHeight + insets.bottom + 8,
-        backgroundColor: brand.card, borderRadius: 16, borderLeftWidth: 4, borderLeftColor: brand.teal,
-        flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12,
-        boxShadow: '0 2px 16px rgba(43,116,214,0.12)', gap: 12 }}>
-        <Text style={{ fontSize: 24 }}>🤖</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Chat with My SCAI</Text>
-          <Text style={{ fontSize: 12, color: brand.body, marginTop: 2 }}>Schedule, request, log — just ask</Text>
+      {/* SCAI floating action */}
+      <Pressable
+        onPress={() => router.push('/my-scai')}
+        style={({ pressed }) => ({
+          position: 'absolute', left: 16, right: 16,
+          bottom: tabBarHeight + insets.bottom + 8,
+          backgroundColor: brand.dark, borderRadius: 14,
+          flexDirection: 'row', alignItems: 'center',
+          paddingHorizontal: 16, paddingVertical: 14,
+          gap: 12, opacity: pressed ? 0.85 : 1,
+        })}
+      >
+        <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: brand.teal, alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name="flash" size={16} color="#fff" />
         </View>
-        <Pressable onPress={() => router.push('/my-scai')}
-          style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, backgroundColor: brand.blue, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 })}>
-          <Text style={{ fontSize: 14, fontWeight: '600', color: '#fff' }}>Chat →</Text>
-        </Pressable>
-      </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>My SCAI</Text>
+          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 1 }}>Schedule, request, log — just ask</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.4)" />
+      </Pressable>
     </View>
   );
 }
 
 function FeedCard({ item }: { item: FeedItem }) {
-  const { bg, emoji } = ICON_MAP[item.type];
+  const { bg, icon } = ICON_MAP[item.type];
   const dest = item.type === 'expense' ? '/(tabs)/expenses'
     : item.type === 'event' ? '/(tabs)/calendar'
     : item.type === 'checkin' ? '/custody-clock'
@@ -250,23 +263,22 @@ function FeedCard({ item }: { item: FeedItem }) {
   return (
     <Pressable onPress={() => dest && router.push(dest as any)}
       style={({ pressed }) => ({
-        backgroundColor: brand.card, borderRadius: 16, padding: 16,
-        flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-        marginHorizontal: 16, marginBottom: 10,
-        boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
-        opacity: pressed ? 0.92 : 1,
+        backgroundColor: brand.card, borderRadius: 12, padding: 16,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        marginHorizontal: 16, marginBottom: 8,
+        opacity: pressed ? 0.9 : 1,
       })}>
-      <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontSize: 18 }}>{emoji}</Text>
+      <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: bg + '18', alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name={icon} size={20} color={bg} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>{item.title}</Text>
-        <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }} numberOfLines={2}>{item.subtitle}</Text>
+        <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }} numberOfLines={1}>{item.subtitle}</Text>
       </View>
-      <View style={{ alignItems: 'flex-end' }}>
+      <View style={{ alignItems: 'flex-end', gap: 4 }}>
         <Text style={{ fontSize: 12, color: brand.body }}>{item.time}</Text>
         {item.badge && item.badgeColor && (
-          <View style={{ backgroundColor: item.badgeColor + '1A', borderRadius: 100, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4 }}>
+          <View style={{ backgroundColor: item.badgeColor + '18', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
             <Text style={{ fontSize: 11, fontWeight: '600', color: item.badgeColor }}>{item.badge}</Text>
           </View>
         )}
@@ -275,14 +287,24 @@ function FeedCard({ item }: { item: FeedItem }) {
   );
 }
 
-function ProactiveCard() {
+function ScaiSuggestionCard() {
   return (
     <Pressable onPress={() => router.push('/my-scai')}
-      style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, marginHorizontal: 16, marginBottom: 10,
-        borderLeftWidth: 4, borderLeftColor: brand.blue, boxShadow: '0 1px 8px rgba(43,116,214,0.07)', gap: 6 }}>
-      <Text style={{ fontSize: 11, fontWeight: '700', color: brand.blue, textTransform: 'uppercase', letterSpacing: 0.5 }}>⚡ Proactive Insight</Text>
-      <Text style={{ fontSize: 15, color: brand.dark, lineHeight: 22 }}>My SCAI can help you schedule, log expenses and track custody time. Try asking it something.</Text>
-      <Text style={{ fontSize: 14, fontWeight: '600', color: brand.blue }}>Open My SCAI →</Text>
+      style={({ pressed }) => ({
+        backgroundColor: brand.card, borderRadius: 12, padding: 16,
+        marginHorizontal: 16, marginBottom: 8,
+        borderLeftWidth: 3, borderLeftColor: brand.teal,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+        opacity: pressed ? 0.85 : 1,
+      })}>
+      <View style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center' }}>
+        <Ionicons name="flash-outline" size={18} color={brand.teal} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontSize: 14, fontWeight: '600', color: brand.dark }}>My SCAI is ready to help</Text>
+        <Text style={{ fontSize: 13, color: brand.body, marginTop: 1 }}>Ask about your schedule, expenses, or custody</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={brand.body} />
     </Pressable>
   );
 }

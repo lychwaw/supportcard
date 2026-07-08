@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -99,7 +100,7 @@ export default function CalendarScreen() {
       setSaving(false);
       const existingTypes = (existing as any[]).map((e: any) => e.event_type).filter(Boolean).join(', ');
       Alert.alert(
-        '⚡ Schedule Conflict',
+        'Schedule Conflict',
         `There ${existing!.length === 1 ? 'is already 1 event' : `are already ${existing!.length} events`} on ${addDate}: ${existingTypes}. Add this event anyway?`,
         [
           { text: 'Cancel', style: 'cancel' },
@@ -132,7 +133,7 @@ export default function CalendarScreen() {
           {/* Header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
             <View style={{ width: 36, height: 36, backgroundColor: brand.blue, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
-              <Text style={{ color: '#fff', fontSize: 20 }}>♥</Text>
+              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>SC</Text>
             </View>
             <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18, flex: 1 }}>SupportCard</Text>
           </View>
@@ -156,11 +157,11 @@ export default function CalendarScreen() {
           <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(43,116,214,0.08)' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <Pressable onPress={prevMonth} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 22, color: brand.blue }}>‹</Text>
+                <Ionicons name="chevron-back" size={20} color={brand.blue} />
               </Pressable>
               <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>{MONTHS[month]} {year}</Text>
               <Pressable onPress={nextMonth} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 22, color: brand.blue }}>›</Text>
+                <Ionicons name="chevron-forward" size={20} color={brand.blue} />
               </Pressable>
             </View>
 
@@ -208,7 +209,9 @@ export default function CalendarScreen() {
 
           {loading ? <ActivityIndicator color={brand.blue} /> : selectedEvents.length === 0 ? (
             <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 32, alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.06)' }}>
-              <Text style={{ fontSize: 32, marginBottom: 8 }}>📅</Text>
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+                <Ionicons name="calendar-outline" size={24} color={brand.body} />
+              </View>
               <Text style={{ color: brand.body, fontSize: 15 }}>No events on this day</Text>
               {permissions.canManageCalendar && (
                 <Pressable onPress={openAdd} style={{ marginTop: 12 }}>
@@ -222,7 +225,7 @@ export default function CalendarScreen() {
                 <Pressable key={event.id} onLongPress={() => deleteEvent(event.id)}
                   style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.06)' }}>
                   <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                    <Text style={{ fontSize: 22 }}>📅</Text>
+                    <Ionicons name="calendar-outline" size={22} color={brand.blue} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>{event.event_type || 'Event'}</Text>
