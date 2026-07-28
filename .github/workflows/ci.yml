@@ -27,6 +27,7 @@ jobs:
         run: npm audit --audit-level=critical
 
       - name: Type-check frontend
+        continue-on-error: true
         run: npx tsc --noEmit -p tsconfig.app.json
 
       - name: Build

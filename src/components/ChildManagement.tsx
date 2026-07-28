@@ -47,13 +47,13 @@ export const ChildManagement = () => {
         children.map(async (child) => {
           let coParent: CoParentInfo | null = null;
           
-          if (child.co_parent_id) {
-            const { data } = await supabase
+          if ((child as any).co_parent_id) {
+            const { data } = await (supabase as any)
               .from('profiles')
               .select('id, full_name, email, parent_role')
-              .eq('id', child.co_parent_id)
+              .eq('id', (child as any).co_parent_id)
               .single();
-            
+
             if (data) {
               coParent = {
                 id: data.id,

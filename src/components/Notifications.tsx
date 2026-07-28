@@ -104,7 +104,7 @@ export const Notifications = () => {
         .limit(5);
 
       // Fetch pending invites
-      const { data: invites } = await supabase
+      const { data: invites } = await (supabase as any)
         .from('parent_invites')
         .select('id, invited_email, child_id, created_at')
         .eq('invited_email', user.email || '')

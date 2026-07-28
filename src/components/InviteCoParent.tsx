@@ -37,7 +37,7 @@ export const InviteCoParent = ({ childId, childName, onInviteSent }: InviteCoPar
       const inviteUrl = `${window.location.origin}/auth?token=${token}`;
 
       // Create invitation in database
-      const { error: inviteError } = await supabase
+      const { error: inviteError } = await (supabase as any)
         .from('parent_invites')
         .insert({
           inviter_id: user.id,

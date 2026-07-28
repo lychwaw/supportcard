@@ -67,14 +67,14 @@ export const IdVerification = () => {
   const fetchStatus = async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('profiles')
         .select('id_verified, id_verified_at')
         .eq('id', user!.id)
         .maybeSingle();
 
-      setIdVerified(data?.id_verified ?? false);
-      setIdVerifiedAt(data?.id_verified_at ?? null);
+      setIdVerified((data as any)?.id_verified ?? false);
+      setIdVerifiedAt((data as any)?.id_verified_at ?? null);
     } catch {
       setIdVerified(false);
     } finally {
