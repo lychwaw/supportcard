@@ -6,6 +6,7 @@ import * as Updates from 'expo-updates';
 import { Session } from '@supabase/supabase-js';
 import { View, Text, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFonts } from 'expo-font';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
@@ -113,6 +114,10 @@ function AppShell({ session }: { session: Session | null }) {
 
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [fontsLoaded] = useFonts({
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    Ionicons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
+  });
 
   useEffect(() => {
     checkForUpdates();
@@ -129,7 +134,7 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) return null;
+  if (session === undefined || !fontsLoaded) return null;
 
   return <AppShell session={session} />;
 }

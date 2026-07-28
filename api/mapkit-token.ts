@@ -25,7 +25,7 @@ const normalizePrivateKey = (value: string) => {
 };
 
 export default async function handler(req: any, res: any) {
-  setCorsHeaders(res);
+  setCorsHeaders(req, res);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
 
   if (req.method === 'OPTIONS') {

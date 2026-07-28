@@ -81,20 +81,12 @@
           "backgroundColor": "#EBF4FF"
         }
       ],
-      [
-        "expo-updates",
-        {
-          "username": "supportcard"
-        }
-      ]
+      "expo-status-bar",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
     },
-    "extra": {
-      "eas": {
-        "projectId": ""
-      }
-    }
+    "extra": {}
   }
 }
