@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
@@ -19,11 +20,11 @@ type Contact = {
   created_at: string;
 };
 
-const TYPE_EMOJI: Record<ContactType, string> = {
-  Doctor: '🏥',
-  School: '🎓',
-  Family: '👨‍👩‍👧',
-  Other: '📞',
+const TYPE_ICON: Record<ContactType, keyof typeof Ionicons.glyphMap> = {
+  Doctor: 'medkit-outline',
+  School: 'school-outline',
+  Family: 'people-outline',
+  Other: 'call-outline',
 };
 
 const TYPE_COLOR: Record<ContactType, string> = {
@@ -41,7 +42,6 @@ export default function ContactsScreen() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  // Form state
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [relationship, setRelationship] = useState('');
@@ -79,10 +79,7 @@ export default function ContactsScreen() {
       contact_type: contactType,
     });
     setSaving(false);
-    if (error) {
-      Alert.alert('Error', error.message);
-      return;
-    }
+    if (error) { Alert.alert('Error', error.message); return; }
     setShowModal(false);
     loadContacts();
   };
@@ -104,7 +101,6 @@ export default function ContactsScreen() {
     );
   };
 
-  // Group contacts by type
   const grouped: Partial<Record<ContactType, Contact[]>> = {};
   for (const c of contacts) {
     if (!grouped[c.contact_type]) grouped[c.contact_type] = [];
@@ -129,26 +125,37 @@ export default function ContactsScreen() {
           borderLeftColor: '#F59E0B',
           padding: 16,
           marginBottom: 20,
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          gap: 10,
         }}>
-          <Text style={{ fontSize: 14, color: brand.dark, fontWeight: '500', marginBottom: 4 }}>
-            🚨 Emergency contacts are shared with your co-parent and only used in genuine emergencies.
-          </Text>
-          <Text style={{ fontSize: 12, color: brand.body }}>
-            Add doctors, schools, and trusted contacts your co-parent may need to reach.
-          </Text>
+          <Ionicons name="alert-circle-outline" size={18} color="#F59E0B" style={{ marginTop: 1 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, color: brand.dark, fontWeight: '600', marginBottom: 4 }}>
+              Shared with co-parent
+            </Text>
+            <Text style={{ fontSize: 12, color: brand.body }}>
+              Add doctors, schools, and trusted contacts your co-parent may need to reach.
+            </Text>
+          </View>
         </View>
 
         {loading ? (
           <ActivityIndicator color={brand.blue} style={{ marginTop: 40 }} />
         ) : contacts.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingTop: 60 }}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>📞</Text>
-            <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>
+          <View style={{ alignItems: 'center', paddingTop: 60, gap: 8 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+              <Ionicons name="call-outline" size={32} color={brand.body} />
+            </View>
+            <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark }}>
               No emergency contacts yet
             </Text>
             <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>
               Add your doctor, school, and trusted contacts
             </Text>
+            <Pressable onPress={openModal} style={{ marginTop: 8, backgroundColor: brand.blue, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10 }}>
+              <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Add Contact</Text>
+            </Pressable>
           </View>
         ) : (
           <View style={{ gap: 24 }}>
@@ -158,43 +165,29 @@ export default function ContactsScreen() {
               return (
                 <View key={type}>
                   <Text style={{
-                    fontSize: 12,
-                    fontWeight: '700',
-                    color: brand.body,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.8,
-                    marginBottom: 8,
+                    fontSize: 12, fontWeight: '700', color: brand.body,
+                    textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8,
                   }}>
                     {type}
                   </Text>
                   <View style={{ gap: 10 }}>
                     {group.map(contact => (
-                      <Pressable
+                      <View
                         key={contact.id}
-                        onLongPress={() => deleteContact(contact)}
                         style={{
-                          backgroundColor: brand.card,
-                          borderRadius: 16,
-                          padding: 16,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 12,
+                          backgroundColor: brand.card, borderRadius: 16, padding: 16,
+                          flexDirection: 'row', alignItems: 'center', gap: 12,
                           boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
                         }}
                       >
-                        {/* Icon circle */}
                         <View style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 22,
+                          width: 44, height: 44, borderRadius: 22,
                           backgroundColor: `${TYPE_COLOR[contact.contact_type]}18`,
-                          alignItems: 'center',
-                          justifyContent: 'center',
+                          alignItems: 'center', justifyContent: 'center',
                         }}>
-                          <Text style={{ fontSize: 20 }}>{TYPE_EMOJI[contact.contact_type]}</Text>
+                          <Ionicons name={TYPE_ICON[contact.contact_type]} size={20} color={TYPE_COLOR[contact.contact_type]} />
                         </View>
 
-                        {/* Name & relationship */}
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark }}>
                             {contact.name}
@@ -206,28 +199,32 @@ export default function ContactsScreen() {
                           ) : null}
                         </View>
 
-                        {/* Phone + call button */}
                         <View style={{ alignItems: 'flex-end', gap: 6 }}>
                           <Text selectable style={{ fontSize: 14, color: brand.dark, fontWeight: '500' }}>
                             {contact.phone}
                           </Text>
-                          <Pressable
-                            onPress={() => Linking.openURL(`tel:${contact.phone}`)}
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: 4,
-                              backgroundColor: '#22C55E18',
-                              borderRadius: 8,
-                              paddingHorizontal: 8,
-                              paddingVertical: 4,
-                            }}
-                          >
-                            <Text style={{ fontSize: 12 }}>📞</Text>
-                            <Text style={{ fontSize: 12, color: '#22C55E', fontWeight: '600' }}>Call</Text>
-                          </Pressable>
+                          <View style={{ flexDirection: 'row', gap: 8 }}>
+                            <Pressable
+                              onPress={() => Linking.openURL(`tel:${contact.phone}`)}
+                              style={{
+                                flexDirection: 'row', alignItems: 'center', gap: 4,
+                                backgroundColor: '#22C55E18', borderRadius: 8,
+                                paddingHorizontal: 8, paddingVertical: 4,
+                              }}
+                            >
+                              <Ionicons name="call-outline" size={12} color="#22C55E" />
+                              <Text style={{ fontSize: 12, color: '#22C55E', fontWeight: '600' }}>Call</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => deleteContact(contact)}
+                              hitSlop={8}
+                              style={{ padding: 4 }}
+                            >
+                              <Ionicons name="trash-outline" size={14} color={brand.body} style={{ opacity: 0.5 }} />
+                            </Pressable>
+                          </View>
                         </View>
-                      </Pressable>
+                      </View>
                     ))}
                   </View>
                 </View>
@@ -241,19 +238,13 @@ export default function ContactsScreen() {
       <Pressable
         onPress={openModal}
         style={{
-          position: 'absolute',
-          bottom: 96,
-          right: 16,
-          width: 56,
-          height: 56,
-          borderRadius: 28,
-          backgroundColor: brand.blue,
-          alignItems: 'center',
-          justifyContent: 'center',
+          position: 'absolute', bottom: 96, right: 16,
+          width: 56, height: 56, borderRadius: 28,
+          backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 4px 16px rgba(43,116,214,0.30)',
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 28, lineHeight: 32 }}>+</Text>
+        <Ionicons name="add" size={28} color="#fff" />
       </Pressable>
 
       {/* Add Contact Modal */}
@@ -262,16 +253,10 @@ export default function ContactsScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={{ flex: 1, backgroundColor: brand.lightBg }}
         >
-          {/* Header */}
           <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: 20,
-            paddingTop: insets.top + 16,
-            borderBottomWidth: 1,
-            borderBottomColor: brand.separator,
-            backgroundColor: brand.card,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+            padding: 20, paddingTop: insets.top + 16,
+            borderBottomWidth: 1, borderBottomColor: brand.separator, backgroundColor: brand.card,
           }}>
             <Pressable onPress={() => setShowModal(false)}>
               <Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text>
@@ -285,103 +270,49 @@ export default function ContactsScreen() {
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
-            {/* Full Name */}
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>
-                FULL NAME *
-              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>FULL NAME *</Text>
               <TextInput
-                style={{
-                  backgroundColor: brand.card,
-                  borderRadius: 12,
-                  padding: 14,
-                  fontSize: 15,
-                  color: brand.dark,
-                  borderWidth: 1.5,
-                  borderColor: brand.separator,
-                }}
-                placeholder="Dr. Jane Smith"
-                placeholderTextColor={brand.body}
-                value={name}
-                onChangeText={setName}
-                autoCapitalize="words"
+                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 14, fontSize: 15, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
+                placeholder="Dr. Jane Smith" placeholderTextColor={brand.body}
+                value={name} onChangeText={setName} autoCapitalize="words"
               />
             </View>
 
-            {/* Phone Number */}
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>
-                PHONE NUMBER *
-              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>PHONE NUMBER *</Text>
               <TextInput
-                style={{
-                  backgroundColor: brand.card,
-                  borderRadius: 12,
-                  padding: 14,
-                  fontSize: 15,
-                  color: brand.dark,
-                  borderWidth: 1.5,
-                  borderColor: brand.separator,
-                }}
-                placeholder="+27 21 000 0000"
-                placeholderTextColor={brand.body}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
+                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 14, fontSize: 15, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
+                placeholder="+27 21 000 0000" placeholderTextColor={brand.body}
+                keyboardType="phone-pad" value={phone} onChangeText={setPhone}
               />
             </View>
 
-            {/* Relationship */}
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>
-                RELATIONSHIP / ROLE
-              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>RELATIONSHIP / ROLE</Text>
               <TextInput
-                style={{
-                  backgroundColor: brand.card,
-                  borderRadius: 12,
-                  padding: 14,
-                  fontSize: 15,
-                  color: brand.dark,
-                  borderWidth: 1.5,
-                  borderColor: brand.separator,
-                }}
-                placeholder="Paediatrician, Class teacher…"
-                placeholderTextColor={brand.body}
-                value={relationship}
-                onChangeText={setRelationship}
-                autoCapitalize="sentences"
+                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 14, fontSize: 15, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
+                placeholder="Paediatrician, Class teacher…" placeholderTextColor={brand.body}
+                value={relationship} onChangeText={setRelationship} autoCapitalize="sentences"
               />
             </View>
 
-            {/* Contact Type */}
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 10 }}>
-                CONTACT TYPE
-              </Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 10 }}>CONTACT TYPE</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {CONTACT_TYPES.map(type => (
                   <Pressable
                     key={type}
                     onPress={() => setContactType(type)}
                     style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 6,
-                      paddingHorizontal: 14,
-                      paddingVertical: 10,
-                      borderRadius: 20,
-                      borderWidth: 1.5,
+                      flexDirection: 'row', alignItems: 'center', gap: 6,
+                      paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5,
                       borderColor: contactType === type ? TYPE_COLOR[type] : brand.separator,
                       backgroundColor: contactType === type ? `${TYPE_COLOR[type]}14` : brand.card,
                     }}
                   >
-                    <Text style={{ fontSize: 14 }}>{TYPE_EMOJI[type]}</Text>
-                    <Text style={{
-                      fontSize: 13,
-                      fontWeight: '600',
-                      color: contactType === type ? TYPE_COLOR[type] : brand.body,
-                    }}>
+                    <Ionicons name={TYPE_ICON[type]} size={14} color={contactType === type ? TYPE_COLOR[type] : brand.body} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: contactType === type ? TYPE_COLOR[type] : brand.body }}>
                       {type}
                     </Text>
                   </Pressable>

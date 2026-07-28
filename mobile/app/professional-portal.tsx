@@ -60,7 +60,7 @@ export default function ProfessionalPortalScreen() {
         <Stack.Screen options={{ title: 'Professional Portal', headerTintColor: brand.blue }} />
         <View style={{ flex: 1, backgroundColor: brand.lightBg, padding: 24, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 32, alignItems: 'center', boxShadow: '0 2px 12px rgba(43,116,214,0.08)', maxWidth: 320, borderCurve: 'continuous' }}>
-            <Text style={{ fontSize: 48, marginBottom: 16 }}>🛡️</Text>
+            <Ionicons name="shield-checkmark-outline" size={48} color={brand.blue} style={{ marginBottom: 16 }} />
             <Text style={{ fontSize: 20, fontWeight: '700', color: brand.dark, textAlign: 'center', marginBottom: 8 }}>
               Professional Access Required
             </Text>
@@ -105,7 +105,7 @@ export default function ProfessionalPortalScreen() {
                 justifyContent: 'center',
               }}
             >
-              <Text style={{ fontSize: 24 }}>⚖️</Text>
+              <Ionicons name="scale-outline" size={24} color={brand.blue} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>Professional View</Text>
@@ -133,7 +133,7 @@ export default function ProfessionalPortalScreen() {
               borderCurve: 'continuous',
             }}
           >
-            <Text style={{ fontSize: 36 }}>👨‍👩‍👧</Text>
+            <Ionicons name="people-outline" size={36} color={brand.body} style={{ marginBottom: 8 }} />
             <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>No linked families</Text>
             <Text style={{ fontSize: 13, color: brand.body, textAlign: 'center', lineHeight: 18 }}>
               A parent must invite you from their SupportCard app before you can view their records.

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { ScrollView, View, Text, Pressable, StatusBar, Linking, Alert, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
@@ -20,7 +21,7 @@ function LogoIcon() {
         justifyContent: 'center',
       }}
     >
-      <Text style={{ fontSize: 20 }}>♡</Text>
+      <Ionicons name="heart-outline" size={20} color="#fff" />
     </View>
   );
 }
@@ -59,7 +60,7 @@ function FeatureRow({ text, blue }: { text: string; blue?: boolean }) {
           justifyContent: 'center',
         }}
       >
-        <Text style={{ color: blue ? '#fff' : brand.blue, fontSize: 11, fontWeight: '700' }}>✓</Text>
+        <Ionicons name="checkmark" size={12} color={blue ? '#fff' : brand.blue} />
       </View>
       <Text style={{ color: blue ? brand.blue : brand.body, fontSize: 15, flex: 1 }}>{text}</Text>
     </View>
@@ -122,6 +123,7 @@ function OutlinedCTA({ label, onPress, loading }: { label: string; onPress: () =
 }
 
 export default function PricingScreen() {
+  const insets = useSafeAreaInsets();
   const { currency, setCurrency } = useCurrency();
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
@@ -133,21 +135,38 @@ export default function PricingScreen() {
     setCheckoutLoading(tier);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { Alert.alert('Sign in required', 'Please sign in to subscribe.'); return; }
+      if (!session) {
+        console.warn('[Dodo] No session — user not signed in');
+        Alert.alert('Sign in required', 'Please sign in to subscribe.');
+        return;
+      }
 
       const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard.vercel.app';
+      console.log('[Dodo] POST', `${apiBase}/api/dodo-checkout`, { tier });
+
       const res = await fetch(`${apiBase}/api/dodo-checkout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ tier }),
       });
 
-      const json = await res.json();
-      if (!res.ok) { Alert.alert('Error', json.error ?? 'Could not start checkout.'); return; }
+      const data = await res.json();
+      console.log('[Dodo] Response', res.status, data);
 
-      await Linking.openURL(json.payment_link);
-    } catch {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+      if (!res.ok) {
+        Alert.alert('Checkout error', data.error ?? 'Could not start checkout.');
+        return;
+      }
+
+      console.log('[Dodo] Navigating to', data.payment_link);
+      if (typeof window !== 'undefined') {
+        window.location.href = data.payment_link;
+      } else {
+        await Linking.openURL(data.payment_link);
+      }
+    } catch (e: any) {
+      console.error('[Dodo] Caught error:', e);
+      Alert.alert('Error', e?.message ?? 'Something went wrong. Please try again.');
     } finally {
       setCheckoutLoading(null);
     }
@@ -158,13 +177,13 @@ export default function PricingScreen() {
       <StatusBar barStyle="dark-content" backgroundColor={brand.lightBg} />
 
       {/* Custom Header */}
-      <View style={{ backgroundColor: brand.lightBg, paddingTop: 56, paddingBottom: 12, paddingHorizontal: 16 }}>
+      <View style={{ backgroundColor: brand.lightBg, paddingTop: insets.top + 12, paddingBottom: 12, paddingHorizontal: 16 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-          <LogoIcon />
-          <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18, flex: 1 }}>Support Card</Text>
-          <Pressable onPress={() => router.back()} hitSlop={12}>
-            <Text style={{ color: brand.dark, fontSize: 24, fontWeight: '400' }}>✕</Text>
+          <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')} hitSlop={12} style={{ padding: 4, marginRight: 4 }}>
+            <Ionicons name="chevron-back" size={28} color={brand.blue} />
           </Pressable>
+          <LogoIcon />
+          <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18, flex: 1 }}>Plans & Pricing</Text>
         </View>
 
         {/* Currency toggle — always visible on pricing page */}
@@ -378,7 +397,7 @@ export default function PricingScreen() {
               flexShrink: 0,
             }}
           >
-            <Text style={{ fontSize: 28 }}>🎁</Text>
+            <Ionicons name="gift-outline" size={28} color={brand.blue} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: brand.dark, fontSize: 15, lineHeight: 22 }}>

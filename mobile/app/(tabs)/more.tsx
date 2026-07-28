@@ -96,45 +96,40 @@ export default function MoreScreen() {
     {
       heading: 'Co-Parenting',
       rows: [
-        { icon: 'chatbubble-outline',  iconColor: '#22C55E', title: 'Messages',            subtitle: 'Chat with your co-parent',               route: '/messages' },
-        { icon: 'people-outline',      iconColor: brand.blue, title: 'Family',             subtitle: 'Children, co-parent & professionals',     route: '/family' },
-        { icon: 'time-outline',        iconColor: brand.teal, title: 'Child Timeline',     subtitle: 'Unified view per child',                  route: '/child-timeline' },
-        { icon: 'ribbon-outline',      iconColor: '#F59E0B', title: 'Parenting Scoreboard', subtitle: 'Contribution & engagement metrics',      route: '/parenting-scoreboard' },
+        { icon: 'flash-outline',       iconColor: brand.teal,  title: 'My SCAI',              subtitle: 'AI co-parenting assistant',             route: '/my-scai' },
+        { icon: 'chatbubble-outline',  iconColor: brand.blue,  title: 'Messages',             subtitle: 'Chat with your co-parent',              route: '/messages' },
+        { icon: 'people-outline',      iconColor: brand.blue,  title: 'Family',               subtitle: 'Children, co-parent & professionals',   route: '/family' },
+        { icon: 'time-outline',        iconColor: brand.blue,  title: 'Child Timeline',       subtitle: 'Unified view per child',                route: '/child-timeline' },
+        { icon: 'ribbon-outline',      iconColor: brand.blue,  title: 'Parenting Scoreboard', subtitle: 'Contribution & engagement metrics',     route: '/parenting-scoreboard' },
       ],
     },
     {
       heading: 'Children',
       rows: [
         { icon: 'medical-outline',     iconColor: brand.error, title: 'Emergency Child Profile', subtitle: 'Medical aid, allergies & emergency info', route: '/emergency-child-profile' },
-        { icon: 'call-outline',        iconColor: '#F59E0B',   title: 'Emergency Contacts',       subtitle: 'Doctors, schools & trusted contacts',    route: '/contacts' },
+        { icon: 'call-outline',        iconColor: brand.body,  title: 'Emergency Contacts',      subtitle: 'Doctors, schools & trusted contacts',    route: '/contacts' },
       ],
     },
     {
       heading: 'Finance',
       rows: [
-        { icon: 'receipt-outline',     iconColor: '#22C55E', title: 'Transactions',   subtitle: 'Expense request history',     route: '/transactions' },
-        { icon: 'star-outline',        iconColor: '#F59E0B', title: 'Goals & Wishlist', subtitle: "Children's savings goals", route: '/goals' },
+        { icon: 'receipt-outline',     iconColor: brand.teal, title: 'Transactions',     subtitle: 'Expense request history',      route: '/transactions' },
+        { icon: 'star-outline',        iconColor: brand.teal, title: 'Goals & Wishlist', subtitle: "Children's savings goals",     route: '/goals' },
       ],
     },
     {
       heading: 'School',
       rows: [
-        { icon: 'school-outline',      iconColor: brand.blue, title: 'School Hub',      subtitle: 'Report cards, notices & events', route: '/school-hub' },
-        { icon: 'stats-chart-outline', iconColor: brand.teal, title: 'Monthly Report',  subtitle: 'AI-generated family summary',   route: '/monthly-report' },
+        { icon: 'school-outline',      iconColor: brand.blue, title: 'School Hub',     subtitle: 'Report cards, notices & events', route: '/school-hub' },
+        { icon: 'stats-chart-outline', iconColor: brand.teal, title: 'Monthly Report', subtitle: 'AI-generated family summary',    route: '/monthly-report' },
       ],
     },
     {
       heading: 'Legal & Records',
       rows: [
-        { icon: 'location-outline',     iconColor: '#8B5CF6', title: 'Custody Clock',       subtitle: 'Log check-ins & verified handoffs', route: '/custody-clock' },
-        { icon: 'document-text-outline', iconColor: '#F59E0B', title: 'Compliance',          subtitle: 'Court orders & obligations',         route: '/compliance' },
-        { icon: 'briefcase-outline',    iconColor: brand.teal, title: 'Professional Portal', subtitle: 'Lawyer & mediator access',           route: '/professional-portal' },
-      ],
-    },
-    {
-      heading: 'AI Tools',
-      rows: [
-        { icon: 'flash-outline', iconColor: brand.teal, title: 'My SCAI', subtitle: 'AI co-parenting assistant', route: '/my-scai' },
+        { icon: 'location-outline',      iconColor: brand.blue, title: 'Custody Clock',       subtitle: 'Log check-ins & verified handoffs', route: '/custody-clock' },
+        { icon: 'document-text-outline', iconColor: brand.body, title: 'Compliance',          subtitle: 'Court orders & obligations',         route: '/compliance' },
+        { icon: 'briefcase-outline',     iconColor: brand.teal, title: 'Professional Portal', subtitle: 'Lawyer & mediator access',           route: '/professional-portal' },
       ],
     },
     {
@@ -154,7 +149,7 @@ export default function MoreScreen() {
       contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={{ fontSize: 32, fontWeight: '700', color: brand.dark, marginTop: insets.top + 24, marginBottom: 4 }}>
+      <Text style={{ fontSize: 30, fontWeight: '800', color: brand.dark, marginTop: insets.top + 20, marginBottom: 20 }}>
         More
       </Text>
 

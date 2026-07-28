@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
@@ -154,10 +155,10 @@ export default function ParentingScoreboardScreen() {
 
         {/* ── 2x2 Stat grid ── */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-          <StatCard label="Expense Requests" value={metrics.expenses} emoji="💰" color="#F59E0B" />
-          <StatCard label="Calendar Events"  value={metrics.events}   emoji="📅" color={brand.blue} />
-          <StatCard label="Check-ins"        value={metrics.checkins} emoji="📍" color={brand.teal} />
-          <StatCard label="Messages"         value={metrics.messages} emoji="💬" color={brand.success} />
+          <StatCard label="Expense Requests" value={metrics.expenses} icon="cash-outline"            color="#F59E0B" />
+          <StatCard label="Calendar Events"  value={metrics.events}   icon="calendar-outline"        color={brand.blue} />
+          <StatCard label="Check-ins"        value={metrics.checkins} icon="location-outline"        color={brand.teal} />
+          <StatCard label="Messages"         value={metrics.messages} icon="chatbubbles-outline"     color={brand.success} />
         </View>
 
         {/* ── Contribution breakdown ── */}
@@ -173,10 +174,10 @@ export default function ParentingScoreboardScreen() {
             What's Logged
           </Text>
           <View style={{ gap: 14 }}>
-            <BreakdownRow emoji="💰" label="Expense Requests" count={metrics.expenses} percentage={pct(metrics.expenses)} color="#F59E0B" />
-            <BreakdownRow emoji="📅" label="Calendar Events"  count={metrics.events}   percentage={pct(metrics.events)}   color={brand.blue} />
-            <BreakdownRow emoji="📍" label="Check-ins"        count={metrics.checkins} percentage={pct(metrics.checkins)} color={brand.teal} />
-            <BreakdownRow emoji="💬" label="Messages"         count={metrics.messages} percentage={pct(metrics.messages)} color={brand.success} />
+            <BreakdownRow icon="cash-outline"        label="Expense Requests" count={metrics.expenses} percentage={pct(metrics.expenses)} color="#F59E0B" />
+            <BreakdownRow icon="calendar-outline"    label="Calendar Events"  count={metrics.events}   percentage={pct(metrics.events)}   color={brand.blue} />
+            <BreakdownRow icon="location-outline"    label="Check-ins"        count={metrics.checkins} percentage={pct(metrics.checkins)} color={brand.teal} />
+            <BreakdownRow icon="chatbubbles-outline" label="Messages"         count={metrics.messages} percentage={pct(metrics.messages)} color={brand.success} />
           </View>
         </View>
 
@@ -191,9 +192,10 @@ export default function ParentingScoreboardScreen() {
             boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
           }}
         >
-          <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark, marginBottom: 4 }}>
-            🔥 Coordination Streak
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <Ionicons name="flame-outline" size={16} color={brand.teal} />
+            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Coordination Streak</Text>
+          </View>
           <Text style={{ fontSize: 28, fontWeight: '800', color: brand.teal, marginBottom: 4 }}>
             {metrics.streakDays}
           </Text>
@@ -213,17 +215,10 @@ export default function ParentingScoreboardScreen() {
             boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
           }}
         >
-          <Text
-            style={{
-              fontSize: 11,
-              fontWeight: '700',
-              color: brand.blue,
-              letterSpacing: 0.8,
-              marginBottom: 8,
-            }}
-          >
-            💡 INSIGHT
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+            <Ionicons name="bulb-outline" size={13} color={brand.blue} />
+            <Text style={{ fontSize: 11, fontWeight: '700', color: brand.blue, letterSpacing: 0.8 }}>INSIGHT</Text>
+          </View>
           <Text style={{ fontSize: 14, color: brand.dark, lineHeight: 21 }}>{insight}</Text>
         </View>
       </ScrollView>
@@ -304,12 +299,12 @@ function HeroCard({ score }: { score: number }) {
 function StatCard({
   label,
   value,
-  emoji,
+  icon,
   color,
 }: {
   label: string;
   value: number;
-  emoji: string;
+  icon: keyof typeof Ionicons.glyphMap;
   color: string;
 }) {
   return (
@@ -324,7 +319,7 @@ function StatCard({
         boxShadow: '0 1px 6px rgba(43,116,214,0.07)',
       }}
     >
-      <Text style={{ fontSize: 24, marginBottom: 6 }}>{emoji}</Text>
+      <Ionicons name={icon} size={24} color={color} style={{ marginBottom: 6 }} />
       <Text
         style={{
           fontSize: 28,
@@ -344,13 +339,13 @@ function StatCard({
 // ─── BreakdownRow ─────────────────────────────────────────────────────────────
 
 function BreakdownRow({
-  emoji,
+  icon,
   label,
   count,
   percentage,
   color,
 }: {
-  emoji: string;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   count: number;
   percentage: number;
@@ -365,7 +360,7 @@ function BreakdownRow({
           marginBottom: 6,
         }}
       >
-        <Text style={{ fontSize: 14, marginRight: 8 }}>{emoji}</Text>
+        <Ionicons name={icon} size={14} color={color} style={{ marginRight: 8 }} />
         <Text style={{ fontSize: 13, color: brand.dark, flex: 1 }}>{label}</Text>
         <Text
           style={{

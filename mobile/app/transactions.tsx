@@ -1,18 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  School: '🎓',
-  Food: '🍎',
-  Clothing: '👗',
-  Activities: '⚽',
-  Healthcare: '🏥',
-  Transportation: '🚗',
-  Other: '📦',
+const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
+  School: 'school-outline', Food: 'restaurant-outline', Clothing: 'shirt-outline',
+  Activities: 'football-outline', Healthcare: 'medkit-outline',
+  Transportation: 'car-outline', Other: 'cube-outline',
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
@@ -202,7 +199,7 @@ export default function TransactionsScreen() {
             alignItems: 'center',
             boxShadow: '0 2px 12px rgba(43,116,214,0.08)',
           }}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>🧾</Text>
+            <Ionicons name="receipt-outline" size={40} color={brand.body} style={{ marginBottom: 12 }} />
             <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No activity yet</Text>
             <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>
               Expense requests will appear here once submitted
@@ -266,9 +263,7 @@ export default function TransactionsScreen() {
                             justifyContent: 'center',
                             flexShrink: 0,
                           }}>
-                            <Text style={{ fontSize: 20 }}>
-                              {CATEGORY_EMOJI[item.category] || '📦'}
-                            </Text>
+                            <Ionicons name={CATEGORY_ICON[item.category] ?? 'cube-outline'} size={20} color={brand.blue} />
                           </View>
 
                           {/* Amount + category */}
@@ -302,7 +297,7 @@ export default function TransactionsScreen() {
                                 paddingVertical: 2,
                                 marginTop: 4,
                               }}>
-                                <Text style={{ fontSize: 10, color: brand.blue }}>🤖 SCAI</Text>
+                                <Ionicons name="hardware-chip-outline" size={10} color={brand.blue} /><Text style={{ fontSize: 10, color: brand.blue }}> SCAI</Text>
                               </View>
                             )}
                           </View>

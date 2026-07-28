@@ -12,6 +12,7 @@ import {
   Alert,
   Linking,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
@@ -54,10 +55,16 @@ function formatTime(iso: string) {
   });
 }
 
-function eventIcon(type: 'enter' | 'exit' | 'manual') {
-  if (type === 'enter') return '📥';
-  if (type === 'exit') return '📤';
-  return '📝';
+function eventIcon(type: 'enter' | 'exit' | 'manual'): keyof typeof Ionicons.glyphMap {
+  if (type === 'enter') return 'enter-outline';
+  if (type === 'exit') return 'exit-outline';
+  return 'create-outline';
+}
+
+function eventIconColor(type: 'enter' | 'exit' | 'manual') {
+  if (type === 'enter') return brand.teal;
+  if (type === 'exit') return '#F59E0B';
+  return brand.blue;
 }
 
 function eventLabel(type: 'enter' | 'exit' | 'manual') {
@@ -82,12 +89,15 @@ function ScaiBadge() {
         marginTop: 4,
       }}
     >
-      <Text style={{ fontSize: 11, color: brand.blue, fontWeight: '600' }}>🤖 My SCAI</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+        <Ionicons name="hardware-chip-outline" size={11} color={brand.blue} />
+        <Text style={{ fontSize: 11, color: brand.blue, fontWeight: '600' }}>My SCAI</Text>
+      </View>
     </View>
   );
 }
 
-function CheckInCard({ item }: { item: CheckIn }) {
+function CheckInCard({ item, onDelete }: { item: CheckIn; onDelete?: () => void }) {
   return (
     <View
       style={{
@@ -105,13 +115,13 @@ function CheckInCard({ item }: { item: CheckIn }) {
           style={{
             width: 40,
             height: 40,
-            borderRadius: 20,
-            backgroundColor: brand.lightBg,
+            borderRadius: 12,
+            backgroundColor: eventIconColor(item.event_type) + '18',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 20 }}>{eventIcon(item.event_type)}</Text>
+          <Ionicons name={eventIcon(item.event_type)} size={20} color={eventIconColor(item.event_type)} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ fontWeight: '600', fontSize: 15, color: brand.dark }}>
@@ -134,21 +144,31 @@ function CheckInCard({ item }: { item: CheckIn }) {
               )}
               style={{ marginTop: 4 }}
             >
-              <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>
-                📍 View in Maps ({item.lat?.toFixed(4)}, {item.lng?.toFixed(4)})
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Ionicons name="location-outline" size={12} color={brand.blue} />
+                <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>
+                  View in Maps ({item.lat?.toFixed(4)}, {item.lng?.toFixed(4)})
+                </Text>
+              </View>
             </Pressable>
           )}
         </View>
-        <Text style={{ color: brand.body, fontSize: 12, marginTop: 2 }}>
-          {formatTime(item.created_at)}
-        </Text>
+        <View style={{ alignItems: 'flex-end', gap: 6 }}>
+          <Text style={{ color: brand.body, fontSize: 12 }}>
+            {formatTime(item.created_at)}
+          </Text>
+          {onDelete && (
+            <Pressable onPress={onDelete} hitSlop={10}>
+              <Ionicons name="trash-outline" size={14} color={brand.body} style={{ opacity: 0.45 }} />
+            </Pressable>
+          )}
+        </View>
       </View>
     </View>
   );
 }
 
-function ZoneCard({ zone }: { zone: Zone }) {
+function ZoneCard({ zone, onDelete }: { zone: Zone; onDelete?: () => void }) {
   const hasCoords = zone.lat != null && zone.lng != null;
   const desc = hasCoords
     ? `${zone.lat!.toFixed(4)}, ${zone.lng!.toFixed(4)}`
@@ -171,19 +191,24 @@ function ZoneCard({ zone }: { zone: Zone }) {
           style={{
             width: 40,
             height: 40,
-            borderRadius: 20,
+            borderRadius: 12,
             backgroundColor: '#E6F9F1',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Text style={{ fontSize: 20 }}>📍</Text>
+          <Ionicons name="location-outline" size={20} color={brand.teal} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <Text style={{ fontWeight: '600', fontSize: 15, color: brand.dark }}>{zone.name}</Text>
           <Text style={{ color: brand.body, fontSize: 13 }}>{zone.zone_type}</Text>
           <Text style={{ color: brand.body, fontSize: 12 }}>{desc}</Text>
         </View>
+        {onDelete && (
+          <Pressable onPress={onDelete} hitSlop={10}>
+            <Ionicons name="trash-outline" size={16} color={brand.body} style={{ opacity: 0.45 }} />
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -448,9 +473,12 @@ function AddCheckInModal({ visible, onClose, onSaved, children }: AddCheckInModa
               </View>
             )}
             {useGps && locationState === 'captured' && (
-              <Text style={{ color: brand.teal, fontSize: 13, fontWeight: '500' }}>
-                📍 Location captured ({lat?.toFixed(5)}, {lng?.toFixed(5)})
-              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <Ionicons name="location-outline" size={13} color={brand.teal} />
+                <Text style={{ color: brand.teal, fontSize: 13, fontWeight: '500' }}>
+                  Location captured ({lat?.toFixed(5)}, {lng?.toFixed(5)})
+                </Text>
+              </View>
             )}
             {useGps && locationState === 'failed' && (
               <Text style={{ color: brand.error, fontSize: 13 }}>
@@ -662,6 +690,40 @@ export default function CustodyClockScreen() {
     loadData();
   }, [loadData]);
 
+  const handleDeleteCheckIn = useCallback((id: string) => {
+    Alert.alert(
+      'Delete check-in?',
+      'This will permanently remove this custody record.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            await supabase.from('custody_checkins').delete().eq('id', id);
+            loadData();
+          },
+        },
+      ]
+    );
+  }, [loadData]);
+
+  const handleDeleteZone = useCallback((id: string) => {
+    Alert.alert(
+      'Delete zone?',
+      'This will permanently remove this location zone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete', style: 'destructive',
+          onPress: async () => {
+            await supabase.from('custody_zones').delete().eq('id', id);
+            loadData();
+          },
+        },
+      ]
+    );
+  }, [loadData]);
+
   return (
     <>
       <Stack.Screen options={{ title: 'Custody Clock', headerTintColor: brand.blue }} />
@@ -738,14 +800,18 @@ export default function CustodyClockScreen() {
           >
             {checkIns.length === 0 ? (
               <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
-                <Text style={{ fontSize: 48 }}>📋</Text>
+                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="clipboard-outline" size={32} color={brand.body} />
+                </View>
                 <Text style={{ fontWeight: '700', fontSize: 17, color: brand.dark }}>No check-ins yet</Text>
                 <Text style={{ color: brand.body, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 }}>
                   Log a custody check-in to start tracking handoffs.
                 </Text>
               </View>
             ) : (
-              checkIns.map((item) => <CheckInCard key={item.id} item={item} />)
+              checkIns.map((item) => (
+                <CheckInCard key={item.id} item={item} onDelete={() => handleDeleteCheckIn(item.id)} />
+              ))
             )}
           </ScrollView>
         ) : (
@@ -755,14 +821,18 @@ export default function CustodyClockScreen() {
           >
             {zones.length === 0 ? (
               <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
-                <Text style={{ fontSize: 48 }}>📍</Text>
+                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="location-outline" size={32} color={brand.body} />
+                </View>
                 <Text style={{ fontWeight: '700', fontSize: 17, color: brand.dark }}>No zones set up yet</Text>
                 <Text style={{ color: brand.body, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 }}>
                   Add zones like home addresses and schools to organise your custody check-ins.
                 </Text>
               </View>
             ) : (
-              zones.map((zone) => <ZoneCard key={zone.id} zone={zone} />)
+              zones.map((zone) => (
+                <ZoneCard key={zone.id} zone={zone} onDelete={() => handleDeleteZone(zone.id)} />
+              ))
             )}
           </ScrollView>
         )}

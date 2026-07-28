@@ -38,6 +38,22 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // Env pre-flight — return specific errors before any try/catch swallows them
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const dodoApiKey = process.env.DODO_PAYMENTS_API_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('dodo-checkout: missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+    res.status(500).json({ error: 'Server misconfiguration: Supabase credentials missing. Add env vars to Vercel.' });
+    return;
+  }
+  if (!dodoApiKey) {
+    console.error('dodo-checkout: missing DODO_PAYMENTS_API_KEY');
+    res.status(500).json({ error: 'Dodo Payments is not configured on this server. Add DODO_PAYMENTS_API_KEY to Vercel.' });
+    return;
+  }
+
   try {
     const token = extractBearer(req);
     if (!token) {
@@ -71,12 +87,6 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const apiKey = process.env.DODO_PAYMENTS_API_KEY;
-    if (!apiKey) {
-      res.status(500).json({ error: 'Dodo Payments is not configured on this server' });
-      return;
-    }
-
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, email')
@@ -90,7 +100,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const client = new DodoPayments({
-      bearerToken: apiKey,
+      bearerToken: dodoApiKey,
       environment: (process.env.DODO_PAYMENTS_ENVIRONMENT as 'test_mode' | 'live_mode') ?? 'test_mode',
     });
 
@@ -114,8 +124,10 @@ export default async function handler(req: any, res: any) {
     }
 
     res.status(200).json({ payment_link: session.checkout_url });
-  } catch (error) {
-    console.error('Dodo checkout error:', error);
-    res.status(500).json({ error: 'Unexpected error creating checkout session' });
+  } catch (error: any) {
+    const msg = error?.message ?? error?.toString() ?? 'unknown';
+    const status = error?.status ?? error?.statusCode ?? 500;
+    console.error('Dodo checkout error:', { status, msg, type: error?.constructor?.name });
+    res.status(500).json({ error: `Checkout failed: ${msg}` });
   }
 }

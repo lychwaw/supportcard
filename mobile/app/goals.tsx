@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
@@ -67,7 +68,7 @@ export default function GoalsScreen() {
 
         <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, borderLeftWidth: 4, borderLeftColor: brand.blue }}>
           <Text style={{ fontSize: 13, color: brand.body, lineHeight: 19 }}>
-            🎯 Goals track savings contributions as an append-only ledger. No money moves through the app — contributions are logged for transparency only.
+            Goals track savings contributions as an append-only ledger. No money moves through the app — contributions are logged for transparency only.
           </Text>
         </View>
 
@@ -78,7 +79,9 @@ export default function GoalsScreen() {
 
         {loading ? <ActivityIndicator color={brand.blue} style={{ marginTop: 24 }} /> : goals.length === 0 ? (
           <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 40, alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-            <Text style={{ fontSize: 40, marginBottom: 12 }}>⭐</Text>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Ionicons name="star-outline" size={32} color={brand.blue} />
+            </View>
             <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No goals yet</Text>
             <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>Create savings goals for your children's education, activities or wishlist items</Text>
           </View>
@@ -141,7 +144,7 @@ export default function GoalsScreen() {
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16, backgroundColor: brand.lightBg }}>
           <View style={{ backgroundColor: brand.lightBg, borderRadius: 12, padding: 12 }}>
-            <Text style={{ fontSize: 12, color: brand.body }}>📝 Contributions are logged for transparency — money transfers happen off-platform via EFT.</Text>
+            <Text style={{ fontSize: 12, color: brand.body }}>Contributions are logged for transparency — money transfers happen off-platform via EFT.</Text>
           </View>
           <View>
             <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>AMOUNT (R)</Text>

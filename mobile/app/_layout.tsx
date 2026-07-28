@@ -5,6 +5,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as Updates from 'expo-updates';
 import { Session } from '@supabase/supabase-js';
 import { View, Text, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
@@ -43,7 +44,9 @@ async function checkForUpdates() {
 function ErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <View style={{ flex: 1, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', padding: 32 }}>
-      <Text style={{ fontSize: 48, marginBottom: 16 }}>⚠️</Text>
+      <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#FEF3C7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Ionicons name="warning-outline" size={40} color="#F59E0B" />
+      </View>
       <Text style={{ fontSize: 20, fontWeight: '700', color: brand.dark, textAlign: 'center', marginBottom: 8 }}>
         Something went wrong
       </Text>
@@ -85,8 +88,8 @@ function AppShell({ session }: { session: Session | null }) {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
-        <Stack.Screen name="my-scai" />
-        <Stack.Screen name="pricing" />
+        <Stack.Screen name="my-scai" options={{ headerShown: false }} />
+        <Stack.Screen name="pricing" options={{ headerShown: false }} />
         <Stack.Screen name="messages" options={{ headerShown: true }} />
         <Stack.Screen name="contacts" options={{ headerShown: true }} />
         <Stack.Screen name="transactions" options={{ headerShown: true }} />

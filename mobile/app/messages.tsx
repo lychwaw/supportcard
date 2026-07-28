@@ -3,7 +3,9 @@ import {
   View, Text, TextInput, Pressable, FlatList,
   KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router/stack';
+import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brand } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
@@ -51,27 +53,41 @@ export default function MessagesScreen() {
   const [isSending, setIsSending] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [coParentId, setCoParentId] = useState<string | null>(null);
   const [toneWarning, setToneWarning] = useState<ToneWarning | null>(null);
-  // pendingText holds the original text while tone warning is shown
   const pendingTextRef = useRef<string>('');
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setUserId(user.id);
-    });
-    loadMessages();
+    let channel: ReturnType<typeof supabase.channel>;
 
-    const channel = supabase
-      .channel('messages-realtime')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'messages' },
-        () => loadMessages()
-      )
-      .subscribe();
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
 
-    return () => { channel.unsubscribe(); };
+      // Find co-parent: look for a child where the current user is parent or co-parent
+      const { data: children } = await supabase
+        .from('children' as any)
+        .select('parent_id, co_parent_id')
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`)
+        .limit(1);
+
+      if (children && children.length > 0) {
+        const child = children[0] as any;
+        const partner = child.parent_id === user.id ? child.co_parent_id : child.parent_id;
+        if (partner) setCoParentId(partner);
+      }
+
+      await loadMessages();
+
+      channel = supabase
+        .channel('messages-realtime')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => loadMessages())
+        .subscribe();
+    })();
+
+    return () => { channel?.unsubscribe(); };
   }, []);
 
   const loadMessages = async () => {
@@ -85,11 +101,16 @@ export default function MessagesScreen() {
 
   const doSend = async (text: string) => {
     if (!text.trim()) return;
+    if (!coParentId) return;
     setIsSending(true);
     setToneWarning(null);
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      await supabase.from('messages' as any).insert({ content: text.trim(), sender_id: user.id });
+      await supabase.from('messages' as any).insert({
+        content: text.trim(),
+        sender_id: user.id,
+        receiver_id: coParentId,
+      });
     }
     setIsSending(false);
     loadMessages();
@@ -191,15 +212,43 @@ export default function MessagesScreen() {
     );
   };
 
-  const inputBarHeight = 64 + Math.max(insets.bottom, 12);
-
   return (
     <View style={{ flex: 1, backgroundColor: brand.lightBg }}>
-      <Stack.Screen options={{
-        title: 'Messages',
-        headerTintColor: brand.blue,
-        headerStyle: { backgroundColor: brand.card },
-      }} />
+      <Stack.Screen options={{ headerShown: false }} />
+
+      {/* ── Custom header matching reference ── */}
+      <View style={{
+        paddingTop: insets.top + 10, paddingBottom: 12, paddingHorizontal: 16,
+        backgroundColor: brand.card, borderBottomWidth: 0.5, borderBottomColor: brand.separator,
+        flexDirection: 'row', alignItems: 'center', gap: 12,
+      }}>
+        <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')}
+          hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+          <Ionicons name="chevron-back" size={28} color={brand.dark} />
+        </Pressable>
+        {/* Avatar */}
+        <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
+          <Ionicons name="person" size={20} color="#fff" />
+        </View>
+        {/* Name + online status */}
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark }}>Co-Parent</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1 }}>
+            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#22C55E' }} />
+            <Text style={{ fontSize: 12, color: brand.body }}>Online</Text>
+          </View>
+        </View>
+        {/* Actions */}
+        <Pressable hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 6 })}>
+          <Ionicons name="call-outline" size={22} color={brand.dark} />
+        </Pressable>
+        <Pressable hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 6 })}>
+          <Ionicons name="videocam-outline" size={22} color={brand.dark} />
+        </Pressable>
+        <Pressable hitSlop={10} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 6 })}>
+          <Ionicons name="ellipsis-horizontal" size={22} color={brand.dark} />
+        </Pressable>
+      </View>
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
@@ -221,13 +270,16 @@ export default function MessagesScreen() {
               alignItems: 'center',
               justifyContent: 'center',
               paddingTop: 80,
+              paddingHorizontal: 32,
             }}>
-              <Text style={{ fontSize: 40, marginBottom: 12 }}>💬</Text>
-              <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark }}>
-                No messages yet
+              <Ionicons name="chatbubbles-outline" size={48} color={brand.body} style={{ marginBottom: 12 }} />
+              <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, textAlign: 'center' }}>
+                {coParentId ? 'No messages yet' : 'No co-parent linked yet'}
               </Text>
-              <Text style={{ fontSize: 14, color: brand.body, marginTop: 4 }}>
-                Start the conversation
+              <Text style={{ fontSize: 14, color: brand.body, marginTop: 4, textAlign: 'center' }}>
+                {coParentId
+                  ? 'Start the conversation'
+                  : 'Add a child and link a co-parent in the Family tab to enable messaging'}
               </Text>
             </View>
           )}
@@ -244,9 +296,10 @@ export default function MessagesScreen() {
             borderTopWidth: 1,
             borderTopColor: brand.separator,
           }}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B' }}>
-              ⚠️ Tone Check
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Ionicons name="warning-outline" size={16} color="#F59E0B" />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B' }}>Tone Check</Text>
+            </View>
             <Text style={{ fontSize: 14, color: brand.body, fontStyle: 'italic', lineHeight: 20 }}>
               This message seems heated. Consider rephrasing:{'\n'}
               "{toneWarning.rewrite}"
@@ -315,7 +368,7 @@ export default function MessagesScreen() {
           />
           <Pressable
             onPress={handleSend}
-            disabled={!input.trim() || isAnalyzing || isSending}
+            disabled={!input.trim() || isAnalyzing || isSending || !coParentId}
             style={{
               width: 44,
               height: 44,
@@ -329,12 +382,9 @@ export default function MessagesScreen() {
             }}
           >
             {isAnalyzing || isSending ? (
-              <ActivityIndicator
-                size="small"
-                color={isAnalyzing || isSending ? brand.blue : '#fff'}
-              />
+              <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={{ color: '#fff', fontSize: 18 }}>▶</Text>
+              <Ionicons name="arrow-up" size={20} color="#fff" />
             )}
           </Pressable>
         </View>

@@ -129,26 +129,20 @@ export default function CalendarScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: brand.lightBg }}>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingBottom: 40 }}>
-        <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
-          {/* Header */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-            <View style={{ width: 36, height: 36, backgroundColor: brand.blue, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
-              <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>SC</Text>
-            </View>
-            <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18, flex: 1 }}>SupportCard</Text>
-          </View>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 20 }}>
-            <Text style={{ fontSize: 28, fontWeight: '800', color: brand.dark }}>Calendar</Text>
+        <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 20 }}>
+          {/* Header — hamburger | Calendar (center) | filter */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+            <Pressable onPress={() => router.push('/(tabs)/more')} hitSlop={10} style={{ padding: 4 }}>
+              <Ionicons name="menu-outline" size={26} color={brand.dark} />
+            </Pressable>
+            <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: brand.dark }}>Calendar</Text>
             {permissions.canManageCalendar ? (
-              <Pressable onPress={openAdd}
-                style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(43,116,214,0.30)' }}>
-                <Text style={{ color: '#fff', fontSize: 24, lineHeight: 28 }}>+</Text>
+              <Pressable onPress={openAdd} hitSlop={10} style={{ padding: 4 }}>
+                <Ionicons name="options-outline" size={22} color={brand.blue} />
               </Pressable>
             ) : (
-              <Pressable onPress={() => router.push('/pricing')}
-                style={{ backgroundColor: brand.lightBg, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1.5, borderColor: brand.blue }}>
-                <Text style={{ color: brand.blue, fontSize: 12, fontWeight: '600' }}>Upgrade to add</Text>
+              <Pressable onPress={() => router.push('/pricing')} hitSlop={10} style={{ padding: 4 }}>
+                <Ionicons name="options-outline" size={22} color={brand.body} />
               </Pressable>
             )}
           </View>
@@ -195,10 +189,11 @@ export default function CalendarScreen() {
             </View>
           </View>
 
-          {/* Selected day */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 24, marginBottom: 12 }}>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>
-              {SHORT_MONTHS[month]} {selected} — {selectedEvents.length} event{selectedEvents.length !== 1 ? 's' : ''}
+          {/* Selected day header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 4 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: brand.blue, marginRight: 8 }} />
+            <Text style={{ fontSize: 14, fontWeight: '700', color: brand.dark, flex: 1 }}>
+              Today • {selected} {SHORT_MONTHS[month]}
             </Text>
             {permissions.canManageCalendar && (
               <Pressable onPress={openAdd} hitSlop={12}>
@@ -207,8 +202,8 @@ export default function CalendarScreen() {
             )}
           </View>
 
-          {loading ? <ActivityIndicator color={brand.blue} /> : selectedEvents.length === 0 ? (
-            <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 32, alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.06)' }}>
+          {loading ? <ActivityIndicator color={brand.blue} style={{ marginTop: 24 }} /> : selectedEvents.length === 0 ? (
+            <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 32, alignItems: 'center', marginTop: 12, boxShadow: '0 1px 8px rgba(43,116,214,0.06)' }}>
               <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
                 <Ionicons name="calendar-outline" size={24} color={brand.body} />
               </View>
@@ -220,27 +215,50 @@ export default function CalendarScreen() {
               )}
             </View>
           ) : (
-            <View style={{ gap: 10 }}>
-              {selectedEvents.map(event => (
-                <Pressable key={event.id} onLongPress={() => deleteEvent(event.id)}
-                  style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.06)' }}>
-                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                    <Ionicons name="calendar-outline" size={20} color="#fff" />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>{event.event_type || 'Event'}</Text>
-                    {event.notes && <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }}>{event.notes}</Text>}
-                    {event.created_via === 'scai' && (
-                      <View style={{ flexDirection: 'row', marginTop: 4 }}>
-                        <View style={{ backgroundColor: brand.lightBg, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 }}>
-                          <Text style={{ fontSize: 11, color: brand.blue }}>🤖 My SCAI</Text>
+            <View style={{ gap: 0, marginTop: 8 }}>
+              {selectedEvents.map((event, idx) => {
+                const barColors = ['#22C55E', brand.blue, '#8B5CF6', '#F59E0B', brand.teal];
+                const barColor = barColors[idx % barColors.length];
+                return (
+                  <Pressable key={event.id} onLongPress={() => deleteEvent(event.id)}
+                    style={({ pressed }) => ({
+                      backgroundColor: brand.card,
+                      borderRadius: 14,
+                      marginBottom: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      overflow: 'hidden',
+                      boxShadow: '0 1px 6px rgba(43,116,214,0.07)',
+                      opacity: pressed ? 0.85 : 1,
+                    })}>
+                    {/* Left color bar */}
+                    <View style={{ width: 4, alignSelf: 'stretch', backgroundColor: barColor }} />
+                    {/* Icon */}
+                    <View style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: barColor + '18', alignItems: 'center', justifyContent: 'center', margin: 14 }}>
+                      <Ionicons name="people-outline" size={18} color={barColor} />
+                    </View>
+                    {/* Content */}
+                    <View style={{ flex: 1, paddingVertical: 14 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>{event.event_type || 'Event'}</Text>
+                      {event.notes && <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }}>{event.notes}</Text>}
+                      {event.created_via === 'scai' && (
+                        <View style={{ flexDirection: 'row', marginTop: 4 }}>
+                          <View style={{ backgroundColor: brand.lightBg, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                            <Ionicons name="hardware-chip-outline" size={10} color={brand.blue} />
+                            <Text style={{ fontSize: 11, color: brand.blue }}>My SCAI</Text>
+                          </View>
                         </View>
+                      )}
+                    </View>
+                    {/* Checkmark */}
+                    <Pressable onPress={() => deleteEvent(event.id)} hitSlop={8} style={{ padding: 14 }}>
+                      <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name="checkmark" size={14} color={brand.blue} />
                       </View>
-                    )}
-                  </View>
-                  <Text style={{ fontSize: 12, color: brand.body }}>Hold to delete</Text>
-                </Pressable>
-              ))}
+                    </Pressable>
+                  </Pressable>
+                );
+              })}
             </View>
           )}
         </View>
@@ -294,9 +312,10 @@ export default function CalendarScreen() {
               />
             </View>
 
-            <View style={{ backgroundColor: brand.lightBg, borderRadius: 12, padding: 12 }}>
-              <Text style={{ fontSize: 12, color: brand.body }}>
-                💡 You can also say "My SCAI, add a custody day on Friday" to create events hands-free.
+            <View style={{ backgroundColor: brand.lightBg, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+              <Ionicons name="hardware-chip-outline" size={14} color={brand.blue} style={{ marginTop: 1 }} />
+              <Text style={{ fontSize: 12, color: brand.body, flex: 1 }}>
+                Say "My SCAI, add a custody day on Friday" to create events hands-free.
               </Text>
             </View>
           </ScrollView>

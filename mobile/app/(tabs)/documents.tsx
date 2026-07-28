@@ -35,14 +35,8 @@ export default function DocumentsScreen() {
       style={{ flex: 1, backgroundColor: brand.lightBg }}
       contentContainerStyle={{ paddingBottom: 40 }}
     >
-      <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-          <View style={{ width: 36, height: 36, backgroundColor: brand.blue, borderRadius: 10, alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800' }}>SC</Text>
-          </View>
-          <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 18 }}>SupportCard</Text>
-        </View>
-        <Text style={{ fontSize: 28, fontWeight: '800', color: brand.dark, marginTop: 12, marginBottom: 20 }}>Documents</Text>
+      <View style={{ paddingTop: insets.top + 20, paddingHorizontal: 20 }}>
+        <Text style={{ fontSize: 30, fontWeight: '800', color: brand.dark, marginBottom: 20 }}>Documents</Text>
 
         {/* Filter pills */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, marginHorizontal: -4 }}>

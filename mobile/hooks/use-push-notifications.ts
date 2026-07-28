@@ -16,8 +16,8 @@ Notifications.setNotificationHandler({
 });
 
 async function registerForPushNotifications(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
   if (!Device.isDevice) {
-    // Simulators can't receive push notifications
     return null;
   }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { router, Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
   View,
   Text,
@@ -155,7 +156,7 @@ function CourtOrderCard({ order }: { order: CourtOrder }) {
             flexShrink: 0,
           }}
         >
-          <Text style={{ fontSize: 18 }}>📋</Text>
+          <Ionicons name="document-text-outline" size={18} color="#fff" />
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={{ fontWeight: '600', fontSize: 15, color: brand.dark }}>
@@ -188,7 +189,7 @@ function CourtOrderCard({ order }: { order: CourtOrder }) {
 }
 
 interface QuickActionProps {
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
   label: string;
   note?: string;
   onPress: () => void;
@@ -210,7 +211,7 @@ function QuickActionButton({ icon, label, note, onPress }: QuickActionProps) {
         borderCurve: 'continuous',
       })}
     >
-      <Text style={{ fontSize: 24 }}>{icon}</Text>
+      <Ionicons name={icon} size={24} color={brand.blue} />
       <Text style={{ fontWeight: '600', fontSize: 13, color: brand.dark, textAlign: 'center' }}>
         {label}
       </Text>
@@ -358,7 +359,7 @@ export default function ComplianceScreen() {
                     boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                   }}
                 >
-                  <Text style={{ fontSize: 32 }}>📋</Text>
+                  <Ionicons name="document-text-outline" size={32} color={brand.body} />
                   <Text style={{ fontWeight: '600', fontSize: 15, color: brand.dark }}>No court orders yet</Text>
                   <Text style={{ color: brand.body, fontSize: 13, textAlign: 'center' }}>
                     Log your parenting plan and maintenance orders to track compliance
@@ -396,7 +397,7 @@ export default function ComplianceScreen() {
                     borderCurve: 'continuous',
                   }}
                 >
-                  <Text style={{ fontSize: 36 }}>📊</Text>
+                  <Ionicons name="bar-chart-outline" size={36} color={brand.body} />
                   <Text style={{ fontWeight: '600', fontSize: 15, color: brand.dark }}>
                     No compliance events logged
                   </Text>
@@ -435,7 +436,7 @@ export default function ComplianceScreen() {
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ fontSize: 16 }}>✅</Text>
+                        <Ionicons name="checkmark-circle" size={16} color="#22C55E" />
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={{ fontWeight: '600', fontSize: 14, color: brand.dark }}>
@@ -468,18 +469,18 @@ export default function ComplianceScreen() {
               </Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <QuickActionButton
-                  icon="📄"
+                  icon="document-outline"
                   label="Export Report"
                   note="PDF on Premium"
-                  onPress={() => router.push('/my-scai')}
+                  onPress={() => router.push('/monthly-report')}
                 />
                 <QuickActionButton
-                  icon="📝"
+                  icon="create-outline"
                   label="Log Event"
                   onPress={() => setShowLogModal(true)}
                 />
                 <QuickActionButton
-                  icon="📅"
+                  icon="calendar-outline"
                   label="View Calendar"
                   onPress={() => router.push('/(tabs)/calendar' as any)}
                 />

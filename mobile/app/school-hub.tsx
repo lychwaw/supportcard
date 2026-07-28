@@ -12,6 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
@@ -328,7 +329,7 @@ function UploadReportModal({
 
           <View style={{ backgroundColor: brand.lightBg, borderRadius: 12, padding: 14 }}>
             <Text style={{ fontSize: 13, color: brand.body, lineHeight: 18 }}>
-              📎 Document file upload support coming soon. This will log the report card record — attach a file in the next update.
+              Document file upload support coming soon. This will log the report card record — attach a file in the next update.
             </Text>
           </View>
         </ScrollView>
@@ -645,7 +646,7 @@ export default function SchoolHubScreen() {
               boxShadow: '0 2px 12px rgba(43,116,214,0.07)',
             }}
           >
-            <Text style={{ fontSize: 40 }}>📊</Text>
+            <Ionicons name="bar-chart-outline" size={40} color={brand.body} />
             <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark }}>No report cards yet</Text>
             <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>
               Upload term report cards to keep track of school progress
@@ -689,7 +690,7 @@ export default function SchoolHubScreen() {
                   marginRight: 14,
                 }}
               >
-                <Text style={{ fontSize: 24 }}>📊</Text>
+                <Ionicons name="bar-chart-outline" size={24} color={brand.blue} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>{report.file_name}</Text>
@@ -756,7 +757,7 @@ export default function SchoolHubScreen() {
               boxShadow: '0 2px 12px rgba(43,116,214,0.07)',
             }}
           >
-            <Text style={{ fontSize: 40 }}>🏫</Text>
+            <Ionicons name="school-outline" size={40} color={brand.body} />
             <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark }}>No school events yet</Text>
             <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>
               School events are logged via the Calendar — tap below to add one
@@ -787,7 +788,7 @@ export default function SchoolHubScreen() {
                   marginRight: 14,
                 }}
               >
-                <Text style={{ fontSize: 24 }}>🏫</Text>
+                <Ionicons name="school-outline" size={24} color={brand.blue} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>
@@ -853,7 +854,7 @@ export default function SchoolHubScreen() {
               boxShadow: '0 2px 12px rgba(43,116,214,0.07)',
             }}
           >
-            <Text style={{ fontSize: 40 }}>📬</Text>
+            <Ionicons name="mail-outline" size={40} color={brand.body} />
             <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark }}>No notices logged</Text>
             <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>
               Add any important school communications here

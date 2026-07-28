@@ -10,10 +10,11 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
-  Clipboard,
+  Share,
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 
@@ -90,7 +91,7 @@ function ChildSelector({
 
 // ─── Profile Row ───────────────────────────────────────────────────────────────
 
-function ProfileRow({ emoji, label, value }: { emoji: string; label: string; value: string | null | undefined }) {
+function ProfileRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string | null | undefined }) {
   if (!value) return null;
   return (
     <View
@@ -103,7 +104,7 @@ function ProfileRow({ emoji, label, value }: { emoji: string; label: string; val
         gap: 12,
       }}
     >
-      <Text style={{ fontSize: 18, width: 28 }}>{emoji}</Text>
+      <Ionicons name={icon} size={18} color={brand.blue} style={{ width: 28 }} />
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 12, fontWeight: '600', color: brand.body, marginBottom: 2 }}>{label.toUpperCase()}</Text>
         <Text style={{ fontSize: 15, color: brand.dark, lineHeight: 20 }} selectable>{value}</Text>
@@ -330,7 +331,7 @@ function EditProfileModal({
         >
           {/* Medical Aid */}
           <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>🏥 Medical Aid</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Medical Aid</Text>
             <View style={{ gap: 10 }}>
               <View style={{ gap: 6 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>Scheme Name</Text>
@@ -357,7 +358,7 @@ function EditProfileModal({
 
           {/* Blood Type */}
           <View style={{ gap: 10 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>🩸 Blood Type</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Blood Type</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {BLOOD_TYPES.map((bt) => (
                 <Pressable
@@ -401,7 +402,7 @@ function EditProfileModal({
 
           {/* Doctor */}
           <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>🏥 Doctor</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Doctor</Text>
             <View style={{ gap: 10 }}>
               <View style={{ gap: 6 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>Doctor Name</Text>
@@ -429,7 +430,7 @@ function EditProfileModal({
 
           {/* Dentist */}
           <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>🦷 Dentist</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Dentist</Text>
             <View style={{ gap: 10 }}>
               <View style={{ gap: 6 }}>
                 <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>Dentist Name</Text>
@@ -457,7 +458,7 @@ function EditProfileModal({
 
           {/* Medical Notes */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>📋 Medical Notes</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.dark }}>Medical Notes</Text>
             <TextInput
               style={{
                 backgroundColor: brand.card,
@@ -580,14 +581,14 @@ function ProfileCard({
       {/* Medical Aid */}
       {(profile.medical_aid_scheme || profile.medical_aid_number) && (
         <ProfileRow
-          emoji="🏥"
+          icon="medkit-outline"
           label="Medical Aid"
           value={[profile.medical_aid_scheme, profile.medical_aid_number].filter(Boolean).join(' · ')}
         />
       )}
 
       {/* Blood Type */}
-      <ProfileRow emoji="🩸" label="Blood Type" value={profile.blood_type} />
+      <ProfileRow icon="water-outline" label="Blood Type" value={profile.blood_type} />
 
       {/* Allergies */}
       {profile.allergies && profile.allergies.length > 0 && (
@@ -600,7 +601,7 @@ function ProfileCard({
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={{ fontSize: 18, width: 28 }}>⚠️</Text>
+            <Ionicons name="warning-outline" size={18} color="#F59E0B" style={{ width: 28 }} />
             <Text style={{ fontSize: 12, fontWeight: '600', color: brand.body }}>ALLERGIES</Text>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingLeft: 38 }}>
@@ -622,7 +623,7 @@ function ProfileCard({
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-            <Text style={{ fontSize: 18, width: 28 }}>💊</Text>
+            <Ionicons name="medical-outline" size={18} color={brand.blue} style={{ width: 28 }} />
             <Text style={{ fontSize: 12, fontWeight: '600', color: brand.body }}>MEDICATIONS</Text>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingLeft: 38 }}>
@@ -636,7 +637,7 @@ function ProfileCard({
       {/* Doctor */}
       {(profile.doctor_name || profile.doctor_phone) && (
         <ProfileRow
-          emoji="🏥"
+          icon="medkit-outline"
           label="Doctor"
           value={[profile.doctor_name, profile.doctor_phone].filter(Boolean).join(' · ')}
         />
@@ -645,14 +646,14 @@ function ProfileCard({
       {/* Dentist */}
       {(profile.dentist_name || profile.dentist_phone) && (
         <ProfileRow
-          emoji="🦷"
+          icon="medical-outline"
           label="Dentist"
           value={[profile.dentist_name, profile.dentist_phone].filter(Boolean).join(' · ')}
         />
       )}
 
       {/* Medical Notes */}
-      <ProfileRow emoji="📋" label="Medical Notes" value={profile.medical_notes} />
+      <ProfileRow icon="document-text-outline" label="Medical Notes" value={profile.medical_notes} />
 
       {/* Emergency Notes */}
       {profile.emergency_notes && (
@@ -740,11 +741,7 @@ export default function EmergencyChildProfileScreen() {
       profile.emergency_notes ? `Emergency Action: ${profile.emergency_notes}` : '',
     ].filter(Boolean).join('\n');
 
-    Clipboard.setString(lines);
-    Alert.alert(
-      'Copied to clipboard',
-      'Share this with the school, day care, or activity organiser. Keep this information current.',
-    );
+    Share.share({ message: lines });
   }, [profile, selectedChildName]);
 
   return (
@@ -785,7 +782,7 @@ export default function EmergencyChildProfileScreen() {
             <ActivityIndicator color={brand.blue} style={{ marginTop: 60 }} />
           ) : !selectedChild ? (
             <View style={{ alignItems: 'center', padding: 40, gap: 12 }}>
-              <Text style={{ fontSize: 40 }}>👶</Text>
+              <Ionicons name="person-outline" size={40} color={brand.body} />
               <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark }}>Select a child</Text>
               <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>
                 Choose a child above to view or create their emergency profile

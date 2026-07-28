@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 
@@ -35,11 +36,11 @@ const DOT_COLORS: Record<TimelineItemKind, string> = {
   document: '#8B5CF6',
 };
 
-const EMOJIS: Record<TimelineItemKind, string> = {
-  expense:  '💸',
-  event:    '📅',
-  checkin:  '📍',
-  document: '📄',
+const KIND_ICON: Record<TimelineItemKind, keyof typeof Ionicons.glyphMap> = {
+  expense:  'cash-outline',
+  event:    'calendar-outline',
+  checkin:  'location-outline',
+  document: 'document-outline',
 };
 
 const KIND_LABELS: Record<TimelineItemKind, string> = {
@@ -259,7 +260,7 @@ export default function ChildTimelineScreen() {
         ) : timeline.length === 0 ? (
           /* Empty state */
           <View style={{ alignItems: 'center', paddingTop: 80 }}>
-            <Text style={{ fontSize: 40, marginBottom: 16 }}>📅</Text>
+            <Ionicons name="calendar-outline" size={48} color={brand.body} style={{ marginBottom: 16 }} />
             <Text style={{ fontSize: 20, fontWeight: '700', color: brand.dark, marginBottom: 8, textAlign: 'center' }}>
               {selectedChild ? selectedChild.name : 'All Children'}
             </Text>
@@ -369,7 +370,7 @@ function TimelineCard({ item, isLast }: { item: TimelineItem; isLast: boolean })
                 flex: 1,
               }}
             >
-              {EMOJIS[item.kind]} {KIND_LABELS[item.kind]}
+              <Ionicons name={KIND_ICON[item.kind]} size={11} color={DOT_COLORS[item.kind]} /> {KIND_LABELS[item.kind]}
             </Text>
             {item.createdVia === 'scai' && (
               <View
@@ -381,7 +382,7 @@ function TimelineCard({ item, isLast }: { item: TimelineItem; isLast: boolean })
                   marginRight: 6,
                 }}
               >
-                <Text style={{ fontSize: 11 }}>🤖</Text>
+                <Ionicons name="hardware-chip-outline" size={11} color={brand.blue} />
               </View>
             )}
             <Text style={{ fontSize: 12, color: brand.body }}>{formatTime(item.createdAt)}</Text>

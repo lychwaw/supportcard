@@ -10,6 +10,8 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
+  Linking,
+  ActivityIndicator,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -212,6 +214,8 @@ export default function SettingsScreen() {
   });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [wiping, setWiping] = useState(false);
+  const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const { currency, setCurrency } = useCurrency();
 
@@ -278,6 +282,23 @@ export default function SettingsScreen() {
     );
   }
 
+  async function doWipe() {
+    setShowWipeConfirm(false);
+    setWiping(true);
+    try {
+      const { error } = await supabase.rpc('wipe_my_history' as any);
+      if (error) {
+        Alert.alert('Error', error.message);
+      } else {
+        Alert.alert('Done', 'Your family history has been wiped.');
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Something went wrong.');
+    } finally {
+      setWiping(false);
+    }
+  }
+
   function handleDeleteAccount() {
     Alert.alert(
       'Delete Account',
@@ -302,7 +323,17 @@ export default function SettingsScreen() {
       <Stack.Screen
         options={{
           title: 'Settings',
-          headerBackTitle: 'Back',
+          headerTintColor: brand.blue,
+          headerStyle: { backgroundColor: brand.card },
+          headerLeft: () => (
+            <Pressable
+              onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')}
+              hitSlop={12}
+              style={{ paddingLeft: 4, paddingRight: 8 }}
+            >
+              <Ionicons name="chevron-back" size={26} color={brand.blue} />
+            </Pressable>
+          ),
         }}
       />
       <ScrollView
@@ -482,17 +513,37 @@ export default function SettingsScreen() {
           <SettingsRow
             label="Privacy Policy"
             showChevron
-            onPress={() => Alert.alert('Privacy Policy', 'Opening privacy policy…')}
+            onPress={() => Linking.openURL('https://supportcard.co.za/privacy')}
           />
           <SettingsRow
             label="Terms of Service"
             showChevron
-            onPress={() => Alert.alert('Terms of Service', 'Opening terms of service…')}
+            onPress={() => Linking.openURL('https://supportcard.co.za/terms')}
           />
           <SettingsRow
             label="Delete Account"
             destructive
             onPress={handleDeleteAccount}
+            isLast
+          />
+        </SectionCard>
+
+        <View style={{ height: 20 }} />
+
+        <View style={{ height: 20 }} />
+
+        {/* Danger zone */}
+        <SectionLabel title="Danger Zone" />
+        <SectionCard>
+          <SettingsRow
+            label={wiping ? 'Wiping…' : 'Wipe family history'}
+            destructive={!wiping}
+            rightElement={
+              wiping
+                ? <ActivityIndicator size="small" color={brand.error} />
+                : <Ionicons name="chevron-forward" size={16} color={brand.body} style={{ opacity: 0.5 }} />
+            }
+            onPress={wiping ? undefined : () => setShowWipeConfirm(true)}
             isLast
           />
         </SectionCard>
@@ -505,12 +556,12 @@ export default function SettingsScreen() {
           <SettingsRow
             label="Help Center"
             showChevron
-            onPress={() => Alert.alert('Help Center', 'Opening help center…')}
+            onPress={() => Linking.openURL('https://supportcard.co.za/help')}
           />
           <SettingsRow
             label="Contact Support"
             showChevron
-            onPress={() => Alert.alert('Contact Support', 'Opening support chat…')}
+            onPress={() => Linking.openURL('mailto:support@supportcard.co.za')}
           />
           <SettingsRow
             label="App Version"
@@ -521,6 +572,39 @@ export default function SettingsScreen() {
           />
         </SectionCard>
       </ScrollView>
+
+      {/* Wipe confirm modal */}
+      <Modal visible={showWipeConfirm} transparent animationType="fade" onRequestClose={() => setShowWipeConfirm(false)}>
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', padding: 32 }}
+          onPress={() => setShowWipeConfirm(false)}
+        >
+          <Pressable
+            onPress={e => e.stopPropagation?.()}
+            style={{ backgroundColor: brand.card, borderRadius: 20, padding: 24, width: '100%', maxWidth: 360, gap: 16 }}
+          >
+            <Text style={{ fontSize: 18, fontWeight: '700', color: brand.dark, textAlign: 'center' }}>Wipe family history?</Text>
+            <Text style={{ fontSize: 14, color: brand.body, lineHeight: 21, textAlign: 'center' }}>
+              This permanently deletes all your expenses, custody check-ins, zones, and calendar events.{'\n\n'}Your children and co-parent link are kept. This cannot be undone.
+            </Text>
+            <Pressable
+              onPress={doWipe}
+              style={({ pressed }) => ({
+                backgroundColor: brand.error, borderRadius: 12, paddingVertical: 14,
+                alignItems: 'center', opacity: pressed ? 0.8 : 1,
+              })}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Wipe History</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => setShowWipeConfirm(false)}
+              style={({ pressed }) => ({ alignItems: 'center', paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}
+            >
+              <Text style={{ color: brand.body, fontSize: 15 }}>Cancel</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <EditProfileModal
         visible={showEditProfile}

@@ -7,10 +7,22 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
+
+async function handleOAuth(provider: 'google' | 'apple', setError: (e: string) => void) {
+  const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo },
+  });
+  if (error) setError(error.message);
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,14 +45,29 @@ export default function LoginScreen() {
       password,
     });
     setLoading(false);
-    if (authError) {
-      setError(authError.message);
+    if (authError) setError(authError.message);
+  }
+
+  async function handleForgotPassword() {
+    const addr = email.trim();
+    if (!addr) {
+      Alert.alert('Reset password', 'Enter your email address above, then tap Forgot password.');
+      return;
+    }
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(addr, {
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
+    });
+    if (resetError) {
+      Alert.alert('Error', resetError.message);
+    } else {
+      Alert.alert('Check your email', `A password reset link has been sent to ${addr}.`);
     }
   }
 
   return (
+    <LinearGradient colors={['#CEDFFF', '#FFFFFF']} locations={[0, 0.55]} style={{ flex: 1 }}>
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: brand.lightBg }}
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
@@ -53,67 +80,60 @@ export default function LoginScreen() {
           paddingBottom: 48,
         }}
       >
-        {/* Logo + App name */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 32 }}>
-          <View
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
-              backgroundColor: brand.blue,
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(43,116,214,0.30)',
-            }}
-          >
-            <Text style={{ fontSize: 13, fontWeight: '800', color: '#FFFFFF' }}>SC</Text>
+        {/* Logo */}
+        <View style={{ alignItems: 'center', marginBottom: 40 }}>
+          <View style={{ width: 76, height: 76, borderRadius: 24, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 28px rgba(43,116,214,0.32)', borderCurve: 'continuous' }}>
+            <Ionicons name="people" size={38} color="#fff" />
           </View>
-          <Text
-            style={{
-              fontSize: 22,
-              fontWeight: '700',
-              color: brand.blue,
-              letterSpacing: -0.3,
-            }}
-          >
-            SupportCard
-          </Text>
         </View>
 
-        {/* Title + subtitle */}
-        <Text
-          style={{
-            fontSize: 28,
-            fontWeight: '700',
-            color: brand.dark,
-            letterSpacing: -0.5,
-            marginBottom: 6,
-          }}
-        >
+        <Text style={{ fontSize: 28, fontWeight: '700', color: brand.dark, letterSpacing: -0.5, marginBottom: 6 }}>
           Welcome back
         </Text>
-        <Text
-          style={{
-            fontSize: 15,
-            color: brand.body,
-            marginBottom: 40,
-            lineHeight: 22,
-          }}
-        >
+        <Text style={{ fontSize: 15, color: brand.body, marginBottom: 32, lineHeight: 22 }}>
           Sign in to continue
         </Text>
 
+        {/* Social auth buttons */}
+        <View style={{ gap: 12, marginBottom: 24 }}>
+          <Pressable
+            onPress={() => handleOAuth('google', setError)}
+            style={({ pressed }) => ({
+              height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: brand.separator,
+              backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center',
+              justifyContent: 'center', gap: 10, opacity: pressed ? 0.7 : 1,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderCurve: 'continuous',
+            })}
+          >
+            {/* Google 'G' logo using coloured text — no external assets */}
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#4285F4', fontFamily: Platform.OS === 'ios' ? 'Helvetica Neue' : undefined }}>G</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>Continue with Google</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => handleOAuth('apple', setError)}
+            style={({ pressed }) => ({
+              height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: brand.separator,
+              backgroundColor: '#000000', flexDirection: 'row', alignItems: 'center',
+              justifyContent: 'center', gap: 10, opacity: pressed ? 0.7 : 1,
+              boxShadow: '0 1px 4px rgba(0,0,0,0.10)', borderCurve: 'continuous',
+            })}
+          >
+            <Text style={{ fontSize: 20, color: '#FFFFFF' }}></Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF' }}>Continue with Apple</Text>
+          </Pressable>
+        </View>
+
+        {/* Divider */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <View style={{ flex: 1, height: 1, backgroundColor: brand.separator }} />
+          <Text style={{ fontSize: 12, color: brand.body, fontWeight: '500' }}>or sign in with email</Text>
+          <View style={{ flex: 1, height: 1, backgroundColor: brand.separator }} />
+        </View>
+
         {/* Email field */}
         <View style={{ marginBottom: 20 }}>
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '600',
-              color: brand.dark,
-              marginBottom: 8,
-              letterSpacing: 0.1,
-            }}
-          >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: brand.dark, marginBottom: 8, letterSpacing: 0.1 }}>
             Email address
           </Text>
           <TextInput
@@ -127,30 +147,17 @@ export default function LoginScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             style={{
-              height: 52,
-              borderRadius: 12,
-              borderWidth: 1.5,
+              height: 52, borderRadius: 12, borderWidth: 1.5,
               borderColor: emailFocused ? brand.blue : brand.separator,
-              backgroundColor: '#FFFFFF',
-              paddingHorizontal: 16,
-              fontSize: 15,
-              color: brand.dark,
-              borderCurve: 'continuous',
+              backgroundColor: '#FFFFFF', paddingHorizontal: 16,
+              fontSize: 15, color: brand.dark, borderCurve: 'continuous',
             }}
           />
         </View>
 
         {/* Password field */}
         <View style={{ marginBottom: 10 }}>
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '600',
-              color: brand.dark,
-              marginBottom: 8,
-              letterSpacing: 0.1,
-            }}
-          >
+          <Text style={{ fontSize: 13, fontWeight: '600', color: brand.dark, marginBottom: 8, letterSpacing: 0.1 }}>
             Password
           </Text>
           <View style={{ position: 'relative' }}>
@@ -165,51 +172,25 @@ export default function LoginScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               style={{
-                height: 52,
-                borderRadius: 12,
-                borderWidth: 1.5,
+                height: 52, borderRadius: 12, borderWidth: 1.5,
                 borderColor: passwordFocused ? brand.blue : brand.separator,
-                backgroundColor: '#FFFFFF',
-                paddingHorizontal: 16,
-                paddingRight: 52,
-                fontSize: 15,
-                color: brand.dark,
-                borderCurve: 'continuous',
+                backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingRight: 52,
+                fontSize: 15, color: brand.dark, borderCurve: 'continuous',
               }}
             />
             <Pressable
-              onPress={() => setShowPassword((v) => !v)}
-              style={{
-                position: 'absolute',
-                right: 14,
-                top: 0,
-                bottom: 0,
-                justifyContent: 'center',
-                paddingHorizontal: 4,
-              }}
+              onPress={() => setShowPassword(v => !v)}
+              style={{ position: 'absolute', right: 14, top: 0, bottom: 0, justifyContent: 'center', paddingHorizontal: 4 }}
               hitSlop={8}
             >
-              <Text style={{ fontSize: 18, color: brand.body }}>
-                {showPassword ? '🙈' : '👁️'}
-              </Text>
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={brand.body} />
             </Pressable>
           </View>
         </View>
 
         {/* Forgot password */}
-        <Pressable
-          style={{ alignSelf: 'flex-end', marginBottom: 32 }}
-          hitSlop={8}
-        >
-          <Text
-            style={{
-              fontSize: 13,
-              fontWeight: '600',
-              color: brand.blue,
-            }}
-          >
-            Forgot password?
-          </Text>
+        <Pressable onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginBottom: 32 }} hitSlop={8}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: brand.blue }}>Forgot password?</Text>
         </Pressable>
 
         {/* Sign in button */}
@@ -217,63 +198,32 @@ export default function LoginScreen() {
           onPress={handleSignIn}
           disabled={loading}
           style={({ pressed }) => ({
-            height: 56,
-            borderRadius: 14,
-            backgroundColor: brand.blue,
-            alignItems: 'center',
-            justifyContent: 'center',
+            height: 56, borderRadius: 14, backgroundColor: brand.blue,
+            alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 4px 12px rgba(43,116,214,0.30)',
-            opacity: pressed || loading ? 0.80 : 1,
-            borderCurve: 'continuous',
+            opacity: pressed || loading ? 0.80 : 1, borderCurve: 'continuous',
           })}
         >
-          <Text
-            style={{
-              fontSize: 16,
-              fontWeight: '700',
-              color: '#FFFFFF',
-              letterSpacing: 0.2,
-            }}
-          >
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#FFFFFF', letterSpacing: 0.2 }}>
             {loading ? 'Signing in…' : 'Sign in'}
           </Text>
         </Pressable>
 
-        {/* Error message */}
         {!!error && (
-          <Text
-            selectable
-            style={{
-              marginTop: 12,
-              fontSize: 13,
-              color: brand.error,
-              textAlign: 'center',
-              lineHeight: 18,
-            }}
-          >
+          <Text selectable style={{ marginTop: 12, fontSize: 13, color: brand.error, textAlign: 'center', lineHeight: 18 }}>
             {error}
           </Text>
         )}
 
         {/* Sign up link */}
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginTop: 32,
-          }}
-        >
-          <Text style={{ fontSize: 14, color: brand.body }}>
-            {"Don't have an account? "}
-          </Text>
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 32 }}>
+          <Text style={{ fontSize: 14, color: brand.body }}>{"Don't have an account? "}</Text>
           <Pressable onPress={() => router.push('/(auth)/signup')} hitSlop={8}>
-            <Text style={{ fontSize: 14, fontWeight: '700', color: brand.blue }}>
-              Sign up
-            </Text>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: brand.blue }}>Sign up</Text>
           </Pressable>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }

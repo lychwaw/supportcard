@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { Stack } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
@@ -284,7 +285,7 @@ export default function MonthlyReportScreen() {
               borderCurve: 'continuous',
             })}
           >
-            <Text style={{ fontSize: 22 }}>📊</Text>
+            <Ionicons name="bar-chart-outline" size={22} color="#fff" />
             <Text style={{ color: '#fff', fontWeight: '800', fontSize: 17 }}>
               {isGenerating ? 'Generating…' : `Generate ${selectedOption.label} Report`}
             </Text>
@@ -316,7 +317,7 @@ export default function MonthlyReportScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 40 }}>🤖</Text>
+                <Ionicons name="hardware-chip-outline" size={40} color={brand.blue} />
               </View>
               <ActivityIndicator color={brand.blue} size="large" />
               <Text style={{ fontSize: 16, fontWeight: '700', color: brand.dark }}>
@@ -344,7 +345,7 @@ export default function MonthlyReportScreen() {
             >
               {/* Header */}
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <Text style={{ fontSize: 22 }}>📊</Text>
+                <Ionicons name="bar-chart-outline" size={22} color={brand.blue} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 18, fontWeight: '800', color: brand.dark }}>
                     Monthly Summary
@@ -447,7 +448,7 @@ export default function MonthlyReportScreen() {
                 borderCurve: 'continuous',
               }}
             >
-              <Text style={{ fontSize: 48 }}>📅</Text>
+              <Ionicons name="calendar-outline" size={48} color={brand.body} />
               <Text
                 style={{
                   fontSize: 17,
@@ -481,10 +482,10 @@ export default function MonthlyReportScreen() {
                   Reports cover:
                 </Text>
                 {[
-                  '💰  Expense requests and totals',
-                  '📅  Calendar events logged',
-                  '📋  Custody check-ins',
-                  '💡  Suggestions for next month',
+                  'Expense requests and totals',
+                  'Calendar events logged',
+                  'Custody check-ins',
+                  'Suggestions for next month',
                 ].map((line) => (
                   <Text key={line} style={{ fontSize: 13, color: brand.dark, lineHeight: 18 }}>
                     {line}
@@ -505,7 +506,7 @@ export default function MonthlyReportScreen() {
               gap: 10,
             }}
           >
-            <Text style={{ fontSize: 16 }}>🔒</Text>
+            <Ionicons name="lock-closed-outline" size={16} color={brand.body} />
             <Text style={{ fontSize: 12, color: brand.body, flex: 1, lineHeight: 17 }}>
               Reports use anonymised counts and totals only — no personal names, messages, or notes are sent to the AI.
             </Text>
