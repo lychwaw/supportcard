@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, Modal, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { brand } from '@/theme/colors';
+import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
 import { router } from 'expo-router';
@@ -75,6 +75,10 @@ export default function CalendarScreen() {
 
   const saveEvent = async () => {
     if (!addDate) return;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(addDate)) {
+      Alert.alert('Invalid date', 'Please use the format YYYY-MM-DD (e.g. 2026-09-15).');
+      return;
+    }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
@@ -116,7 +120,8 @@ export default function CalendarScreen() {
     Alert.alert('Delete Event', 'Remove this event?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        await supabase.from('calendar_events' as any).delete().eq('id', eventId);
+        const { error } = await supabase.from('calendar_events' as any).delete().eq('id', eventId);
+        if (error) { Alert.alert('Error', error.message); return; }
         loadEvents();
       }},
     ]);
@@ -127,33 +132,33 @@ export default function CalendarScreen() {
   const cells = Array.from({ length: firstDay + daysInMonth }, (_, i) => i < firstDay ? null : i - firstDay + 1);
 
   return (
-    <View style={{ flex: 1, backgroundColor: brand.lightBg }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ paddingBottom: 40 }}>
         <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 20 }}>
           {/* Header — hamburger | Calendar (center) | filter */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
             <Pressable onPress={() => router.push('/(tabs)/more')} hitSlop={10} style={{ padding: 4 }}>
-              <Ionicons name="menu-outline" size={26} color={brand.dark} />
+              <Ionicons name="menu-outline" size={26} color={colors.label} />
             </Pressable>
-            <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: brand.dark }}>Calendar</Text>
+            <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: colors.label }}>Calendar</Text>
             {permissions.canManageCalendar ? (
               <Pressable onPress={openAdd} hitSlop={10} style={{ padding: 4 }}>
                 <Ionicons name="options-outline" size={22} color={brand.blue} />
               </Pressable>
             ) : (
               <Pressable onPress={() => router.push('/pricing')} hitSlop={10} style={{ padding: 4 }}>
-                <Ionicons name="options-outline" size={22} color={brand.body} />
+                <Ionicons name="options-outline" size={22} color={colors.secondaryLabel} />
               </Pressable>
             )}
           </View>
 
           {/* Calendar card */}
-          <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 20, boxShadow: '0 2px 12px rgba(43,116,214,0.08)' }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 20, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <Pressable onPress={prevMonth} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="chevron-back" size={20} color={brand.blue} />
               </Pressable>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>{MONTHS[month]} {year}</Text>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{MONTHS[month]} {year}</Text>
               <Pressable onPress={nextMonth} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="chevron-forward" size={20} color={brand.blue} />
               </Pressable>
@@ -162,7 +167,7 @@ export default function CalendarScreen() {
             <View style={{ flexDirection: 'row', marginBottom: 8 }}>
               {DAYS.map(d => (
                 <View key={d} style={{ flex: 1, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: brand.body }}>{d}</Text>
+                  <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>{d}</Text>
                 </View>
               ))}
             </View>
@@ -178,9 +183,9 @@ export default function CalendarScreen() {
                   <Pressable key={day} onPress={() => setSelected(day)}
                     style={{ width: `${100/7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}>
                     <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
-                      backgroundColor: isSel ? brand.blue : isToday ? brand.lightBg : 'transparent' }}>
+                      backgroundColor: isSel ? brand.blue : isToday ? brand.blue + '14' : 'transparent' }}>
                       <Text style={{ fontSize: 15, fontWeight: isToday || isSel ? '700' : '400',
-                        color: isSel ? '#fff' : isToday ? brand.blue : brand.dark }}>{day}</Text>
+                        color: isSel ? '#fff' : isToday ? brand.blue : colors.label }}>{day}</Text>
                     </View>
                     {hasEvent && <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: isSel ? '#fff' : brand.blue, marginTop: 2 }} />}
                   </Pressable>
@@ -192,8 +197,8 @@ export default function CalendarScreen() {
           {/* Selected day header */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 24, marginBottom: 4 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: brand.blue, marginRight: 8 }} />
-            <Text style={{ fontSize: 14, fontWeight: '700', color: brand.dark, flex: 1 }}>
-              Today • {selected} {SHORT_MONTHS[month]}
+            <Text style={{ fontSize: 14, fontWeight: '700', color: colors.label, flex: 1 }}>
+              {selectedISO === toISO(today.getFullYear(), today.getMonth(), today.getDate()) ? 'Today' : new Date(selectedISO + 'T00:00:00').toLocaleDateString('en-ZA', { weekday: 'long' })} • {selected} {SHORT_MONTHS[month]}
             </Text>
             {permissions.canManageCalendar && (
               <Pressable onPress={openAdd} hitSlop={12}>
@@ -203,11 +208,11 @@ export default function CalendarScreen() {
           </View>
 
           {loading ? <ActivityIndicator color={brand.blue} style={{ marginTop: 24 }} /> : selectedEvents.length === 0 ? (
-            <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 32, alignItems: 'center', marginTop: 12, boxShadow: '0 1px 8px rgba(43,116,214,0.06)' }}>
-              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                <Ionicons name="calendar-outline" size={24} color={brand.body} />
+            <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 32, alignItems: 'center', marginTop: 12, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
+              <View style={{ width: 48, height: 48, borderRadius: 13, backgroundColor: brand.blue + '18', alignItems: 'center', justifyContent: 'center', marginBottom: 8, borderCurve: 'continuous' }}>
+                <Ionicons name="calendar-outline" size={24} color={brand.blue} />
               </View>
-              <Text style={{ color: brand.body, fontSize: 15 }}>No events on this day</Text>
+              <Text style={{ color: colors.secondaryLabel, fontSize: 15 }}>No events on this day</Text>
               {permissions.canManageCalendar && (
                 <Pressable onPress={openAdd} style={{ marginTop: 12 }}>
                   <Text style={{ color: brand.blue, fontSize: 14, fontWeight: '600' }}>+ Add an event</Text>
@@ -222,14 +227,16 @@ export default function CalendarScreen() {
                 return (
                   <Pressable key={event.id} onLongPress={() => deleteEvent(event.id)}
                     style={({ pressed }) => ({
-                      backgroundColor: brand.card,
+                      backgroundColor: colors.surface,
                       borderRadius: 14,
                       marginBottom: 10,
                       flexDirection: 'row',
                       alignItems: 'center',
                       overflow: 'hidden',
-                      boxShadow: '0 1px 6px rgba(43,116,214,0.07)',
-                      opacity: pressed ? 0.85 : 1,
+                      borderWidth: 0.5,
+                      borderColor: colors.separator,
+                      borderCurve: 'continuous',
+                      transform: [{ scale: pressed ? 0.97 : 1 }],
                     })}>
                     {/* Left color bar */}
                     <View style={{ width: 4, alignSelf: 'stretch', backgroundColor: barColor }} />
@@ -239,21 +246,21 @@ export default function CalendarScreen() {
                     </View>
                     {/* Content */}
                     <View style={{ flex: 1, paddingVertical: 14 }}>
-                      <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>{event.event_type || 'Event'}</Text>
-                      {event.notes && <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }}>{event.notes}</Text>}
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: colors.label }}>{event.event_type || 'Event'}</Text>
+                      {event.notes && <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>{event.notes}</Text>}
                       {event.created_via === 'scai' && (
                         <View style={{ flexDirection: 'row', marginTop: 4 }}>
-                          <View style={{ backgroundColor: brand.lightBg, borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <View style={{ backgroundColor: brand.blue + '12', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Ionicons name="hardware-chip-outline" size={10} color={brand.blue} />
                             <Text style={{ fontSize: 11, color: brand.blue }}>My SCAI</Text>
                           </View>
                         </View>
                       )}
                     </View>
-                    {/* Checkmark */}
+                    {/* Delete */}
                     <Pressable onPress={() => deleteEvent(event.id)} hitSlop={8} style={{ padding: 14 }}>
-                      <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
-                        <Ionicons name="checkmark" size={14} color={brand.blue} />
+                      <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: brand.error + '60', alignItems: 'center', justifyContent: 'center', backgroundColor: brand.error + '08' }}>
+                        <Ionicons name="trash-outline" size={13} color={brand.error} />
                       </View>
                     </Pressable>
                   </Pressable>
@@ -266,36 +273,36 @@ export default function CalendarScreen() {
 
       {/* Add Event Modal */}
       <Modal visible={showAdd} animationType="slide" presentationStyle="formSheet">
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: brand.lightBg }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20,
-            borderBottomWidth: 1, borderBottomColor: brand.separator, backgroundColor: brand.card }}>
+            borderBottomWidth: 0.5, borderBottomColor: colors.separator, backgroundColor: colors.surface }}>
             <Pressable onPress={() => setShowAdd(false)}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>Add Event</Text>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Add Event</Text>
             <Pressable onPress={saveEvent} disabled={saving}>
-              <Text style={{ color: saving ? brand.body : brand.blue, fontSize: 16, fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</Text>
+              <Text style={{ color: saving ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</Text>
             </Pressable>
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>DATE</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 6 }}>DATE</Text>
               <TextInput
-                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 16, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
-                placeholder="YYYY-MM-DD" placeholderTextColor={brand.body}
+                style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 16, fontSize: 16, color: colors.label, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}
+                placeholder="YYYY-MM-DD" placeholderTextColor={colors.secondaryLabel}
                 value={addDate} onChangeText={setAddDate}
               />
             </View>
 
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>EVENT TYPE</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 6 }}>EVENT TYPE</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {EVENT_TYPES.map(type => (
                     <Pressable key={type} onPress={() => setEventType(type)}
                       style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5,
-                        borderColor: eventType === type ? brand.blue : brand.separator,
-                        backgroundColor: eventType === type ? brand.lightBg : brand.card }}>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: eventType === type ? brand.blue : brand.body }}>{type}</Text>
+                        borderColor: eventType === type ? brand.blue : colors.separator,
+                        backgroundColor: eventType === type ? brand.blue + '12' : colors.surface }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: eventType === type ? brand.blue : colors.secondaryLabel }}>{type}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -303,18 +310,18 @@ export default function CalendarScreen() {
             </View>
 
             <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>NOTES (OPTIONAL)</Text>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 6 }}>NOTES (OPTIONAL)</Text>
               <TextInput
-                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 15, color: brand.dark,
-                  borderWidth: 1.5, borderColor: brand.separator, height: 100, textAlignVertical: 'top' }}
-                placeholder="Any notes about this event..." placeholderTextColor={brand.body}
+                style={{ backgroundColor: colors.surface, borderRadius: 12, padding: 16, fontSize: 15, color: colors.label,
+                  borderWidth: 0.5, borderColor: colors.separator, height: 100, textAlignVertical: 'top', borderCurve: 'continuous' }}
+                placeholder="Any notes about this event..." placeholderTextColor={colors.secondaryLabel}
                 multiline value={notes} onChangeText={setNotes}
               />
             </View>
 
-            <View style={{ backgroundColor: brand.lightBg, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+            <View style={{ backgroundColor: brand.blue + '12', borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
               <Ionicons name="hardware-chip-outline" size={14} color={brand.blue} style={{ marginTop: 1 }} />
-              <Text style={{ fontSize: 12, color: brand.body, flex: 1 }}>
+              <Text style={{ fontSize: 12, color: colors.secondaryLabel, flex: 1 }}>
                 Say "My SCAI, add a custody day on Friday" to create events hands-free.
               </Text>
             </View>

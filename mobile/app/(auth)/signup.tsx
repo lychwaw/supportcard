@@ -11,14 +11,35 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 import { type Currency, CURRENCY_OPTIONS } from '@/lib/currency';
 
+WebBrowser.maybeCompleteAuthSession();
+
 async function handleOAuth(provider: 'google' | 'apple', setError: (e: string) => void) {
-  const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
-  const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });
-  if (error) setError(error.message);
+  setError('');
+  if (Platform.OS === 'web') {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined },
+    });
+    if (error) setError(error.message);
+    return;
+  }
+  const redirectTo = Linking.createURL('/');
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo, skipBrowserRedirect: true },
+  });
+  if (error || !data.url) { setError(error?.message ?? 'Could not start sign-in'); return; }
+  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+  if (result.type === 'success') {
+    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(result.url);
+    if (sessionError) setError(sessionError.message);
+  }
 }
 
 type Role = 'parent' | 'professional';
@@ -75,6 +96,10 @@ export default function SignupScreen() {
     }
     if (!email.trim()) {
       setError('Please enter your email address.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please enter a valid email address.');
       return;
     }
     if (password.length < 6) {

@@ -1,6 +1,18 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
+export const config = {
+  api: { bodyParser: false }, // raw body needed for HMAC verification
+};
+
+const getRawBody = (req: any): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+
 const getSupabaseClient = () => {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -9,11 +21,13 @@ const getSupabaseClient = () => {
 };
 
 // KoraPay signs ONLY the `data` object using the merchant secret key.
+// We re-extract `data` from the raw body string to ensure the HMAC is computed
+// over exactly the same bytes KoraPay signed — not a re-serialised copy.
 // Ref: https://developers.korapay.com/docs/webhooks
-const verifySignature = (data: unknown, signature: string, secretKey: string): boolean => {
+const verifySignature = (rawDataJson: string, signature: string, secretKey: string): boolean => {
   try {
     const expected = createHmac('sha256', secretKey)
-      .update(JSON.stringify(data))
+      .update(rawDataJson)
       .digest('hex');
     const a = Buffer.from(expected, 'utf8');
     const b = Buffer.from(signature, 'utf8');
@@ -38,9 +52,17 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  let rawBody: string;
+  try {
+    rawBody = await getRawBody(req);
+  } catch {
+    res.status(400).json({ error: 'Failed to read request body' });
+    return;
+  }
+
   let payload: any;
   try {
-    payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    payload = JSON.parse(rawBody);
   } catch {
     res.status(400).json({ error: 'Invalid JSON payload' });
     return;
@@ -49,7 +71,11 @@ export default async function handler(req: any, res: any) {
   const signature = req.headers['x-korapay-signature'] as string | undefined;
   const data = payload?.data;
 
-  if (!signature || !data || !verifySignature(data, signature, secretKey)) {
+  // Re-extract the raw `data` value from the raw body so HMAC is byte-accurate.
+  const dataMatch = rawBody.match(/"data"\s*:\s*(\{[\s\S]*?\})(?=\s*[,}])/);
+  const rawDataJson = dataMatch ? dataMatch[1] : (data ? JSON.stringify(data) : '');
+
+  if (!signature || !data || !verifySignature(rawDataJson, signature, secretKey)) {
     res.status(401).json({ error: 'Invalid or missing webhook signature' });
     return;
   }

@@ -2,13 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { ScrollView, View, Text, Pressable, Modal, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { brand } from '@/theme/colors';
+import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
 type Goal = { id: string; title: string; target_amount: number; child_id: string | null; child?: { name: string } | null };
-type Contribution = { id: string; amount: number; note: string | null; created_at: string; contributor?: { full_name: string | null } | null };
-
-const CONTRIBUTION_TOTALS = new Map<string, number>();
 
 export default function GoalsScreen() {
   const [goals, setGoals] = useState<Goal[]>([]);
@@ -25,14 +22,19 @@ export default function GoalsScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     const { data: g } = await supabase.from('child_goals' as any).select('*, child:child_id(name)').order('created_at', { ascending: false });
-    const goals = (g || []) as Goal[];
-    setGoals(goals);
+    const goalList = (g || []) as Goal[];
+    setGoals(goalList);
 
+    const goalIds = goalList.map(g => g.id);
     const totals = new Map<string, number>();
-    for (const goal of goals) {
-      const { data: contribs } = await supabase.from('goal_contributions' as any)
-        .select('amount').eq('goal_id', goal.id);
-      totals.set(goal.id, ((contribs || []) as any[]).reduce((s: number, c: any) => s + Number(c.amount), 0));
+    if (goalIds.length > 0) {
+      const { data: allContribs } = await supabase
+        .from('goal_contributions' as any)
+        .select('goal_id, amount')
+        .in('goal_id', goalIds);
+      for (const c of (allContribs || []) as any[]) {
+        totals.set(c.goal_id, (totals.get(c.goal_id) ?? 0) + Number(c.amount));
+      }
     }
     setContributions(totals);
     setLoading(false);
@@ -46,8 +48,10 @@ export default function GoalsScreen() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
-    await supabase.from('child_goals' as any).insert({ title: goalTitle.trim(), target_amount: target, created_by: user.id });
-    setSaving(false); setShowAdd(false); setGoalTitle(''); setGoalTarget(''); load();
+    const { error } = await supabase.from('child_goals' as any).insert({ title: goalTitle.trim(), target_amount: target, created_by: user.id });
+    setSaving(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setShowAdd(false); setGoalTitle(''); setGoalTarget(''); load();
   };
 
   const addContribution = async (goalId: string) => {
@@ -56,56 +60,74 @@ export default function GoalsScreen() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
-    await supabase.from('goal_contributions' as any).insert({ goal_id: goalId, amount: amt, note: contribNote.trim() || null, contributor_id: user.id });
-    setSaving(false); setShowContrib(null); setContribAmount(''); setContribNote(''); load();
+    const { error } = await supabase.from('goal_contributions' as any).insert({ goal_id: goalId, amount: amt, note: contribNote.trim() || null, contributor_id: user.id });
+    setSaving(false);
+    if (error) { Alert.alert('Error', error.message); return; }
+    setShowContrib(null); setContribAmount(''); setContribNote(''); load();
   };
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Goals & Wishlist', headerTintColor: brand.blue, headerStyle: { backgroundColor: brand.card } }} />
-      <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ flex: 1, backgroundColor: brand.lightBg }}
-        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }}>
+      <Stack.Screen options={{ title: 'Goals & Wishlist', headerTintColor: brand.blue }} />
+      <ScrollView contentInsetAdjustmentBehavior="automatic" style={{ flex: 1, backgroundColor: colors.background }}
+        contentContainerStyle={{ padding: 16, gap: 12, paddingBottom: 40 }} showsVerticalScrollIndicator={false}>
 
-        <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, borderLeftWidth: 4, borderLeftColor: brand.blue }}>
-          <Text style={{ fontSize: 13, color: brand.body, lineHeight: 19 }}>
+        {/* Info card */}
+        <View style={{ backgroundColor: brand.blue + '10', borderRadius: 16, borderCurve: 'continuous', borderLeftWidth: 3, borderLeftColor: brand.blue, padding: 16 }}>
+          <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
             Goals track savings contributions as an append-only ledger. No money moves through the app — contributions are logged for transparency only.
           </Text>
         </View>
 
+        {/* Add button */}
         <Pressable onPress={() => setShowAdd(true)}
-          style={{ backgroundColor: brand.blue, borderRadius: 14, padding: 16, alignItems: 'center', boxShadow: '0 4px 12px rgba(43,116,214,0.25)' }}>
+          style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 16, borderCurve: 'continuous', padding: 16, alignItems: 'center', boxShadow: '0 4px 12px rgba(43,116,214,0.25)', transform: [{ scale: pressed ? 0.97 : 1 }] })}>
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>+ Add Goal</Text>
         </Pressable>
 
         {loading ? <ActivityIndicator color={brand.blue} style={{ marginTop: 24 }} /> : goals.length === 0 ? (
-          <View style={{ backgroundColor: brand.card, borderRadius: 20, padding: 40, alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 40, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
+            <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderCurve: 'continuous' }}>
               <Ionicons name="star-outline" size={32} color={brand.blue} />
             </View>
-            <Text style={{ fontSize: 17, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No goals yet</Text>
-            <Text style={{ fontSize: 14, color: brand.body, textAlign: 'center' }}>Create savings goals for your children's education, activities or wishlist items</Text>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, marginBottom: 6 }}>No goals yet</Text>
+            <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 20 }}>
+              Create savings goals for your children's education, activities or wishlist items
+            </Text>
           </View>
         ) : goals.map(goal => {
           const raised = contributions.get(goal.id) || 0;
           const pct = Math.min(100, goal.target_amount > 0 ? (raised / goal.target_amount) * 100 : 0);
+          const done = pct >= 100;
           return (
-            <View key={goal.id} style={{ backgroundColor: brand.card, borderRadius: 16, padding: 20, boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+            <View key={goal.id} style={{ backgroundColor: colors.surface, borderRadius: 18, borderCurve: 'continuous', padding: 20, borderWidth: 0.5, borderColor: colors.separator }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, gap: 8 }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>{goal.title}</Text>
-                  {goal.child?.name && <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }}>For {goal.child.name}</Text>}
+                  <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{goal.title}</Text>
+                  {goal.child?.name && <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>For {goal.child.name}</Text>}
                 </View>
-                <Text style={{ fontSize: 15, fontWeight: '700', color: brand.blue }}>
-                  R{raised.toFixed(0)} / R{Number(goal.target_amount).toFixed(0)}
-                </Text>
+                <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: done ? '#22C55E' : brand.blue, fontVariant: ['tabular-nums'] }}>
+                    R{raised.toFixed(0)}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] }}>
+                    / R{Number(goal.target_amount).toFixed(0)}
+                  </Text>
+                </View>
               </View>
-              <View style={{ height: 8, backgroundColor: brand.lightBg, borderRadius: 4, overflow: 'hidden', marginBottom: 4 }}>
-                <View style={{ width: `${pct}%`, height: '100%', backgroundColor: pct >= 100 ? '#22C55E' : brand.blue, borderRadius: 4 }} />
+              <View style={{ height: 8, backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+                <View style={{ width: `${pct}%`, height: '100%', backgroundColor: done ? '#22C55E' : brand.blue, borderRadius: 4 }} />
               </View>
-              <Text style={{ fontSize: 12, color: brand.body, marginBottom: 12 }}>{pct.toFixed(0)}% of goal reached</Text>
+              <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginBottom: 14, fontVariant: ['tabular-nums'] }}>
+                {pct.toFixed(0)}% of goal reached
+              </Text>
               <Pressable onPress={() => { setShowContrib(goal.id); setContribAmount(''); setContribNote(''); }}
-                style={{ backgroundColor: brand.lightBg, borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1.5, borderColor: brand.blue }}>
-                <Text style={{ color: brand.blue, fontWeight: '600', fontSize: 14 }}>+ Log Contribution</Text>
+                style={({ pressed }) => ({
+                  backgroundColor: brand.blue + '10', borderRadius: 12, borderCurve: 'continuous',
+                  padding: 12, alignItems: 'center', borderWidth: 0.5, borderColor: brand.blue + '40',
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                })}>
+                <Text style={{ color: brand.blue, fontWeight: '700', fontSize: 14 }}>+ Log Contribution</Text>
               </Pressable>
             </View>
           );
@@ -113,48 +135,50 @@ export default function GoalsScreen() {
       </ScrollView>
 
       {/* Add Goal Modal */}
-      <Modal visible={showAdd} animationType="slide" presentationStyle="formSheet">
-        <View style={{ padding: 20, backgroundColor: brand.card, borderBottomWidth: 1, borderBottomColor: brand.separator, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Modal visible={showAdd} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowAdd(false)}>
+        <View style={{ padding: 20, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Pressable onPress={() => setShowAdd(false)}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
-          <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>New Goal</Text>
-          <Pressable onPress={addGoal} disabled={saving}><Text style={{ color: saving ? brand.body : brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text></Pressable>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>New Goal</Text>
+          <Pressable onPress={addGoal} disabled={saving}>
+            {saving ? <ActivityIndicator color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
+          </Pressable>
         </View>
-        <ScrollView contentContainerStyle={{ padding: 20, gap: 16, backgroundColor: brand.lightBg }}>
-          <View>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>GOAL TITLE</Text>
-            <TextInput style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 15, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
-              placeholder="e.g. School Camp, New Bicycle" placeholderTextColor={brand.body} value={goalTitle} onChangeText={setGoalTitle} />
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} style={{ backgroundColor: colors.background }}>
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Goal Title</Text>
+            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
+              placeholder="e.g. School Camp, New Bicycle" placeholderTextColor={colors.secondaryLabel} value={goalTitle} onChangeText={setGoalTitle} autoFocus />
           </View>
-          <View>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>TARGET AMOUNT (R)</Text>
-            <TextInput style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 24, fontWeight: '700', color: brand.dark, borderWidth: 1.5, borderColor: brand.separator, textAlign: 'center' }}
-              placeholder="0" placeholderTextColor={brand.body} keyboardType="decimal-pad" value={goalTarget} onChangeText={setGoalTarget} />
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Target Amount (R)</Text>
+            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 28, fontWeight: '800', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
+              placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={goalTarget} onChangeText={setGoalTarget} />
           </View>
         </ScrollView>
       </Modal>
 
       {/* Add Contribution Modal */}
-      <Modal visible={!!showContrib} animationType="slide" presentationStyle="formSheet">
-        <View style={{ padding: 20, backgroundColor: brand.card, borderBottomWidth: 1, borderBottomColor: brand.separator, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Modal visible={!!showContrib} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowContrib(null)}>
+        <View style={{ padding: 20, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Pressable onPress={() => setShowContrib(null)}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
-          <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>Log Contribution</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Log Contribution</Text>
           <Pressable onPress={() => showContrib && addContribution(showContrib)} disabled={saving}>
-            <Text style={{ color: saving ? brand.body : brand.blue, fontSize: 16, fontWeight: '600' }}>Log</Text>
+            {saving ? <ActivityIndicator color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Log</Text>}
           </Pressable>
         </View>
-        <ScrollView contentContainerStyle={{ padding: 20, gap: 16, backgroundColor: brand.lightBg }}>
-          <View style={{ backgroundColor: brand.lightBg, borderRadius: 12, padding: 12 }}>
-            <Text style={{ fontSize: 12, color: brand.body }}>Contributions are logged for transparency — money transfers happen off-platform via EFT.</Text>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} style={{ backgroundColor: colors.background }}>
+          <View style={{ backgroundColor: brand.blue + '08', borderRadius: 12, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
+            <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>Contributions are logged for transparency — money transfers happen off-platform via EFT.</Text>
           </View>
-          <View>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>AMOUNT (R)</Text>
-            <TextInput style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 28, fontWeight: '700', color: brand.dark, borderWidth: 1.5, borderColor: brand.separator, textAlign: 'center' }}
-              placeholder="0" placeholderTextColor={brand.body} keyboardType="decimal-pad" value={contribAmount} onChangeText={setContribAmount} />
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Amount (R)</Text>
+            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '800', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
+              placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={contribAmount} onChangeText={setContribAmount} autoFocus />
           </View>
-          <View>
-            <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>NOTE (OPTIONAL)</Text>
-            <TextInput style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 15, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
-              placeholder="e.g. Birthday gift, monthly contribution" placeholderTextColor={brand.body} value={contribNote} onChangeText={setContribNote} />
+          <View style={{ gap: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Note (Optional)</Text>
+            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
+              placeholder="e.g. Birthday gift, monthly contribution" placeholderTextColor={colors.secondaryLabel} value={contribNote} onChangeText={setContribNote} />
           </View>
         </ScrollView>
       </Modal>

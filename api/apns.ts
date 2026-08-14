@@ -71,7 +71,7 @@ async function handleSend(req: any, res: any, supabase: any) {
   res.status(200).json({ sent: tokens.length });
 }
 
-async function handleNotifyExpense(req: any, res: any, supabase: any) {
+async function handleNotifyExpense(req: any, res: any, supabase: any, authUser: any) {
   const { expense_id } = req.body || {};
   if (!expense_id) {
     res.status(400).json({ error: 'Missing expense_id' });
@@ -86,6 +86,13 @@ async function handleNotifyExpense(req: any, res: any, supabase: any) {
 
   if (expenseError || !expense) {
     res.status(404).json({ error: 'Expense request not found' });
+    return;
+  }
+
+  // Only the original requester of this expense can trigger its notification.
+  // Without this check any authenticated user knowing a UUID could spam co-parents.
+  if (expense.requester_id !== authUser.id) {
+    res.status(403).json({ error: 'Forbidden' });
     return;
   }
 
@@ -165,27 +172,41 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // All actions require a valid session — auth is enforced here once for all branches.
+  const supabase = getSupabaseClient();
+  const token = extractBearer(req);
+  if (!token) {
+    res.status(401).json({ error: 'Unauthorized: missing Bearer token' });
+    return;
+  }
+  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+  if (authError || !authUser) {
+    res.status(401).json({ error: 'Unauthorized: invalid or expired token' });
+    return;
+  }
+
   const { action } = req.body || {};
 
   try {
     if (action === 'register') {
-      const supabase = getSupabaseClient();
-      const token = extractBearer(req);
-      if (!token) {
-        res.status(401).json({ error: 'Unauthorized: missing Bearer token' });
-        return;
-      }
-      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !authUser) {
-        res.status(401).json({ error: 'Unauthorized: invalid or expired token' });
-        return;
-      }
       await handleRegister(req, res, supabase, authUser);
     } else if (action === 'send') {
-      await handleSend(req, res, getSupabaseClient());
+      // Restrict send to the authenticated user's own devices only.
+      // Callers cannot supply an arbitrary user_id — it is always the requester.
+      const body = req.body || {};
+      await handleSend(
+        { ...req, body: { ...body, user_id: authUser.id } },
+        res,
+        supabase,
+      );
     } else if (action === 'notify-expense') {
-      await handleNotifyExpense(req, res, getSupabaseClient());
+      await handleNotifyExpense(req, res, supabase, authUser);
     } else if (action === 'test') {
+      // Only allow in non-production environments.
+      if (process.env.VERCEL_ENV === 'production') {
+        res.status(403).json({ error: 'Test action is disabled in production' });
+        return;
+      }
       await handleTest(req, res);
     } else {
       res.status(400).json({ error: 'Missing or invalid action' });

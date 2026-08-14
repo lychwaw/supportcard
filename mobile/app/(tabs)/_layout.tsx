@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { brand } from '@/theme/colors';
+import { brand, colors } from '@/theme/colors';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -50,8 +50,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: brand.blue,
         tabBarInactiveTintColor: brand.body,
         tabBarStyle: {
-          backgroundColor: brand.card,
-          borderTopColor: brand.separator,
+          backgroundColor: colors.surface,
+          borderTopColor: colors.separator,
           borderTopWidth: 0.5,
           elevation: 0,
           shadowOpacity: 0,

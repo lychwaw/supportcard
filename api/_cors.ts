@@ -4,7 +4,7 @@
 
 const ALLOWED_ORIGINS = new Set([
   process.env.APP_BASE_URL || 'https://supportcard.vercel.app',
-  'https://supportcarddemo.vercel.app',
+  'https://demodist.vercel.app',
   'http://localhost:8081',
   'http://localhost:3000',
 ]);

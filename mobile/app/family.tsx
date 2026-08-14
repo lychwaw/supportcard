@@ -5,7 +5,9 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { brand } from '@/theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
 type Child = {
@@ -18,18 +20,17 @@ type Child = {
 type CoParent = { id: string; full_name: string | null; email: string | null };
 
 export default function FamilyScreen() {
+  const insets = useSafeAreaInsets();
   const [children, setChildren] = useState<Child[]>([]);
   const [coParent, setCoParent] = useState<CoParent | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Add Child modal
   const [showAddChild, setShowAddChild] = useState(false);
   const [childName, setChildName] = useState('');
   const [custodySplit, setCustodySplit] = useState('50');
   const [addingChild, setAddingChild] = useState(false);
 
-  // Invite Co-Parent modal
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [linking, setLinking] = useState(false);
@@ -50,7 +51,6 @@ export default function FamilyScreen() {
     const kidList = ((kids as any) || []) as Child[];
     setChildren(kidList);
 
-    // Find co-parent via children table (same lookup as messages.tsx)
     if (kidList.length > 0) {
       const child = kidList[0];
       const coParentId = child.parent_id === user.id ? child.co_parent_id : child.parent_id;
@@ -74,11 +74,7 @@ export default function FamilyScreen() {
     if (!name) return;
     const split = Math.max(0, Math.min(100, parseInt(custodySplit, 10) || 50));
     setAddingChild(true);
-    const { error } = await supabase.from('children' as any).insert({
-      name,
-      parent_id: userId,
-      custody_split_pct: split,
-    });
+    const { error } = await supabase.from('children' as any).insert({ name, parent_id: userId, custody_split_pct: split });
     setAddingChild(false);
     if (error) { Alert.alert('Error', error.message); return; }
     setShowAddChild(false);
@@ -98,7 +94,6 @@ export default function FamilyScreen() {
     }
 
     setLinking(true);
-
     const { data: match } = await supabase
       .from('profiles' as any)
       .select('id, full_name, email')
@@ -111,10 +106,7 @@ export default function FamilyScreen() {
         'Not registered yet',
         `No SupportCard account found for ${email}.\n\nAsk them to sign up, then come back and link them here.`,
         [
-          {
-            text: 'Share App Link',
-            onPress: () => Share.share({ message: `Join me on SupportCard — co-parenting made easier. Sign up at https://supportcard.vercel.app` }),
-          },
+          { text: 'Share App Link', onPress: () => Share.share({ message: 'Join me on SupportCard — co-parenting made easier. Sign up at https://supportcard-prod.vercel.app' }) },
           { text: 'OK' },
         ]
       );
@@ -122,8 +114,6 @@ export default function FamilyScreen() {
     }
 
     const cp = match as any;
-
-    // Link co-parent to the first child that doesn't have one yet
     const childToLink = children.find(c => !c.co_parent_id);
     if (!childToLink) {
       setLinking(false);
@@ -137,11 +127,7 @@ export default function FamilyScreen() {
       return;
     }
 
-    const { error } = await supabase
-      .from('children' as any)
-      .update({ co_parent_id: cp.id })
-      .eq('id', childToLink.id);
-
+    const { error } = await supabase.from('children' as any).update({ co_parent_id: cp.id }).eq('id', childToLink.id);
     setLinking(false);
     if (error) { Alert.alert('Error', error.message); return; }
     setShowInvite(false);
@@ -151,227 +137,250 @@ export default function FamilyScreen() {
   };
 
   const handleDeleteChild = (id: string, name: string) => {
-    Alert.alert(
-      `Remove ${name}?`,
-      'This will remove this child and all related records. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove', style: 'destructive',
-          onPress: async () => {
-            const { error } = await supabase.from('children' as any).delete().eq('id', id);
-            if (error) {
-              Alert.alert('Could not remove', error.message);
-              return;
-            }
-            load();
-          },
+    Alert.alert(`Remove ${name}?`, 'This will remove this child and all related records. This cannot be undone.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove', style: 'destructive',
+        onPress: async () => {
+          const { error } = await supabase.from('children' as any).delete().eq('id', id);
+          if (error) { Alert.alert('Could not remove', error.message); return; }
+          load();
         },
-      ]
-    );
+      },
+    ]);
   };
+
+  const coInitial = ((coParent?.full_name || coParent?.email || '?')[0] || '?').toUpperCase();
 
   return (
     <ScrollView
       contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: brand.lightBg }}
-      contentContainerStyle={{ padding: 20, gap: 20, paddingBottom: 40 }}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      showsVerticalScrollIndicator={false}
     >
-      <Stack.Screen options={{
-        title: 'Family',
-        headerTintColor: brand.blue,
-        headerStyle: { backgroundColor: brand.card },
-      }} />
+      <Stack.Screen options={{ title: 'Family', headerTintColor: brand.blue }} />
 
-      {loading ? <ActivityIndicator color={brand.blue} style={{ marginTop: 40 }} /> : (
+      {loading ? (
+        <ActivityIndicator color={brand.blue} style={{ marginTop: 60 }} />
+      ) : (
         <>
-          {/* Co-parent section */}
-          <View>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark, marginBottom: 12 }}>Co-Parent</Text>
+          {/* ── Co-Parent Section ── */}
+          <View style={{ padding: 16, gap: 12 }}>
+            <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              Co-Parent
+            </Text>
+
             {coParent ? (
-              <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-                <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                  <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>
-                    {(coParent.full_name || coParent.email || '?')[0].toUpperCase()}
-                  </Text>
+              <LinearGradient
+                colors={['#1E3A5F', '#2B74D6']}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+                style={{ borderRadius: 20, borderCurve: 'continuous', padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' }}
+              >
+                <View style={{ position: 'absolute', right: -30, top: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255,255,255,0.07)' }} />
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
+                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>{coInitial}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '600', color: brand.dark }}>{coParent.full_name || 'Co-Parent'}</Text>
-                  <Text style={{ fontSize: 13, color: brand.body, marginTop: 2 }}>{coParent.email}</Text>
+                  <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff' }}>{coParent.full_name || 'Co-Parent'}</Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{coParent.email}</Text>
                 </View>
-                <View style={{ backgroundColor: '#F0FDF4', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Ionicons name="checkmark-circle" size={12} color="#22C55E" />
-                  <Text style={{ fontSize: 12, color: '#22C55E', fontWeight: '600' }}>Linked</Text>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Ionicons name="checkmark-circle" size={13} color="#4ADE80" />
+                  <Text style={{ fontSize: 12, color: '#4ADE80', fontWeight: '700' }}>Linked</Text>
                 </View>
-              </View>
+              </LinearGradient>
             ) : (
-              <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 24, alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                  <Ionicons name="people-outline" size={28} color={brand.body} />
+              <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 24, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
+                <View style={{ width: 60, height: 60, borderRadius: 18, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderCurve: 'continuous' }}>
+                  <Ionicons name="people-outline" size={28} color={brand.blue} />
                 </View>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark, marginBottom: 4 }}>No co-parent linked</Text>
-                <Text style={{ fontSize: 13, color: brand.body, marginBottom: 16, textAlign: 'center' }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label, marginBottom: 6 }}>No co-parent linked</Text>
+                <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginBottom: 20, textAlign: 'center', lineHeight: 20 }}>
                   Link your co-parent to start coordinating. They must have a SupportCard account first.
                 </Text>
                 <Pressable
                   onPress={() => setShowInvite(true)}
-                  style={{ backgroundColor: brand.blue, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 12 }}
+                  style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 13, transform: [{ scale: pressed ? 0.96 : 1 }], borderCurve: 'continuous' })}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Link Co-Parent</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Link Co-Parent</Text>
                 </Pressable>
               </View>
             )}
           </View>
 
-          {/* Children section */}
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>Children ({children.length})</Text>
+          {/* ── Children Section ── */}
+          <View style={{ padding: 16, gap: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Children ({children.length})
+              </Text>
               <Pressable
                 onPress={() => setShowAddChild(true)}
-                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}
+                style={({ pressed }) => ({ width: 34, height: 34, borderRadius: 17, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.92 : 1 }] })}
               >
                 <Ionicons name="add" size={20} color="#fff" />
               </Pressable>
             </View>
 
             {children.length === 0 ? (
-              <View style={{ backgroundColor: brand.card, borderRadius: 16, padding: 24, alignItems: 'center', boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
-                  <Ionicons name="person-outline" size={28} color={brand.body} />
+              <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 28, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
+                <View style={{ width: 60, height: 60, borderRadius: 18, backgroundColor: brand.teal + '12', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderCurve: 'continuous' }}>
+                  <Ionicons name="person-outline" size={28} color={brand.teal} />
                 </View>
-                <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark, marginBottom: 12 }}>No children added yet</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label, marginBottom: 14 }}>No children added yet</Text>
                 <Pressable
                   onPress={() => setShowAddChild(true)}
-                  style={{ backgroundColor: brand.blue, borderRadius: 12, paddingHorizontal: 20, paddingVertical: 10 }}
+                  style={({ pressed }) => ({ backgroundColor: brand.teal, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 13, transform: [{ scale: pressed ? 0.96 : 1 }], borderCurve: 'continuous' })}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>Add a Child</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Add a Child</Text>
                 </Pressable>
               </View>
             ) : (
               <View style={{ gap: 10 }}>
-                {children.map(child => (
-                  <View key={child.id} style={{ backgroundColor: brand.card, borderRadius: 16, padding: 16, boxShadow: '0 1px 8px rgba(43,116,214,0.07)' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                      <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                        <Ionicons name="person-outline" size={22} color={brand.blue} />
+                {children.map(child => {
+                  const myPct = child.custody_split_pct;
+                  const theirPct = 100 - myPct;
+                  return (
+                    <View key={child.id} style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 18, borderWidth: 0.5, borderColor: colors.separator }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 12 }}>
+                        <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: brand.blue + '15', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+                          <Ionicons name="person-outline" size={22} color={brand.blue} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{child.name}</Text>
+                          <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 2 }}>
+                            {coParent ? `With ${coParent.full_name?.split(' ')[0] ?? 'Co-parent'}` : 'No co-parent linked'}
+                          </Text>
+                        </View>
+                        {userId === child.parent_id && (
+                          <Pressable
+                            onPress={() => handleDeleteChild(child.id, child.name)}
+                            hitSlop={10}
+                            style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 6, borderRadius: 10, backgroundColor: colors.background })}
+                          >
+                            <Ionicons name="trash-outline" size={17} color={colors.secondaryLabel} />
+                          </Pressable>
+                        )}
                       </View>
-                      <Text style={{ flex: 1, fontSize: 17, fontWeight: '700', color: brand.dark }}>{child.name}</Text>
-                      {userId === child.parent_id && (
+
+                      {/* Custody split bar */}
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>
+                        Custody Split
+                      </Text>
+                      <View style={{ height: 8, backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+                        <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${myPct}%`, backgroundColor: brand.blue, borderRadius: 4 }} />
+                      </View>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: brand.blue }} />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: brand.blue }}>You {myPct}%</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.secondaryLabel + '60' }} />
+                          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel }}>
+                            {coParent?.full_name?.split(' ')[0] ?? 'Co-parent'} {theirPct}%
+                          </Text>
+                        </View>
+                      </View>
+
+                      {!child.co_parent_id && (
                         <Pressable
-                          onPress={() => handleDeleteChild(child.id, child.name)}
-                          hitSlop={10}
-                          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+                          onPress={() => setShowInvite(true)}
+                          style={({ pressed }) => ({
+                            marginTop: 14, alignSelf: 'flex-start', backgroundColor: brand.blue + '10',
+                            borderRadius: 10, borderCurve: 'continuous', paddingHorizontal: 14, paddingVertical: 8,
+                            borderWidth: 1, borderColor: brand.blue + '30',
+                            transform: [{ scale: pressed ? 0.96 : 1 }],
+                          })}
                         >
-                          <Ionicons name="trash-outline" size={17} color={brand.body} />
+                          <Text style={{ fontSize: 13, color: brand.blue, fontWeight: '700' }}>+ Link co-parent</Text>
                         </Pressable>
                       )}
                     </View>
-                    <Text style={{ fontSize: 12, color: brand.body, marginBottom: 6 }}>Custody Split</Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: brand.blue }}>{child.custody_split_pct}%</Text>
-                      <View style={{ flex: 1, height: 6, backgroundColor: brand.lightBg, borderRadius: 3, overflow: 'hidden' }}>
-                        <View style={{ width: `${child.custody_split_pct}%`, height: '100%', backgroundColor: brand.blue, borderRadius: 3 }} />
-                      </View>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body }}>{100 - child.custody_split_pct}%</Text>
-                    </View>
-                    {!child.co_parent_id && (
-                      <Pressable
-                        onPress={() => setShowInvite(true)}
-                        style={{ marginTop: 12, alignSelf: 'flex-start', backgroundColor: brand.lightBg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: brand.blue }}
-                      >
-                        <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>+ Link co-parent</Text>
-                      </Pressable>
-                    )}
-                  </View>
-                ))}
+                  );
+                })}
               </View>
             )}
           </View>
         </>
       )}
 
-      {/* Add Child Modal */}
-      <Modal visible={showAddChild} animationType="slide" presentationStyle="formSheet">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1, backgroundColor: brand.lightBg }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: brand.separator, backgroundColor: brand.card }}>
+      {/* ── Add Child Modal ── */}
+      <Modal visible={showAddChild} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowAddChild(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
             <Pressable onPress={() => { setShowAddChild(false); setChildName(''); setCustodySplit('50'); }}>
               <Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text>
             </Pressable>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>Add Child</Text>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Add Child</Text>
             <Pressable onPress={handleAddChild} disabled={addingChild || !childName.trim()}>
-              <Text style={{ color: addingChild || !childName.trim() ? brand.body : brand.blue, fontSize: 16, fontWeight: '600' }}>
-                {addingChild ? 'Saving...' : 'Save'}
-              </Text>
+              {addingChild ? <ActivityIndicator color={brand.blue} /> : (
+                <Text style={{ color: !childName.trim() ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>
+              )}
             </Pressable>
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
-            <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>CHILD'S NAME</Text>
+            <View style={{ gap: 8 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Child's Name</Text>
               <TextInput
-                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 16, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
+                style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 16, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
                 placeholder="e.g. Amara"
-                placeholderTextColor={brand.body}
+                placeholderTextColor={colors.secondaryLabel}
                 value={childName}
                 onChangeText={setChildName}
                 autoFocus
               />
             </View>
-            <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>
-                YOUR CUSTODY PERCENTAGE ({custodySplit}%)
+            <View style={{ gap: 8 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                Your Custody % ({custodySplit}%)
               </Text>
               <TextInput
-                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 24, fontWeight: '700', color: brand.dark, borderWidth: 1.5, borderColor: brand.separator, textAlign: 'center' }}
+                style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '800', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center' }}
                 keyboardType="number-pad"
                 placeholder="50"
-                placeholderTextColor={brand.separator}
+                placeholderTextColor={colors.secondaryLabel}
                 value={custodySplit}
                 onChangeText={v => setCustodySplit(v.replace(/[^0-9]/g, ''))}
                 maxLength={3}
               />
-              <Text style={{ fontSize: 12, color: brand.body, marginTop: 6, textAlign: 'center' }}>
-                Enter 0–100. Co-parent gets {100 - (parseInt(custodySplit, 10) || 50)}%.
+              <Text style={{ fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' }}>
+                Co-parent gets {100 - (parseInt(custodySplit, 10) || 50)}%.
               </Text>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* Link Co-Parent Modal */}
-      <Modal visible={showInvite} animationType="slide" presentationStyle="formSheet">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1, backgroundColor: brand.lightBg }}
-        >
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: brand.separator, backgroundColor: brand.card }}>
+      {/* ── Link Co-Parent Modal ── */}
+      <Modal visible={showInvite} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowInvite(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
             <Pressable onPress={() => { setShowInvite(false); setInviteEmail(''); }}>
               <Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text>
             </Pressable>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: brand.dark }}>Link Co-Parent</Text>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Link Co-Parent</Text>
             <Pressable onPress={handleLinkCoParent} disabled={linking || !inviteEmail.trim()}>
-              <Text style={{ color: linking || !inviteEmail.trim() ? brand.body : brand.blue, fontSize: 16, fontWeight: '600' }}>
-                {linking ? 'Linking...' : 'Link'}
-              </Text>
+              {linking ? <ActivityIndicator color={brand.blue} /> : (
+                <Text style={{ color: !inviteEmail.trim() ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>Link</Text>
+              )}
             </Pressable>
           </View>
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-            <View style={{ backgroundColor: brand.lightBg, borderRadius: 12, padding: 14 }}>
-              <Text style={{ fontSize: 13, color: brand.body, lineHeight: 20 }}>
-                Enter the email address your co-parent used to sign up for SupportCard. They must already have an account — if not, share the app link so they can register first.
+            <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 16, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
+              <Text style={{ fontSize: 14, color: colors.label, lineHeight: 21 }}>
+                Enter the email your co-parent used to sign up for SupportCard. They must already have an account — share the app link below if they haven't registered yet.
               </Text>
             </View>
-            <View>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: brand.body, marginBottom: 6 }}>CO-PARENT'S EMAIL</Text>
+            <View style={{ gap: 8 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Co-Parent's Email</Text>
               <TextInput
-                style={{ backgroundColor: brand.card, borderRadius: 12, padding: 16, fontSize: 16, color: brand.dark, borderWidth: 1.5, borderColor: brand.separator }}
+                style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 16, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
                 placeholder="coparent@email.com"
-                placeholderTextColor={brand.body}
+                placeholderTextColor={colors.secondaryLabel}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -381,11 +390,18 @@ export default function FamilyScreen() {
               />
             </View>
             <Pressable
-              onPress={() => Share.share({ message: 'Join me on SupportCard — co-parenting made easier. Sign up at https://supportcard.vercel.app' })}
-              style={{ backgroundColor: brand.card, borderRadius: 12, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: brand.separator }}
+              onPress={() => Share.share({ message: 'Join me on SupportCard — co-parenting made easier. Sign up at https://supportcard-prod.vercel.app' })}
+              style={({ pressed }) => ({
+                backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous',
+                padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
+                borderWidth: 0.5, borderColor: colors.separator,
+                transform: [{ scale: pressed ? 0.97 : 1 }],
+              })}
             >
-              <Ionicons name="share-social-outline" size={20} color={brand.blue} />
-              <Text style={{ fontSize: 14, color: brand.blue, fontWeight: '600' }}>Share app link with co-parent</Text>
+              <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+                <Ionicons name="share-social-outline" size={18} color={brand.blue} />
+              </View>
+              <Text style={{ fontSize: 14, color: brand.blue, fontWeight: '700' }}>Share app link with co-parent</Text>
             </Pressable>
           </ScrollView>
         </KeyboardAvoidingView>

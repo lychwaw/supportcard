@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { brand } from '@/theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
 interface MenuRow {
@@ -20,25 +22,16 @@ interface MenuSection {
   rows: MenuRow[];
 }
 
-function SectionHeading({ title }: { title: string }) {
-  return (
-    <Text style={{
-      fontSize: 13, fontWeight: '700', color: brand.body,
-      textTransform: 'uppercase', letterSpacing: 0.6,
-      marginTop: 24, marginBottom: 8, paddingHorizontal: 4,
-    }}>
-      {title}
-    </Text>
-  );
-}
+const TIER_COLORS: Record<string, string> = {
+  Preview: brand.body,
+  Essential: brand.blue,
+  Plus: brand.teal,
+  Premium: '#F59E0B',
+};
 
 function MenuCard({ rows }: { rows: MenuRow[] }) {
   return (
-    <View style={{
-      backgroundColor: brand.card, borderRadius: 20,
-      boxShadow: '0 1px 8px rgba(43,116,214,0.07)',
-      overflow: 'hidden',
-    }}>
+    <View style={{ backgroundColor: colors.surface, borderRadius: 18, overflow: 'hidden', borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
       {rows.map((row, index) => {
         const isLast = index === rows.length - 1;
         return (
@@ -46,32 +39,21 @@ function MenuCard({ rows }: { rows: MenuRow[] }) {
             key={row.title}
             onPress={() => { if (row.onPress) row.onPress(); else if (row.route) router.push(row.route as any); }}
             style={({ pressed }) => ({
-              flexDirection: 'row', alignItems: 'center', height: 72,
-              paddingHorizontal: 16,
-              backgroundColor: pressed ? brand.lightBg : brand.card,
-              borderBottomWidth: isLast ? 0 : 1,
-              borderBottomColor: brand.separator,
-              gap: 12,
+              flexDirection: 'row', alignItems: 'center',
+              paddingHorizontal: 16, paddingVertical: 13,
+              backgroundColor: pressed ? (row.destructive ? brand.error + '08' : brand.blue + '06') : 'transparent',
+              borderBottomWidth: isLast ? 0 : 0.5, borderBottomColor: colors.separator,
+              gap: 14,
             })}
           >
-            <View style={{
-              width: 40, height: 40, borderRadius: 12,
-              backgroundColor: row.iconColor,
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Ionicons name={row.icon} size={20} color="#fff" />
+            <View style={{ width: 38, height: 38, borderRadius: 10, backgroundColor: row.iconColor + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+              <Ionicons name={row.icon} size={19} color={row.iconColor} />
             </View>
-
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 16, fontWeight: '600', color: row.destructive ? brand.error : brand.dark }}>
-                {row.title}
-              </Text>
-              {row.subtitle ? (
-                <Text style={{ fontSize: 13, color: brand.body, marginTop: 1 }}>{row.subtitle}</Text>
-              ) : null}
+              <Text style={{ fontSize: 15, fontWeight: '600', color: row.destructive ? brand.error : colors.label }}>{row.title}</Text>
+              {row.subtitle ? <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 1 }}>{row.subtitle}</Text> : null}
             </View>
-
-            <Ionicons name="chevron-forward" size={16} color={brand.body} style={{ opacity: 0.5 }} />
+            {!row.destructive && <Ionicons name="chevron-forward" size={15} color={colors.secondaryLabel} style={{ opacity: 0.35 }} />}
           </Pressable>
         );
       })}
@@ -81,23 +63,43 @@ function MenuCard({ rows }: { rows: MenuRow[] }) {
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
+  const [profile, setProfile] = useState({ name: 'Loading…', email: '', initials: '?', plan: 'Preview' });
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('profiles' as any).select('full_name, subscription_tier').eq('id', user.id).maybeSingle();
+      const raw   = (data as any)?.subscription_tier ?? 'preview';
+      const tiers: Record<string, string> = { preview: 'Preview', essential: 'Essential', plus: 'Plus', premium: 'Premium', family_plus: 'Plus', free: 'Preview', legal: 'Premium' };
+      const name  = (data as any)?.full_name || (user.user_metadata?.full_name as string) || 'Your Account';
+      setProfile({
+        name,
+        email: user.email ?? '',
+        initials: name.charAt(0).toUpperCase(),
+        plan: tiers[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1),
+      });
+    })();
+  }, []);
 
   async function handleSignOut() {
     Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => {
         await supabase.auth.signOut();
-        router.replace('/auth' as any);
+        router.replace('/(auth)/' as any);
       }},
     ]);
   }
+
+  const tierColor = TIER_COLORS[profile.plan] ?? brand.blue;
 
   const sections: MenuSection[] = [
     {
       heading: 'Co-Parenting',
       rows: [
-        { icon: 'flash-outline',       iconColor: brand.teal,  title: 'My SCAI',              subtitle: 'AI co-parenting assistant',             route: '/my-scai' },
-        { icon: 'chatbubble-outline',  iconColor: brand.blue,  title: 'Messages',             subtitle: 'Chat with your co-parent',              route: '/messages' },
+        { icon: 'flash-outline',       iconColor: brand.teal,  title: 'My SCAI',              subtitle: 'AI co-parenting assistant',             route: '/(tabs)/my-scai' },
+        { icon: 'chatbubble-outline',  iconColor: brand.blue,  title: 'Messages',             subtitle: 'Chat with your co-parent',              route: '/(tabs)/messages' },
         { icon: 'people-outline',      iconColor: brand.blue,  title: 'Family',               subtitle: 'Children, co-parent & professionals',   route: '/family' },
         { icon: 'time-outline',        iconColor: brand.blue,  title: 'Child Timeline',       subtitle: 'Unified view per child',                route: '/child-timeline' },
         { icon: 'ribbon-outline',      iconColor: brand.blue,  title: 'Parenting Scoreboard', subtitle: 'Contribution & engagement metrics',     route: '/parenting-scoreboard' },
@@ -129,6 +131,7 @@ export default function MoreScreen() {
       rows: [
         { icon: 'location-outline',      iconColor: brand.blue, title: 'Custody Clock',       subtitle: 'Log check-ins & verified handoffs', route: '/custody-clock' },
         { icon: 'document-text-outline', iconColor: brand.body, title: 'Compliance',          subtitle: 'Court orders & obligations',         route: '/compliance' },
+        { icon: 'documents-outline',     iconColor: brand.body, title: 'Documents',           subtitle: 'Legal, school & medical files',      route: '/(tabs)/documents' },
         { icon: 'briefcase-outline',     iconColor: brand.teal, title: 'Professional Portal', subtitle: 'Lawyer & mediator access',           route: '/professional-portal' },
       ],
     },
@@ -144,21 +147,71 @@ export default function MoreScreen() {
 
   return (
     <ScrollView
-      contentInsetAdjustmentBehavior="automatic"
-      style={{ flex: 1, backgroundColor: brand.lightBg }}
-      contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 24 }}
+      style={{ flex: 1, backgroundColor: colors.background }}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={{ fontSize: 30, fontWeight: '800', color: brand.dark, marginTop: insets.top + 20, marginBottom: 20 }}>
-        More
-      </Text>
-
-      {sections.map(section => (
-        <View key={section.heading}>
-          <SectionHeading title={section.heading} />
-          <MenuCard rows={section.rows} />
+      {/* ── Profile hero ── */}
+      <LinearGradient
+        colors={['#1E3A5F', '#2B74D6']}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ paddingTop: insets.top + 24, paddingBottom: 28, paddingHorizontal: 24 }}
+      >
+        <View style={{ position: 'absolute', right: -20, bottom: -20, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
+            <Text style={{ fontSize: 28, fontWeight: '800', color: '#fff' }}>{profile.initials}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.4 }}>{profile.name}</Text>
+            {profile.email ? <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{profile.email}</Text> : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: tierColor + '28', borderWidth: 1, borderColor: tierColor + '50' }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: tierColor === brand.body ? '#fff' : tierColor }}>{profile.plan}</Text>
+              </View>
+            </View>
+          </View>
+          <Pressable onPress={() => router.push('/settings')}
+            style={({ pressed }) => ({ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.7 : 1 })}>
+            <Ionicons name="settings-outline" size={18} color="#fff" />
+          </Pressable>
         </View>
-      ))}
+      </LinearGradient>
+
+      {/* ── Quick actions ── */}
+      <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginTop: 18, marginBottom: 4 }}>
+        {[
+          { icon: 'flash' as const, color: brand.teal, label: 'SCAI', route: '/(tabs)/my-scai' },
+          { icon: 'chatbubble' as const, color: brand.blue, label: 'Messages', route: '/(tabs)/messages' },
+          { icon: 'location' as const, color: '#F59E0B', label: 'Clock', route: '/custody-clock' },
+          { icon: 'card' as const, color: '#8B5CF6', label: 'Plans', route: '/pricing' },
+        ].map(item => (
+          <Pressable key={item.label} onPress={() => router.push(item.route as any)}
+            style={({ pressed }) => ({
+              flex: 1, alignItems: 'center', gap: 8, paddingVertical: 14,
+              backgroundColor: colors.surface, borderRadius: 16, borderWidth: 0.5,
+              borderColor: colors.separator, borderCurve: 'continuous',
+              transform: [{ scale: pressed ? 0.93 : 1 }],
+            })}>
+            <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: item.color + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+              <Ionicons name={item.icon} size={19} color={item.color} />
+            </View>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.3 }}>{item.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+
+      {/* ── Sections ── */}
+      <View style={{ paddingHorizontal: 16 }}>
+        {sections.map(section => (
+          <View key={section.heading}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 26, marginBottom: 8, paddingHorizontal: 4 }}>
+              {section.heading}
+            </Text>
+            <MenuCard rows={section.rows} />
+          </View>
+        ))}
+      </View>
     </ScrollView>
   );
 }

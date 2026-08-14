@@ -1,0 +1,9 @@
+mobile/
+supabase/
+.claude/
+src/
+.env
+.env.local
+*.cjs
+*.bat
+node_modules_old/

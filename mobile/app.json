@@ -6,11 +6,11 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "supportcard",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "co.za.supportcard.app",
+      "bundleIdentifier": "com.southsphere.supportcard",
       "buildNumber": "1",
       "config": {
         "googleMapsApiKey": ""
@@ -20,7 +20,34 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "SupportCard uses your location to log custody check-ins.",
         "NSCameraUsageDescription": "SupportCard uses your camera to upload receipts and documents.",
         "NSPhotoLibraryUsageDescription": "SupportCard accesses your photo library to attach images to expense requests and documents.",
-        "NSPhotoLibraryAddUsageDescription": "SupportCard saves exported court records to your photo library."
+        "NSPhotoLibraryAddUsageDescription": "SupportCard saves exported court records to your photo library.",
+        "NSFaceIDUsageDescription": "SupportCard uses Face ID to secure access to your account data.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "CA92.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "C617.1"
+            ]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
+            "NSPrivacyAccessedAPITypeReasons": [
+              "35F9.1"
+            ]
+          }
+        ]
       }
     },
     "android": {
@@ -33,13 +60,14 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": [
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "VIBRATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.VIBRATE",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.RECORD_AUDIO"
       ],
       "predictiveBackGestureEnabled": false
     },
@@ -87,6 +115,12 @@
     "experiments": {
       "typedRoutes": true
     },
-    "extra": {}
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f766b24c-9764-48ba-bb67-4af604014cc1"
+      }
+    },
+    "owner": "supportcard"
   }
 }

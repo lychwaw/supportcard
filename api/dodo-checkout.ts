@@ -2,11 +2,11 @@ import { createClient } from '@supabase/supabase-js';
 import DodoPayments from 'dodopayments';
 import { handleCors } from './_cors.js';
 
-const DEFAULT_BASE_URL = 'https://supportcard.vercel.app';
+const DEFAULT_BASE_URL = 'https://supportcard-prod.vercel.app';
 
-const getBaseUrl = (req: any) => {
-  return process.env.APP_BASE_URL || req.headers?.origin || DEFAULT_BASE_URL;
-};
+// Never use the Origin header as a fallback — it is attacker-controlled and
+// would allow open redirects in the post-payment return_url / cancel_url.
+const getBaseUrl = () => process.env.APP_BASE_URL || DEFAULT_BASE_URL;
 
 const getSupabaseClient = () => {
   const url = process.env.SUPABASE_URL;
@@ -25,9 +25,8 @@ const extractBearer = (req: any): string | null => {
 // the Dodo dashboard ahead of time.
 const PRODUCT_IDS: Record<string, string | undefined> = {
   essential: process.env.DODO_PRODUCT_ID_ESSENTIAL,
-  plus: process.env.DODO_PRODUCT_ID_PLUS,
-  plus_founder: process.env.DODO_PRODUCT_ID_PLUS_FOUNDER,
-  premium: process.env.DODO_PRODUCT_ID_PREMIUM,
+  plus:      process.env.DODO_PRODUCT_ID_PLUS,
+  premium:   process.env.DODO_PRODUCT_ID_PREMIUM,
 };
 
 export default async function handler(req: any, res: any) {
@@ -68,7 +67,7 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const { tier, useFounderPrice } = req.body || {};
+    const { tier } = req.body || {};
     if (!tier || typeof tier !== 'string') {
       res.status(400).json({ error: 'Missing tier' });
       return;
@@ -79,8 +78,7 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    const productKey = tier === 'plus' && useFounderPrice ? 'plus_founder' : tier;
-    const productId = PRODUCT_IDS[productKey];
+    const productId = PRODUCT_IDS[tier];
 
     if (!productId) {
       res.status(400).json({ error: `Unknown or unconfigured tier: ${productKey}` });
@@ -104,7 +102,7 @@ export default async function handler(req: any, res: any) {
       environment: (process.env.DODO_PAYMENTS_ENVIRONMENT as 'test_mode' | 'live_mode') ?? 'test_mode',
     });
 
-    const baseUrl = getBaseUrl(req);
+    const baseUrl = getBaseUrl();
 
     const session = await client.checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
@@ -112,7 +110,6 @@ export default async function handler(req: any, res: any) {
       metadata: {
         supabase_user_id: authUser.id,
         tier,
-        founder: useFounderPrice ? 'true' : 'false',
       },
       return_url: `${baseUrl}/subscriptions?payment=success`,
       cancel_url: `${baseUrl}/subscriptions?payment=cancel`,
@@ -128,6 +125,7 @@ export default async function handler(req: any, res: any) {
     const msg = error?.message ?? error?.toString() ?? 'unknown';
     const status = error?.status ?? error?.statusCode ?? 500;
     console.error('Dodo checkout error:', { status, msg, type: error?.constructor?.name });
-    res.status(500).json({ error: `Checkout failed: ${msg}` });
+    res.status(typeof status === 'number' && status >= 400 && status < 500 ? 400 : 500)
+       .json({ error: 'Checkout session could not be created. Please try again.' });
   }
 }

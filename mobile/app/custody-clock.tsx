@@ -1,29 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { router, Stack } from 'expo-router';
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  Modal,
-  TextInput,
-  ActivityIndicator,
-  Switch,
-  Alert,
-  Linking,
-} from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, TextInput, ActivityIndicator, Switch, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
-import { brand } from '@/theme/colors';
+import { brand, colors } from '@/theme/colors';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface Child {
-  id: string;
-  name: string;
-}
+interface Child { id: string; name: string }
 
 interface CheckIn {
   id: string;
@@ -31,6 +16,8 @@ interface CheckIn {
   notes: string | null;
   created_at: string;
   created_via: string | null;
+  lat?: number | null;
+  lng?: number | null;
   child: { name: string } | null;
 }
 
@@ -43,170 +30,77 @@ interface Zone {
   created_at: string;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatTime(iso: string) {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return new Date(iso).toLocaleString('en-ZA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-function eventIcon(type: 'enter' | 'exit' | 'manual'): keyof typeof Ionicons.glyphMap {
-  if (type === 'enter') return 'enter-outline';
-  if (type === 'exit') return 'exit-outline';
-  return 'create-outline';
-}
-
-function eventIconColor(type: 'enter' | 'exit' | 'manual') {
-  if (type === 'enter') return brand.teal;
-  if (type === 'exit') return '#F59E0B';
-  return brand.blue;
-}
-
-function eventLabel(type: 'enter' | 'exit' | 'manual') {
-  if (type === 'enter') return 'Enter (Pickup)';
-  if (type === 'exit') return 'Exit (Drop-off)';
-  return 'Manual';
-}
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
-function ScaiBadge() {
-  return (
-    <View
-      style={{
-        backgroundColor: brand.lightBg,
-        borderRadius: 12,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
-        borderWidth: 1,
-        borderColor: '#C3DAFB',
-        alignSelf: 'flex-start',
-        marginTop: 4,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-        <Ionicons name="hardware-chip-outline" size={11} color={brand.blue} />
-        <Text style={{ fontSize: 11, color: brand.blue, fontWeight: '600' }}>My SCAI</Text>
-      </View>
-    </View>
-  );
-}
+const EVENT_META = {
+  enter:  { icon: 'enter-outline' as const,  color: brand.teal,  label: 'Pickup' },
+  exit:   { icon: 'exit-outline' as const,   color: '#F59E0B',   label: 'Drop-off' },
+  manual: { icon: 'create-outline' as const, color: brand.blue,  label: 'Manual' },
+};
 
 function CheckInCard({ item, onDelete }: { item: CheckIn; onDelete?: () => void }) {
+  const meta = EVENT_META[item.event_type] ?? EVENT_META.manual;
   return (
-    <View
-      style={{
-        backgroundColor: brand.card,
-        borderRadius: 14,
-        padding: 14,
-        marginHorizontal: 16,
-        marginBottom: 10,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-        borderCurve: 'continuous',
-      }}
+    <Pressable
+      onLongPress={onDelete}
+      style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 18, marginHorizontal: 16, marginBottom: 10, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: eventIconColor(item.event_type) + '18',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name={eventIcon(item.event_type)} size={20} color={eventIconColor(item.event_type)} />
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
+        <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: meta.color + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+          <Ionicons name={meta.icon} size={21} color={meta.color} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ fontWeight: '600', fontSize: 15, color: brand.dark }}>
-            {eventLabel(item.event_type)}
-            {item.child ? ` — ${item.child.name}` : ''}
+        <View style={{ flex: 1, gap: 3 }}>
+          <Text style={{ fontWeight: '700', fontSize: 15, color: colors.label }}>
+            {meta.label}{item.child ? ` — ${item.child.name}` : ''}
           </Text>
-          {item.notes ? (
-            <Text
-              style={{ color: brand.body, fontSize: 13, lineHeight: 18 }}
-              numberOfLines={2}
-            >
-              {item.notes}
-            </Text>
-          ) : null}
-          {item.created_via === 'scai' ? <ScaiBadge /> : null}
+          {item.notes ? <Text style={{ color: colors.secondaryLabel, fontSize: 13, lineHeight: 18 }} numberOfLines={2}>{item.notes}</Text> : null}
+          {item.created_via === 'scai' && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+              <Ionicons name="flash" size={11} color={brand.teal} />
+              <Text style={{ fontSize: 11, color: brand.teal, fontWeight: '600' }}>Via SCAI</Text>
+            </View>
+          )}
           {item.lat != null && item.lng != null && (
-            <Pressable
-              onPress={() => Linking.openURL(
-                `maps://?q=Custody+Check-in&ll=${item.lat},${item.lng}`
-              )}
-              style={{ marginTop: 4 }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${item.lat},${item.lng}`)} style={{ marginTop: 4 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                 <Ionicons name="location-outline" size={12} color={brand.blue} />
-                <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>
-                  View in Maps ({item.lat?.toFixed(4)}, {item.lng?.toFixed(4)})
-                </Text>
+                <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>View location</Text>
               </View>
             </Pressable>
           )}
         </View>
         <View style={{ alignItems: 'flex-end', gap: 6 }}>
-          <Text style={{ color: brand.body, fontSize: 12 }}>
-            {formatTime(item.created_at)}
-          </Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 12 }}>{formatTime(item.created_at)}</Text>
           {onDelete && (
             <Pressable onPress={onDelete} hitSlop={10}>
-              <Ionicons name="trash-outline" size={14} color={brand.body} style={{ opacity: 0.45 }} />
+              <Ionicons name="trash-outline" size={14} color={colors.secondaryLabel} style={{ opacity: 0.4 }} />
             </Pressable>
           )}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
 function ZoneCard({ zone, onDelete }: { zone: Zone; onDelete?: () => void }) {
-  const hasCoords = zone.lat != null && zone.lng != null;
-  const desc = hasCoords
-    ? `${zone.lat!.toFixed(4)}, ${zone.lng!.toFixed(4)}`
-    : 'No coordinates set';
-
   return (
-    <View
-      style={{
-        backgroundColor: brand.card,
-        borderRadius: 14,
-        padding: 14,
-        marginHorizontal: 16,
-        marginBottom: 10,
-        boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-        borderCurve: 'continuous',
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-        <View
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 12,
-            backgroundColor: '#E6F9F1',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name="location-outline" size={20} color={brand.teal} />
+    <View style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 18, marginHorizontal: 16, marginBottom: 10, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+        <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+          <Ionicons name="location-outline" size={21} color={brand.teal} />
         </View>
         <View style={{ flex: 1, gap: 2 }}>
-          <Text style={{ fontWeight: '600', fontSize: 15, color: brand.dark }}>{zone.name}</Text>
-          <Text style={{ color: brand.body, fontSize: 13 }}>{zone.zone_type}</Text>
-          <Text style={{ color: brand.body, fontSize: 12 }}>{desc}</Text>
+          <Text style={{ fontWeight: '700', fontSize: 15, color: colors.label }}>{zone.name}</Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>{zone.zone_type}</Text>
+          {zone.lat != null && zone.lng != null && (
+            <Text style={{ color: colors.secondaryLabel, fontSize: 12 }}>{zone.lat.toFixed(4)}, {zone.lng.toFixed(4)}</Text>
+          )}
         </View>
         {onDelete && (
           <Pressable onPress={onDelete} hitSlop={10}>
-            <Ionicons name="trash-outline" size={16} color={brand.body} style={{ opacity: 0.45 }} />
+            <Ionicons name="trash-outline" size={16} color={colors.secondaryLabel} style={{ opacity: 0.4 }} />
           </Pressable>
         )}
       </View>
@@ -214,81 +108,44 @@ function ZoneCard({ zone, onDelete }: { zone: Zone; onDelete?: () => void }) {
   );
 }
 
-// ─── Add Check-in Modal ───────────────────────────────────────────────────────
+const ZONE_TYPES = ["Home (Mom's)", "Home (Dad's)", 'School', 'Other'];
+const EVENT_TYPES: Array<{ key: 'enter' | 'manual' | 'exit'; label: string }> = [
+  { key: 'enter', label: 'Pickup' },
+  { key: 'manual', label: 'Manual' },
+  { key: 'exit', label: 'Drop-off' },
+];
 
-interface AddCheckInModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onSaved: () => void;
-  children: Child[];
-}
-
-function AddCheckInModal({ visible, onClose, onSaved, children }: AddCheckInModalProps) {
+function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: boolean; onClose: () => void; onSaved: () => void; childList: Child[] }) {
   const insets = useSafeAreaInsets();
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [eventType, setEventType] = useState<'enter' | 'manual' | 'exit'>('enter');
   const [notes, setNotes] = useState('');
   const [useGps, setUseGps] = useState(false);
-  const [locationState, setLocationState] = useState<'idle' | 'loading' | 'captured' | 'failed'>(
-    'idle'
-  );
+  const [locationState, setLocationState] = useState<'idle' | 'loading' | 'captured' | 'failed'>('idle');
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
 
   const handleGpsToggle = useCallback(async (val: boolean) => {
     setUseGps(val);
-    if (!val) {
-      setLat(null);
-      setLng(null);
-      setLocationState('idle');
-      return;
-    }
-
+    if (!val) { setLat(null); setLng(null); setLocationState('idle'); return; }
     setLocationState('loading');
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationState('failed');
-        return;
-      }
+      if (status !== 'granted') { setLocationState('failed'); return; }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      setLat(pos.coords.latitude);
-      setLng(pos.coords.longitude);
-      setLocationState('captured');
-    } catch {
-      setLocationState('failed');
-    }
+      setLat(pos.coords.latitude); setLng(pos.coords.longitude); setLocationState('captured');
+    } catch { setLocationState('failed'); }
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!notes.trim()) {
-      Alert.alert('Notes required', 'Please enter notes for this check-in.');
-      return;
-    }
+    if (!notes.trim()) { Alert.alert('Notes required', 'Please enter notes for this check-in.'); return; }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-
-      await supabase.from('custody_checkins').insert({
-        user_id: user.id,
-        child_id: selectedChildId ?? null,
-        event_type: eventType,
-        notes: notes.trim(),
-        lat,
-        lng,
-        created_via: 'manual',
-      });
-
-      // Reset
-      setNotes('');
-      setSelectedChildId(null);
-      setEventType('enter');
-      setUseGps(false);
-      setLat(null);
-      setLng(null);
-      setLocationState('idle');
+      await supabase.from('custody_checkins').insert({ user_id: user.id, child_id: selectedChildId ?? null, event_type: eventType, notes: notes.trim(), lat, lng, created_via: 'manual' });
+      setNotes(''); setSelectedChildId(null); setEventType('enter'); setUseGps(false); setLat(null); setLng(null); setLocationState('idle');
       onSaved();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not save check-in.');
@@ -297,193 +154,86 @@ function AddCheckInModal({ visible, onClose, onSaved, children }: AddCheckInModa
     }
   }, [notes, selectedChildId, eventType, lat, lng, onSaved]);
 
-  const EVENT_TYPES: Array<{ key: 'enter' | 'manual' | 'exit'; label: string }> = [
-    { key: 'enter', label: 'Enter (Pickup)' },
-    { key: 'manual', label: 'Manual' },
-    { key: 'exit', label: 'Exit (Drop-off)' },
-  ];
-
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: '#F7FAFF' }}>
-        {/* Header */}
-        <View
-          style={{
-            backgroundColor: brand.card,
-            paddingTop: insets.top + 12,
-            paddingBottom: 12,
-            paddingHorizontal: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            borderBottomWidth: 1,
-            borderBottomColor: brand.separator,
-          }}
-        >
-          <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-            <Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text>
-          </Pressable>
-          <Text style={{ flex: 1, textAlign: 'center', fontWeight: '700', fontSize: 17, color: brand.dark }}>
-            Log Check-in
-          </Text>
-          <Pressable onPress={handleSave} disabled={saving} style={({ pressed }) => ({ opacity: pressed || saving ? 0.5 : 1 })}>
-            {saving ? (
-              <ActivityIndicator size="small" color={brand.blue} />
-            ) : (
-              <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>
-            )}
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
+          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Log Check-in</Text>
+          <Pressable onPress={handleSave} disabled={saving}>
+            {saving ? <ActivityIndicator size="small" color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
           </Pressable>
         </View>
-
-        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ gap: 20, padding: 16 }}>
-          {/* Child selector */}
+        <ScrollView contentContainerStyle={{ gap: 20, padding: 16 }}>
+          {/* Event type pills */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '600', fontSize: 13, color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-              Child (optional)
-            </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, paddingHorizontal: 16 }}>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <Pressable
-                  onPress={() => setSelectedChildId(null)}
-                  style={({ pressed }) => ({
-                    paddingHorizontal: 16,
-                    paddingVertical: 8,
-                    borderRadius: 20,
-                    backgroundColor: selectedChildId === null ? brand.blue : brand.card,
-                    borderWidth: 1,
-                    borderColor: selectedChildId === null ? brand.blue : brand.separator,
-                    opacity: pressed ? 0.7 : 1,
-                  })}
-                >
-                  <Text style={{ color: selectedChildId === null ? '#fff' : brand.body, fontWeight: '500', fontSize: 14 }}>
-                    General
-                  </Text>
-                </Pressable>
-                {children.map((c) => (
-                  <Pressable
-                    key={c.id}
-                    onPress={() => setSelectedChildId(c.id)}
-                    style={({ pressed }) => ({
-                      paddingHorizontal: 16,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor: selectedChildId === c.id ? brand.blue : brand.card,
-                      borderWidth: 1,
-                      borderColor: selectedChildId === c.id ? brand.blue : brand.separator,
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                  >
-                    <Text style={{ color: selectedChildId === c.id ? '#fff' : brand.body, fontWeight: '500', fontSize: 14 }}>
-                      {c.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
-          {/* Event type */}
-          <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '600', fontSize: 13, color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-              Event Type
-            </Text>
+            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Event Type</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              {EVENT_TYPES.map((et) => (
-                <Pressable
-                  key={et.key}
-                  onPress={() => setEventType(et.key)}
-                  style={({ pressed }) => ({
-                    flex: 1,
-                    paddingVertical: 12,
-                    borderRadius: 12,
-                    backgroundColor: eventType === et.key ? brand.blue : brand.card,
-                    borderWidth: 1,
-                    borderColor: eventType === et.key ? brand.blue : brand.separator,
-                    alignItems: 'center',
-                    opacity: pressed ? 0.7 : 1,
-                    borderCurve: 'continuous',
-                  })}
-                >
-                  <Text
-                    style={{
-                      color: eventType === et.key ? '#fff' : brand.body,
-                      fontWeight: '600',
-                      fontSize: 12,
-                      textAlign: 'center',
-                    }}
-                  >
-                    {et.label}
-                  </Text>
-                </Pressable>
-              ))}
+              {EVENT_TYPES.map(et => {
+                const meta = EVENT_META[et.key];
+                return (
+                  <Pressable key={et.key} onPress={() => setEventType(et.key)}
+                    style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: eventType === et.key ? meta.color + '18' : colors.surface, borderWidth: 1, borderColor: eventType === et.key ? meta.color + '40' : colors.separator, alignItems: 'center', gap: 6, borderCurve: 'continuous' }}>
+                    <Ionicons name={meta.icon} size={20} color={eventType === et.key ? meta.color : colors.secondaryLabel} />
+                    <Text style={{ color: eventType === et.key ? meta.color : colors.secondaryLabel, fontWeight: '700', fontSize: 12 }}>{et.label}</Text>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
+
+          {/* Child selector */}
+          {childList.length > 0 && (
+            <View style={{ gap: 8 }}>
+              <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Child (optional)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[{ id: null, name: 'General' }, ...childList].map((c: any) => (
+                    <Pressable key={c.id ?? 'general'} onPress={() => setSelectedChildId(c.id)}
+                      style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22, backgroundColor: selectedChildId === c.id ? brand.blue : colors.surface, borderWidth: 1, borderColor: selectedChildId === c.id ? brand.blue : colors.separator }}>
+                      <Text style={{ color: selectedChildId === c.id ? '#fff' : colors.secondaryLabel, fontWeight: '600', fontSize: 14 }}>{c.name}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          )}
 
           {/* Notes */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '600', fontSize: 13, color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-              Notes *
-            </Text>
+            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Notes *</Text>
             <TextInput
-              style={{
-                backgroundColor: brand.card,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: brand.separator,
-                padding: 14,
-                fontSize: 15,
-                color: brand.dark,
-                minHeight: 96,
-                textAlignVertical: 'top',
-                borderCurve: 'continuous',
-              }}
-              placeholder="Add notes about this check-in…"
-              placeholderTextColor={brand.body}
-              value={notes}
-              onChangeText={setNotes}
-              multiline
+              style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5, borderColor: colors.separator, padding: 16, fontSize: 15, color: colors.label, minHeight: 96, textAlignVertical: 'top', borderCurve: 'continuous' }}
+              placeholder="Add notes about this check-in…" placeholderTextColor={colors.secondaryLabel}
+              value={notes} onChangeText={setNotes} multiline
             />
           </View>
 
-          {/* GPS Location */}
-          <View
-            style={{
-              backgroundColor: brand.card,
-              borderRadius: 14,
-              padding: 14,
-              gap: 10,
-              borderCurve: 'continuous',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            }}
-          >
+          {/* GPS */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, gap: 10, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ flex: 1, fontWeight: '600', fontSize: 15, color: brand.dark }}>
-                Use GPS Location
-              </Text>
-              <Switch
-                value={useGps}
-                onValueChange={handleGpsToggle}
-                trackColor={{ true: brand.blue, false: brand.separator }}
-              />
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="location-outline" size={16} color={brand.teal} />
+                </View>
+                <Text style={{ fontWeight: '600', fontSize: 15, color: colors.label }}>Use GPS Location</Text>
+              </View>
+              <Switch value={useGps} onValueChange={handleGpsToggle} trackColor={{ true: brand.blue, false: colors.separator }} thumbColor="#fff" />
             </View>
-
             {useGps && locationState === 'loading' && (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <ActivityIndicator size="small" color={brand.blue} />
-                <Text style={{ color: brand.body, fontSize: 13 }}>Acquiring location…</Text>
+                <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>Acquiring location…</Text>
               </View>
             )}
             {useGps && locationState === 'captured' && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                <Ionicons name="location-outline" size={13} color={brand.teal} />
-                <Text style={{ color: brand.teal, fontSize: 13, fontWeight: '500' }}>
-                  Location captured ({lat?.toFixed(5)}, {lng?.toFixed(5)})
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="checkmark-circle" size={14} color={brand.teal} />
+                <Text style={{ color: brand.teal, fontSize: 13, fontWeight: '600' }}>Location captured</Text>
               </View>
             )}
             {useGps && locationState === 'failed' && (
-              <Text style={{ color: brand.error, fontSize: 13 }}>
-                Location unavailable — permission denied or GPS off.
-              </Text>
+              <Text style={{ color: brand.error, fontSize: 13 }}>Location unavailable — permission denied or GPS off.</Text>
             )}
           </View>
         </ScrollView>
@@ -492,148 +242,104 @@ function AddCheckInModal({ visible, onClose, onSaved, children }: AddCheckInModa
   );
 }
 
-// ─── Add Zone Modal ───────────────────────────────────────────────────────────
-
-const ZONE_TYPES = ["Home (Mom's)", "Home (Dad's)", 'School', 'Other'];
-
-interface AddZoneModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onSaved: () => void;
-}
-
-function AddZoneModal({ visible, onClose, onSaved }: AddZoneModalProps) {
+function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose: () => void; onSaved: () => void }) {
   const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [zoneType, setZoneType] = useState(ZONE_TYPES[0]);
   const [saving, setSaving] = useState(false);
+  const [useGps, setUseGps] = useState(false);
+  const [locationState, setLocationState] = useState<'idle' | 'loading' | 'captured' | 'failed'>('idle');
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+
+  const handleGpsToggle = useCallback(async (val: boolean) => {
+    setUseGps(val);
+    if (!val) { setLat(null); setLng(null); setLocationState('idle'); return; }
+    setLocationState('loading');
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') { setLocationState('failed'); return; }
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      setLat(pos.coords.latitude); setLng(pos.coords.longitude); setLocationState('captured');
+    } catch { setLocationState('failed'); }
+  }, []);
 
   const handleSave = useCallback(async () => {
-    if (!name.trim()) {
-      Alert.alert('Name required', 'Please enter a name for this zone.');
-      return;
-    }
+    if (!name.trim()) { Alert.alert('Name required', 'Please enter a name for this zone.'); return; }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-
-      await supabase.from('custody_zones').insert({
-        user_id: user.id,
-        name: name.trim(),
-        zone_type: zoneType,
-      });
-
-      setName('');
-      setZoneType(ZONE_TYPES[0]);
+      await supabase.from('custody_zones').insert({ user_id: user.id, name: name.trim(), zone_type: zoneType, lat, lng });
+      setName(''); setZoneType(ZONE_TYPES[0]); setUseGps(false); setLat(null); setLng(null); setLocationState('idle');
       onSaved();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not save zone.');
     } finally {
       setSaving(false);
     }
-  }, [name, zoneType, onSaved]);
+  }, [name, zoneType, lat, lng, onSaved]);
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
-      <View style={{ flex: 1, backgroundColor: '#F7FAFF' }}>
-        <View
-          style={{
-            backgroundColor: brand.card,
-            paddingTop: insets.top + 12,
-            paddingBottom: 12,
-            paddingHorizontal: 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            borderBottomWidth: 1,
-            borderBottomColor: brand.separator,
-          }}
-        >
-          <Pressable onPress={onClose} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
-            <Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text>
-          </Pressable>
-          <Text style={{ flex: 1, textAlign: 'center', fontWeight: '700', fontSize: 17, color: brand.dark }}>
-            Add Zone
-          </Text>
-          <Pressable onPress={handleSave} disabled={saving} style={({ pressed }) => ({ opacity: pressed || saving ? 0.5 : 1 })}>
-            {saving ? (
-              <ActivityIndicator size="small" color={brand.blue} />
-            ) : (
-              <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>
-            )}
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
+          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Add Zone</Text>
+          <Pressable onPress={handleSave} disabled={saving}>
+            {saving ? <ActivityIndicator size="small" color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
           </Pressable>
         </View>
-
-        <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ gap: 20, padding: 16 }}>
-          {/* Name */}
+        <ScrollView contentContainerStyle={{ gap: 20, padding: 16 }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '600', fontSize: 13, color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-              Zone Name *
-            </Text>
+            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Zone Name *</Text>
             <TextInput
-              style={{
-                backgroundColor: brand.card,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: brand.separator,
-                padding: 14,
-                fontSize: 15,
-                color: brand.dark,
-                borderCurve: 'continuous',
-              }}
-              placeholder="e.g. Mom's House"
-              placeholderTextColor={brand.body}
-              value={name}
-              onChangeText={setName}
-              autoFocus
+              style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5, borderColor: colors.separator, padding: 16, fontSize: 15, color: colors.label, borderCurve: 'continuous' }}
+              placeholder="e.g. Mom's House" placeholderTextColor={colors.secondaryLabel}
+              value={name} onChangeText={setName} autoFocus
             />
           </View>
-
-          {/* Zone type */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '600', fontSize: 13, color: brand.body, textTransform: 'uppercase', letterSpacing: 0.4 }}>
-              Zone Type
-            </Text>
+            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Zone Type</Text>
             <View style={{ gap: 8 }}>
-              {ZONE_TYPES.map((zt) => (
-                <Pressable
-                  key={zt}
-                  onPress={() => setZoneType(zt)}
-                  style={({ pressed }) => ({
-                    padding: 14,
-                    borderRadius: 12,
-                    backgroundColor: zoneType === zt ? brand.lightBg : brand.card,
-                    borderWidth: 1,
-                    borderColor: zoneType === zt ? brand.blue : brand.separator,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    opacity: pressed ? 0.7 : 1,
-                    borderCurve: 'continuous',
-                  })}
-                >
-                  <View
-                    style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      borderWidth: 2,
-                      borderColor: zoneType === zt ? brand.blue : brand.separator,
-                      backgroundColor: zoneType === zt ? brand.blue : 'transparent',
-                      marginRight: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {zoneType === zt && (
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' }} />
-                    )}
+              {ZONE_TYPES.map(zt => (
+                <Pressable key={zt} onPress={() => setZoneType(zt)}
+                  style={{ padding: 16, borderRadius: 14, backgroundColor: zoneType === zt ? brand.teal + '12' : colors.surface, borderWidth: 1, borderColor: zoneType === zt ? brand.teal + '40' : colors.separator, flexDirection: 'row', alignItems: 'center', borderCurve: 'continuous' }}>
+                  <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: zoneType === zt ? brand.teal : colors.separator, backgroundColor: zoneType === zt ? brand.teal : 'transparent', marginRight: 12, alignItems: 'center', justifyContent: 'center' }}>
+                    {zoneType === zt && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' }} />}
                   </View>
-                  <Text style={{ fontSize: 15, color: brand.dark, fontWeight: zoneType === zt ? '600' : '400' }}>
-                    {zt}
-                  </Text>
+                  <Text style={{ fontSize: 15, color: zoneType === zt ? brand.teal : colors.label, fontWeight: zoneType === zt ? '600' : '400' }}>{zt}</Text>
                 </Pressable>
               ))}
             </View>
+          </View>
+
+          {/* GPS pin */}
+          <View style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, gap: 10, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="location-outline" size={16} color={brand.teal} />
+                </View>
+                <Text style={{ fontWeight: '600', fontSize: 15, color: colors.label }}>Pin Current Location</Text>
+              </View>
+              <Switch value={useGps} onValueChange={handleGpsToggle} trackColor={{ true: brand.blue, false: colors.separator }} thumbColor="#fff" />
+            </View>
+            {useGps && locationState === 'loading' && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <ActivityIndicator size="small" color={brand.blue} />
+                <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>Acquiring location…</Text>
+              </View>
+            )}
+            {useGps && locationState === 'captured' && lat !== null && lng !== null && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Ionicons name="checkmark-circle" size={14} color={brand.teal} />
+                <Text style={{ color: brand.teal, fontSize: 13, fontWeight: '600' }} selectable>{lat.toFixed(5)}, {lng.toFixed(5)}</Text>
+              </View>
+            )}
+            {useGps && locationState === 'failed' && (
+              <Text style={{ color: brand.error, fontSize: 13 }}>Location unavailable — permission denied or GPS off.</Text>
+            )}
           </View>
         </ScrollView>
       </View>
@@ -641,152 +347,89 @@ function AddZoneModal({ visible, onClose, onSaved }: AddZoneModalProps) {
   );
 }
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
-
 export default function CustodyClockScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'checkins' | 'zones'>('checkins');
-
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showZoneModal, setShowZoneModal] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [checkInRes, zoneRes, childRes] = await Promise.all([
-        supabase
-          .from('custody_checkins')
-          .select('*, child:child_id(name)')
-          .order('created_at', { ascending: false })
-          .limit(50),
+      const [ciRes, zRes, chRes] = await Promise.all([
+        supabase.from('custody_checkins').select('*, child:child_id(name)').order('created_at', { ascending: false }).limit(50),
         supabase.from('custody_zones').select('*').order('created_at'),
         supabase.from('children' as any).select('id, name').order('name'),
       ]);
-
-      if (checkInRes.data) setCheckIns(checkInRes.data as unknown as CheckIn[]);
-      if (zoneRes.data) setZones(zoneRes.data as unknown as Zone[]);
-      if (childRes.data) setChildren(childRes.data as unknown as Child[]);
+      if (ciRes.data) setCheckIns(ciRes.data as unknown as CheckIn[]);
+      if (zRes.data) setZones(zRes.data as unknown as Zone[]);
+      if (chRes.data) setChildren(chRes.data as unknown as Child[]);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleCheckInSaved = useCallback(() => {
-    setShowCheckInModal(false);
-    loadData();
-  }, [loadData]);
-
-  const handleZoneSaved = useCallback(() => {
-    setShowZoneModal(false);
-    loadData();
-  }, [loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   const handleDeleteCheckIn = useCallback((id: string) => {
-    Alert.alert(
-      'Delete check-in?',
-      'This will permanently remove this custody record.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive',
-          onPress: async () => {
-            await supabase.from('custody_checkins').delete().eq('id', id);
-            loadData();
-          },
-        },
-      ]
-    );
+    Alert.alert('Delete check-in?', 'This will permanently remove this custody record.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => { await supabase.from('custody_checkins').delete().eq('id', id); loadData(); } },
+    ]);
   }, [loadData]);
 
   const handleDeleteZone = useCallback((id: string) => {
-    Alert.alert(
-      'Delete zone?',
-      'This will permanently remove this location zone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete', style: 'destructive',
-          onPress: async () => {
-            await supabase.from('custody_zones').delete().eq('id', id);
-            loadData();
-          },
-        },
-      ]
-    );
+    Alert.alert('Delete zone?', 'This will permanently remove this location zone.', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => { await supabase.from('custody_zones').delete().eq('id', id); loadData(); } },
+    ]);
   }, [loadData]);
+
+  const todayCheckIns = checkIns.filter(c => {
+    const d = new Date(c.created_at);
+    const n = new Date();
+    return d.getDate() === n.getDate() && d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear();
+  });
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Custody Clock', headerTintColor: brand.blue }} />
+      <Stack.Screen options={{ title: 'Custody Clock', headerTintColor: brand.blue, headerStyle: { backgroundColor: colors.surface as any } }} />
+      <View style={{ flex: 1, backgroundColor: colors.background }}>
 
-      <View style={{ flex: 1, backgroundColor: brand.lightBg }}>
-        {/* Tab row */}
-        <View
-          style={{
-            flexDirection: 'row',
-            backgroundColor: brand.card,
-            borderBottomWidth: 1,
-            borderBottomColor: brand.separator,
-          }}
+        {/* ── Hero strip ── */}
+        <LinearGradient
+          colors={[brand.teal, '#0A7A6E']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' }}
         >
-          {(['checkins', 'zones'] as const).map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              style={({ pressed }) => ({
-                flex: 1,
-                paddingVertical: 12,
-                alignItems: 'center',
-                borderBottomWidth: 2,
-                borderBottomColor: activeTab === tab ? brand.blue : 'transparent',
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Text
-                style={{
-                  fontSize: 15,
-                  fontWeight: activeTab === tab ? '600' : '400',
-                  color: activeTab === tab ? brand.blue : brand.body,
-                }}
-              >
-                {tab === 'checkins' ? 'Check-ins' : 'Zones'}
+          <View style={{ position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>Today</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
+              <Text style={{ color: '#fff', fontSize: 40, fontWeight: '900', letterSpacing: -2, lineHeight: 44 }}>{todayCheckIns.length}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, fontWeight: '600' }}>check-in{todayCheckIns.length !== 1 ? 's' : ''}</Text>
+            </View>
+          </View>
+          <Pressable onPress={() => setShowCheckInModal(true)}
+            style={({ pressed }) => ({ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>+ Log</Text>
+          </Pressable>
+        </LinearGradient>
+
+        {/* ── Tabs ── */}
+        <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, backgroundColor: colors.surface, borderRadius: 14, padding: 4, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
+          {(['checkins', 'zones'] as const).map(tab => (
+            <Pressable key={tab} onPress={() => setActiveTab(tab)}
+              style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 11, backgroundColor: activeTab === tab ? brand.blue : 'transparent', borderCurve: 'continuous' }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: activeTab === tab ? '#fff' : colors.secondaryLabel }}>
+                {tab === 'checkins' ? `Check-ins (${checkIns.length})` : `Zones (${zones.length})`}
               </Text>
             </Pressable>
           ))}
-        </View>
-
-        {/* Action button */}
-        <View
-          style={{
-            paddingHorizontal: 16,
-            paddingVertical: 12,
-            flexDirection: 'row',
-            justifyContent: 'flex-end',
-          }}
-        >
-          <Pressable
-            onPress={() => (activeTab === 'checkins' ? setShowCheckInModal(true) : setShowZoneModal(true))}
-            style={({ pressed }) => ({
-              backgroundColor: brand.blue,
-              borderRadius: 20,
-              paddingHorizontal: 18,
-              paddingVertical: 9,
-              opacity: pressed ? 0.8 : 1,
-            })}
-          >
-            <Text style={{ color: '#fff', fontWeight: '600', fontSize: 14 }}>
-              {activeTab === 'checkins' ? '+ Log Check-in' : '+ Add Zone'}
-            </Text>
-          </Pressable>
         </View>
 
         {loading ? (
@@ -794,61 +437,48 @@ export default function CustodyClockScreen() {
             <ActivityIndicator size="large" color={brand.blue} />
           </View>
         ) : activeTab === 'checkins' ? (
-          <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
-          >
+          <ScrollView contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}>
             {checkIns.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
-                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="clipboard-outline" size={32} color={brand.body} />
+              <View style={{ alignItems: 'center', paddingTop: 60, gap: 14 }}>
+                <View style={{ width: 60, height: 60, borderRadius: 16, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+                  <Ionicons name="clipboard-outline" size={28} color={brand.teal} />
                 </View>
-                <Text style={{ fontWeight: '700', fontSize: 17, color: brand.dark }}>No check-ins yet</Text>
-                <Text style={{ color: brand.body, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 }}>
+                <Text style={{ fontWeight: '700', fontSize: 17, color: colors.label }}>No check-ins yet</Text>
+                <Text style={{ color: colors.secondaryLabel, fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 }}>
                   Log a custody check-in to start tracking handoffs.
                 </Text>
               </View>
-            ) : (
-              checkIns.map((item) => (
-                <CheckInCard key={item.id} item={item} onDelete={() => handleDeleteCheckIn(item.id)} />
-              ))
-            )}
+            ) : checkIns.map(item => (
+              <CheckInCard key={item.id} item={item} onDelete={() => handleDeleteCheckIn(item.id)} />
+            ))}
           </ScrollView>
         ) : (
-          <ScrollView
-            contentInsetAdjustmentBehavior="automatic"
-            contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}
-          >
+          <ScrollView contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 24) }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, marginBottom: 4 }}>
+              <Pressable onPress={() => setShowZoneModal(true)}
+                style={({ pressed }) => ({ backgroundColor: brand.teal, borderRadius: 22, paddingHorizontal: 18, paddingVertical: 10, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>+ Add Zone</Text>
+              </Pressable>
+            </View>
             {zones.length === 0 ? (
-              <View style={{ alignItems: 'center', paddingTop: 60, gap: 12 }}>
-                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: brand.separator, alignItems: 'center', justifyContent: 'center' }}>
-                  <Ionicons name="location-outline" size={32} color={brand.body} />
+              <View style={{ alignItems: 'center', paddingTop: 40, gap: 14 }}>
+                <View style={{ width: 60, height: 60, borderRadius: 16, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+                  <Ionicons name="location-outline" size={28} color={brand.teal} />
                 </View>
-                <Text style={{ fontWeight: '700', fontSize: 17, color: brand.dark }}>No zones set up yet</Text>
-                <Text style={{ color: brand.body, fontSize: 14, textAlign: 'center', paddingHorizontal: 40 }}>
-                  Add zones like home addresses and schools to organise your custody check-ins.
+                <Text style={{ fontWeight: '700', fontSize: 17, color: colors.label }}>No zones set up yet</Text>
+                <Text style={{ color: colors.secondaryLabel, fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 }}>
+                  Add zones like home addresses and schools to organise custody check-ins.
                 </Text>
               </View>
-            ) : (
-              zones.map((zone) => (
-                <ZoneCard key={zone.id} zone={zone} onDelete={() => handleDeleteZone(zone.id)} />
-              ))
-            )}
+            ) : zones.map(zone => (
+              <ZoneCard key={zone.id} zone={zone} onDelete={() => handleDeleteZone(zone.id)} />
+            ))}
           </ScrollView>
         )}
       </View>
 
-      <AddCheckInModal
-        visible={showCheckInModal}
-        onClose={() => setShowCheckInModal(false)}
-        onSaved={handleCheckInSaved}
-        children={children}
-      />
-      <AddZoneModal
-        visible={showZoneModal}
-        onClose={() => setShowZoneModal(false)}
-        onSaved={handleZoneSaved}
-      />
+      <AddCheckInModal visible={showCheckInModal} onClose={() => setShowCheckInModal(false)} onSaved={() => { setShowCheckInModal(false); loadData(); }} childList={children} />
+      <AddZoneModal visible={showZoneModal} onClose={() => setShowZoneModal(false)} onSaved={() => { setShowZoneModal(false); loadData(); }} />
     </>
   );
 }

@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 
 // How notifications are presented while the app is in the foreground
@@ -84,11 +85,19 @@ export function usePushNotifications() {
       // Badge/sound handled by setNotificationHandler above
     });
 
-    // User tapped a notification
+    // User tapped a notification — route to the relevant screen
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       const data = response.notification.request.content.data as Record<string, string> | undefined;
-      // Route to the relevant screen based on notification type
-      // Expo Router navigation happens via global router — import if needed
+      const type = data?.type;
+      if (type === 'expense' || type === 'notify-expense') {
+        router.push('/(tabs)/expenses');
+      } else if (type === 'message') {
+        router.push('/(tabs)/messages');
+      } else if (type === 'calendar' || type === 'event') {
+        router.push('/(tabs)/calendar');
+      } else {
+        router.push('/(tabs)/');
+      }
     });
 
     return () => {

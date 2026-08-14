@@ -10,7 +10,7 @@
       "distribution": "internal",
       "ios": { "simulator": true },
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://supportcard.vercel.app",
+        "EXPO_PUBLIC_API_BASE_URL": "https://supportcard-prod.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://owwxfifduexcahsvtyzn.supabase.co"
       }
     },
@@ -18,7 +18,7 @@
       "distribution": "internal",
       "channel": "preview",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://supportcard.vercel.app",
+        "EXPO_PUBLIC_API_BASE_URL": "https://supportcard-prod.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://owwxfifduexcahsvtyzn.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93d3hmaWZkdWV4Y2Foc3Z0eXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MzU4MTYsImV4cCI6MjA3NjAxMTgxNn0.QXOtdswltExUM9YtMluhHGgrXUmu_D_D_adSaGc4HXk"
       }
@@ -27,7 +27,7 @@
       "autoIncrement": true,
       "channel": "production",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://supportcard.vercel.app",
+        "EXPO_PUBLIC_API_BASE_URL": "https://supportcard-prod.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://owwxfifduexcahsvtyzn.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93d3hmaWZkdWV4Y2Foc3Z0eXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MzU4MTYsImV4cCI6MjA3NjAxMTgxNn0.QXOtdswltExUM9YtMluhHGgrXUmu_D_D_adSaGc4HXk"
       }
@@ -36,9 +36,9 @@
   "submit": {
     "production": {
       "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
+        "appleId": "southsphereapps@gmail.com",
+        "ascAppId": "6801612058",
+        "appleTeamId": "28FLFDM932"
       },
       "android": {
         "serviceAccountKeyPath": "./google-service-account.json",

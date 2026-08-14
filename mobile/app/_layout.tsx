@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router/stack';
-import { ThemeProvider, DefaultTheme, useRouter, useSegments } from 'expo-router';
+import { ThemeProvider, DefaultTheme, DarkTheme, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Updates from 'expo-updates';
 import { Session } from '@supabase/supabase-js';
-import { View, Text, Pressable } from 'react-native';
+import { View, Text, Pressable, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFonts } from 'expo-font';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
@@ -81,17 +80,16 @@ function AuthGate({ session }: { session: Session | null | undefined }) {
 // ─── App shell ────────────────────────────────────────────────────────────────
 
 function AppShell({ session }: { session: Session | null }) {
+  const colorScheme = useColorScheme();
   usePushNotifications(); // register for push notifications once authenticated
 
   return (
-    <ThemeProvider value={theme}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : theme}>
       <AuthGate session={session} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
-        <Stack.Screen name="my-scai" options={{ headerShown: false }} />
         <Stack.Screen name="pricing" options={{ headerShown: false }} />
-        <Stack.Screen name="messages" options={{ headerShown: true }} />
         <Stack.Screen name="contacts" options={{ headerShown: true }} />
         <Stack.Screen name="transactions" options={{ headerShown: true }} />
         <Stack.Screen name="family" options={{ headerShown: true }} />
@@ -112,14 +110,19 @@ function AppShell({ session }: { session: Session | null }) {
 
 // ─── Root layout ─────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const ioniconsFontUrl = require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf');
+
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
-  const [fontsLoaded] = useFonts({
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    Ionicons: require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf'),
-  });
 
   useEffect(() => {
+    // Load Ionicons from unpkg to bypass Vercel CDN cache corruption
+    if (typeof document !== 'undefined') {
+      const style = document.createElement('style');
+      style.textContent = `@font-face { font-family: 'Ionicons'; src: url('https://unpkg.com/@expo/vector-icons@15.0.2/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf') format('truetype'); font-display: block; }`;
+      document.head.appendChild(style);
+    }
     checkForUpdates();
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -134,7 +137,7 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined || !fontsLoaded) return null;
+  if (session === undefined) return null;
 
   return <AppShell session={session} />;
 }
