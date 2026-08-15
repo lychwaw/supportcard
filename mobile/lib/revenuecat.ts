@@ -10,14 +10,24 @@ const TIER_TO_PACKAGE: Record<string, string> = {
   premium:   'supportcard_premium_monthly',
 };
 
+let configured = false;
+
 export function initRevenueCat(userId: string) {
   if (Platform.OS !== 'ios') return;
   if (!IOS_KEY) return;
-  Purchases.setLogLevel(LOG_LEVEL.ERROR);
-  Purchases.configure({ apiKey: IOS_KEY, appUserID: userId });
+  if (configured) return;
+  try {
+    Purchases.setLogLevel(LOG_LEVEL.ERROR);
+    Purchases.configure({ apiKey: IOS_KEY, appUserID: userId });
+    configured = true;
+  } catch (e) {
+    console.warn('RevenueCat init failed:', e);
+  }
 }
 
 export async function purchaseWithRevenueCat(tier: string): Promise<void> {
+  if (!configured) throw new Error('Subscription service not ready. Please restart the app and try again.');
+
   const offerings = await Purchases.getOfferings();
   const current = offerings.current;
   if (!current) throw new Error('No offerings available from App Store.');
