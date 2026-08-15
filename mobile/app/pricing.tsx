@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { router } from 'expo-router';
 import {
   ScrollView, View, Text, Pressable, StatusBar,
-  Linking, Alert, ActivityIndicator,
+  Linking, Alert, ActivityIndicator, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
 import { formatPrice, CURRENCY_OPTIONS } from '@/lib/currency';
+import { purchaseWithRevenueCat, restoreRevenueCatPurchases } from '@/lib/revenuecat';
 
 function FeatureRow({ text, accent }: { text: string; accent?: boolean }) {
   return (
@@ -39,34 +40,47 @@ export default function PricingScreen() {
 
     setCheckoutLoading(tier);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        Alert.alert('Sign in required', 'Please sign in to subscribe.');
-        return;
-      }
-
-      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
-      const res = await fetch(`${apiBase}/api/dodo-checkout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ tier }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        Alert.alert('Checkout error', data.error ?? 'Could not start checkout.');
-        return;
-      }
-
-      if (typeof window !== 'undefined') {
-        window.location.href = data.payment_link;
+      if (Platform.OS === 'ios') {
+        await purchaseWithRevenueCat(tier);
+        router.replace('/(tabs)/');
       } else {
-        await Linking.openURL(data.payment_link);
+        // Web — use Dodo checkout
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          Alert.alert('Sign in required', 'Please sign in to subscribe.');
+          return;
+        }
+        const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
+        const res = await fetch(`${apiBase}/api/dodo-checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ tier }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          Alert.alert('Checkout error', data.error ?? 'Could not start checkout.');
+          return;
+        }
+        if (typeof window !== 'undefined') {
+          window.location.href = data.payment_link;
+        } else {
+          await Linking.openURL(data.payment_link);
+        }
       }
     } catch (e: any) {
+      if ((e as any)?.userCancelled) return;
       Alert.alert('Error', e?.message ?? 'Something went wrong. Please try again.');
     } finally {
       setCheckoutLoading(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    try {
+      await restoreRevenueCatPurchases();
+      Alert.alert('Restored', 'Your purchases have been restored.');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not restore purchases.');
     }
   };
 
@@ -295,6 +309,13 @@ export default function PricingScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Restore Purchases — required by Apple */}
+        {Platform.OS === 'ios' && (
+          <Pressable onPress={handleRestore} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignItems: 'center', paddingVertical: 8 })}>
+            <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>Restore Purchases</Text>
+          </Pressable>
+        )}
       </ScrollView>
     </View>
   );

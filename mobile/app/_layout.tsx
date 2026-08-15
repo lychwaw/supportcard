@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
+import { initRevenueCat } from '@/lib/revenuecat';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -127,11 +128,13 @@ export default function RootLayout() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user?.id) initRevenueCat(session.user.id);
       SplashScreen.hideAsync();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user?.id) initRevenueCat(session.user.id);
     });
 
     return () => subscription.unsubscribe();
