@@ -30,7 +30,7 @@
         "EXPO_PUBLIC_API_BASE_URL": "https://supportcard-prod.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://owwxfifduexcahsvtyzn.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93d3hmaWZkdWV4Y2Foc3Z0eXpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0MzU4MTYsImV4cCI6MjA3NjAxMTgxNn0.QXOtdswltExUM9YtMluhHGgrXUmu_D_D_adSaGc4HXk",
-        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "test_BZOSFJsoRMfGYyVFhKSNxYGFoIr"
+        "EXPO_PUBLIC_REVENUECAT_IOS_KEY": "appl_zpVJCvHVNtCNkxOGKrQABxQhRqO"
       }
     }
   },
