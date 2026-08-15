@@ -13,6 +13,8 @@ const TIER_TO_PACKAGE: Record<string, string> = {
 let configured = false;
 
 export function initRevenueCat(userId: string) {
+  // Disabled until native module crash is resolved — re-enable after next build
+  return;
   if (Platform.OS !== 'ios') return;
   if (!IOS_KEY) return;
   if (configured) return;
