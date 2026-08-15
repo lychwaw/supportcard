@@ -121,6 +121,12 @@
         "projectId": "f766b24c-9764-48ba-bb67-4af604014cc1"
       }
     },
-    "owner": "supportcard"
+    "owner": "supportcard",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/f766b24c-9764-48ba-bb67-4af604014cc1"
+    }
   }
 }
