@@ -67,6 +67,7 @@ export default function HomeScreen() {
   const [childrenCount, setChildrenCount] = useState(0);
   const [nextEvent, setNextEvent]     = useState<{ date: string; type: string } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [idVerified, setIdVerified] = useState<boolean | null>(null);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -79,7 +80,7 @@ export default function HomeScreen() {
         profileRes, childrenRes, expenses, events, checkins,
         messages, pendingRes, upcomingRes, custodyRes,
       ] = await Promise.all([
-        supabase.from('profiles' as any).select('full_name').eq('id', user.id).single(),
+        supabase.from('profiles' as any).select('full_name, id_verified').eq('id', user.id).single(),
         supabase.from('children' as any).select('id', { count: 'exact' }).or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`),
         permissions.isParent
           ? supabase.from('expense_requests' as any).select('id,amount,category,status,created_at,description').eq('requester_id', user.id).order('created_at', { ascending: false }).limit(10)
@@ -93,6 +94,7 @@ export default function HomeScreen() {
       ]);
 
       setUserName((profileRes as any).data?.full_name?.split(' ')[0] ?? '');
+      setIdVerified((profileRes as any).data?.id_verified ?? false);
       setChildrenCount((childrenRes as any).count ?? 0);
       setPendingCount((pendingRes as any).count ?? 0);
       setCustodyDays((custodyRes as any).count ?? 0);
@@ -181,6 +183,24 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* ── ID verification nudge ── */}
+        {idVerified === false && (
+          <Pressable onPress={() => router.push('/id-verification' as any)}
+            style={({ pressed }) => ({
+              marginHorizontal: 20, marginBottom: 14, flexDirection: 'row', alignItems: 'center',
+              gap: 12, backgroundColor: brand.blue + '10', borderRadius: 14, borderCurve: 'continuous',
+              padding: 14, borderWidth: 1, borderColor: brand.blue + '25',
+              transform: [{ scale: pressed ? 0.98 : 1 }],
+            })}>
+            <Ionicons name="finger-print-outline" size={22} color={brand.blue} />
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.label }}>Verify your identity</Text>
+              <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 1 }}>Build trust with your co-parent using your SA ID</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={15} color={colors.secondaryLabel} style={{ opacity: 0.4 }} />
+          </Pressable>
+        )}
 
         {/* ── Custody hero card ── */}
         <Pressable onPress={() => router.push('/(tabs)/calendar')}
