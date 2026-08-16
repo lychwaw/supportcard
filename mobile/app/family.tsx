@@ -56,7 +56,7 @@ export default function FamilyScreen() {
       if (coParentId) {
         const { data: cp } = await supabase
           .from('profiles' as any)
-          .select('id, full_name, email')
+          .select('id, full_name, email, id_verified')
           .eq('id', coParentId)
           .maybeSingle();
         setCoParent(cp as any);
@@ -243,9 +243,22 @@ export default function FamilyScreen() {
                         </View>
                         <View style={{ flex: 1 }}>
                           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{child.name}</Text>
-                          <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 2 }}>
-                            {coParent ? `With ${coParent.full_name?.split(' ')[0] ?? 'Co-parent'}` : 'No co-parent linked'}
-                          </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+                            <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>
+                              {coParent ? `With ${coParent.full_name?.split(' ')[0] ?? 'Co-parent'}` : 'No co-parent linked'}
+                            </Text>
+                            {coParent && (
+                              (coParent as any).id_verified
+                                ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: brand.teal + '15', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 }}>
+                                    <Ionicons name="shield-checkmark" size={10} color={brand.teal} />
+                                    <Text style={{ fontSize: 10, fontWeight: '600', color: brand.teal }}>Verified</Text>
+                                  </View>
+                                : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.separator + '40', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 }}>
+                                    <Ionicons name="shield-outline" size={10} color={colors.secondaryLabel} />
+                                    <Text style={{ fontSize: 10, fontWeight: '600', color: colors.secondaryLabel }}>Unverified</Text>
+                                  </View>
+                            )}
+                          </View>
                         </View>
                         {userId === child.parent_id && (
                           <Pressable

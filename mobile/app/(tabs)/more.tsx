@@ -63,13 +63,13 @@ function MenuCard({ rows }: { rows: MenuRow[] }) {
 
 export default function MoreScreen() {
   const insets = useSafeAreaInsets();
-  const [profile, setProfile] = useState({ name: 'Loading…', email: '', initials: '?', plan: 'Preview' });
+  const [profile, setProfile] = useState({ name: 'Loading…', email: '', initials: '?', plan: 'Preview', idVerified: false });
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from('profiles' as any).select('full_name, subscription_tier').eq('id', user.id).maybeSingle();
+      const { data } = await supabase.from('profiles' as any).select('full_name, subscription_tier, id_verified').eq('id', user.id).maybeSingle();
       const raw   = (data as any)?.subscription_tier ?? 'preview';
       const tiers: Record<string, string> = { preview: 'Preview', essential: 'Essential', plus: 'Plus', premium: 'Premium', family_plus: 'Plus', free: 'Preview', legal: 'Premium' };
       const name  = (data as any)?.full_name || (user.user_metadata?.full_name as string) || 'Your Account';
@@ -78,6 +78,7 @@ export default function MoreScreen() {
         email: user.email ?? '',
         initials: name.charAt(0).toUpperCase(),
         plan: tiers[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1),
+        idVerified: (data as any)?.id_verified ?? false,
       });
     })();
   }, []);
@@ -160,9 +161,17 @@ export default function MoreScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 }}>{profile.name}</Text>
             {profile.email ? <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{profile.email}</Text> : null}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tierColor === brand.body ? 'rgba(255,255,255,0.5)' : tierColor }} />
-              <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)' }}>{profile.plan}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tierColor === brand.body ? 'rgba(255,255,255,0.5)' : tierColor }} />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)' }}>{profile.plan}</Text>
+              </View>
+              {profile.idVerified && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 2 }}>
+                  <Ionicons name="shield-checkmark" size={11} color={brand.teal} />
+                  <Text style={{ fontSize: 11, fontWeight: '600', color: brand.teal }}>Verified</Text>
+                </View>
+              )}
             </View>
           </View>
           <Pressable onPress={() => router.push('/settings')}
