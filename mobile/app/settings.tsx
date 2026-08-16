@@ -293,7 +293,7 @@ export default function SettingsScreen() {
                       }
                       await supabase.auth.signOut();
                     } catch (e: any) {
-                      Alert.alert('Error', e?.message ?? 'Could not delete account. Email support@supportcard.co.za for help.');
+                      Alert.alert('Error', e?.message ?? 'Could not delete account. Email info@southsphere.global for help.');
                     }
                   },
                 },
@@ -370,23 +370,14 @@ export default function SettingsScreen() {
         </SettingsGroup>
 
         <SettingsGroup label="Privacy & Security">
-          <SettingsRow
-            label="Verify Identity"
-            subtitle={userInfo.idVerified ? 'SA ID verified' : 'Verify your SA ID number'}
-            icon={userInfo.idVerified ? 'shield-checkmark-outline' : 'finger-print-outline'}
-            iconColor={userInfo.idVerified ? brand.teal : brand.blue}
-            value={userInfo.idVerified ? '✓' : undefined}
-            showChevron={!userInfo.idVerified}
-            onPress={() => !userInfo.idVerified && router.push('/id-verification' as any)}
-          />
-          <SettingsRow label="Privacy Policy" icon="shield-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard.co.za/privacy')} />
-          <SettingsRow label="Terms of Service" icon="document-text-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard.co.za/terms')} />
+          <SettingsRow label="Privacy Policy" icon="shield-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/privacy')} />
+          <SettingsRow label="Terms of Service" icon="document-text-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/terms')} />
           <SettingsRow label="Delete Account" icon="trash-outline" iconColor={brand.error} destructive onPress={handleDeleteAccount} isLast />
         </SettingsGroup>
 
         <SettingsGroup label="Support">
-          <SettingsRow label="Help Center" icon="help-circle-outline" iconColor={brand.blue} showChevron onPress={() => Linking.openURL('https://supportcard.co.za/help')} />
-          <SettingsRow label="Contact Support" icon="mail-outline" iconColor={brand.teal} showChevron onPress={() => Linking.openURL('mailto:support@supportcard.co.za')} />
+          <SettingsRow label="Help Center" icon="help-circle-outline" iconColor={brand.blue} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global?subject=SupportCard%20Help')} />
+          <SettingsRow label="Contact Support" icon="mail-outline" iconColor={brand.teal} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global')} />
           <SettingsRow label="App Version" icon="information-circle-outline" iconColor={brand.body} value="1.0.0" isLast />
         </SettingsGroup>
 

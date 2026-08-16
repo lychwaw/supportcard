@@ -82,29 +82,30 @@ export default function ExpensesScreen() {
   const totalPending  = requests.filter(r => r.status === 'pending').length;
   const toApproveCount = requests.filter(r => r.status === 'pending' && r.requester_id !== userId).length;
 
+  const applyScannedResult = (result: Awaited<ReturnType<typeof scanReceiptFromCamera>>, imageUri?: string) => {
+    if (!result) {
+      Alert.alert('Scan failed', 'AI receipt scanning requires an Essential plan or above. Upgrade in Settings → Subscription.');
+      return;
+    }
+    if (result.amount) setAmount(result.amount.toString());
+    if (result.category) setCategory(result.category);
+    if (result.description) setDescription(result.description);
+    setScannedImageUri(result.imageUri);
+  };
+
   const handleScanReceipt = () => {
     Alert.alert('Scan Receipt', 'How would you like to add the receipt?', [
       { text: 'Camera', onPress: async () => {
         setScanning(true);
         const result = await scanReceiptFromCamera();
         setScanning(false);
-        if (result) {
-          if (result.amount) setAmount(result.amount.toString());
-          if (result.category) setCategory(result.category);
-          if (result.description) setDescription(result.description);
-          setScannedImageUri(result.imageUri);
-        }
+        applyScannedResult(result);
       }},
       { text: 'Photo Library', onPress: async () => {
         setScanning(true);
         const result = await scanReceiptFromLibrary();
         setScanning(false);
-        if (result) {
-          if (result.amount) setAmount(result.amount.toString());
-          if (result.category) setCategory(result.category);
-          if (result.description) setDescription(result.description);
-          setScannedImageUri(result.imageUri);
-        }
+        applyScannedResult(result);
       }},
       { text: 'Cancel', style: 'cancel' },
     ]);
@@ -409,7 +410,7 @@ export default function ExpensesScreen() {
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 18, fontSize: 36, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', letterSpacing: -1, borderCurve: 'continuous' }}
                 keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.separator}
-                value={amount} onChangeText={setAmount}
+                value={amount} onChangeText={v => setAmount(v.replace(/[^0-9.]/g, '').replace(/^0+([1-9])/, '$1'))}
               />
             </View>
             <View>

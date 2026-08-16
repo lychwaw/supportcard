@@ -6,6 +6,8 @@ import {
 import { Stack, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
 
@@ -63,26 +65,55 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
   const [term, setTerm] = useState(TERMS[0]);
   const [year, setYear] = useState(String(new Date().getFullYear()));
   const [childId, setChildId] = useState<string | null>(null);
+  const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [saving, setSaving] = useState(false);
+
+  const pickFile = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permission required', 'Please allow photo library access.'); return; }
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.85 });
+    if (!result.canceled && result.assets[0]) setAsset(result.assets[0]);
+  };
 
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      const fileName = `${term} ${year}${childId ? ` — ${children.find(c => c.id === childId)?.name ?? ''}` : ''}`;
+      const childName = children.find(c => c.id === childId)?.name ?? '';
+      const fileName = `${term} ${year}${childName ? ` — ${childName}` : ''}`;
+
+      let filePath: string | null = null;
+      if (asset) {
+        const ext = asset.uri.split('.').pop() ?? 'jpg';
+        const storageName = `school_${term.replace(' ', '')}_${year}_${Date.now()}.${ext}`;
+        filePath = `${user.id}/${storageName}`;
+        const { data: signedData, error: signErr } = await supabase.storage
+          .from('legal-docs').createSignedUploadUrl(filePath);
+        if (signErr || !signedData) throw signErr ?? new Error('Could not prepare upload');
+        const uploadResult = await FileSystem.uploadAsync(signedData.signedUrl, asset.uri, {
+          httpMethod: 'PUT',
+          headers: { 'Content-Type': asset.mimeType ?? 'image/jpeg' },
+        });
+        if (uploadResult.status < 200 || uploadResult.status >= 300) throw new Error('File upload failed');
+      }
+
       const { error } = await supabase.from('legal_documents').insert({
-        user_id: user.id, document_type: 'school', file_name: fileName,
-        description: `${term} ${year} report card`, metadata: { term, year, child_id: childId },
+        user_id: user.id, uploaded_by: user.id, document_type: 'school',
+        file_name: fileName, file_path: filePath,
+        file_size: asset?.fileSize ?? null, mime_type: asset?.mimeType ?? null,
+        description: `${term} ${year} report card`,
+        metadata: { term, year, child_id: childId, storage_path: filePath },
       });
       if (error) throw error;
+      setAsset(null);
       onSaved();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not save report card.');
     } finally {
       setSaving(false);
     }
-  }, [term, year, childId, children, onSaved]);
+  }, [term, year, childId, children, asset, onSaved]);
 
   const pillItems = [{ id: '__all__', label: 'All' }, ...children.map(c => ({ id: c.id, label: c.name }))];
 
@@ -93,7 +124,7 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
           <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Upload Report Card</Text>
           <Pressable onPress={handleSave} disabled={saving}>
-            {saving ? <ActivityIndicator color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Upload</Text>}
+            {saving ? <ActivityIndicator color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
           </Pressable>
         </View>
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 20 }}>
@@ -111,12 +142,29 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Year</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 16, color: colors.label }}
-              placeholder="2026" placeholderTextColor={colors.secondaryLabel} keyboardType="numeric" value={year} onChangeText={setYear} />
+              placeholder="2026" placeholderTextColor={colors.secondaryLabel} keyboardType="numeric" value={year} onChangeText={v => setYear(v.replace(/[^0-9]/g, '').replace(/^0+([1-9])/, '$1'))} />
           </View>
           <View style={{ gap: 10 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Child (optional)</Text>
             <PillRow items={pillItems} selected={childId} onSelect={setChildId} />
           </View>
+          <Pressable onPress={pickFile} disabled={saving}
+            style={({ pressed }) => ({
+              borderRadius: 16, borderCurve: 'continuous', padding: 18, alignItems: 'center', gap: 6,
+              backgroundColor: asset ? brand.blue + '10' : colors.surface,
+              borderWidth: 1.5, borderColor: asset ? brand.blue : colors.separator,
+              borderStyle: asset ? 'solid' : 'dashed',
+              transform: [{ scale: pressed ? 0.97 : 1 }],
+            })}>
+            <Ionicons name={asset ? 'checkmark-circle' : 'image-outline'} size={28} color={asset ? brand.blue : colors.secondaryLabel} />
+            <Text style={{ fontSize: 14, fontWeight: '600', color: asset ? brand.blue : colors.secondaryLabel }}>
+              {asset ? asset.uri.split('/').pop() : 'Attach photo of report card (optional)'}
+            </Text>
+            {asset && <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>Tap to change</Text>}
+          </Pressable>
+          <Text style={{ fontSize: 12, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 17 }}>
+            Saved reports will appear here and in the <Text style={{ fontWeight: '600' }}>Documents</Text> tab.
+          </Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -245,6 +293,14 @@ export default function SchoolHubScreen() {
     const filtered = selectedChild ? reportCards.filter(r => r.metadata?.child_id === selectedChild) : reportCards;
     return (
       <View style={{ padding: 16, gap: 12 }}>
+        <Pressable onPress={() => router.push('/(tabs)/documents')}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: brand.blue + '10', borderRadius: 14, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: brand.blue + '25', opacity: pressed ? 0.7 : 1 })}>
+          <Ionicons name="folder-outline" size={18} color={brand.blue} />
+          <Text style={{ flex: 1, fontSize: 13, color: brand.blue, lineHeight: 18 }}>
+            Uploaded reports are saved in <Text style={{ fontWeight: '700' }}>Documents</Text> — tap to open or share them.
+          </Text>
+          <Ionicons name="chevron-forward" size={14} color={brand.blue} />
+        </Pressable>
         {loading ? <ActivityIndicator color={brand.blue} style={{ marginTop: 40 }} /> : filtered.length === 0 ? (
           <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 40, alignItems: 'center', gap: 12, borderWidth: 0.5, borderColor: colors.separator }}>
             <View style={{ width: 56, height: 56, borderRadius: 16, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>

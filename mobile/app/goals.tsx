@@ -152,7 +152,8 @@ export default function GoalsScreen() {
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Target Amount (R)</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 28, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
-              placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={goalTarget} onChangeText={setGoalTarget} />
+              placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={goalTarget}
+              onChangeText={v => setGoalTarget(v.replace(/[^0-9.]/g, '').replace(/^0+([1-9])/, '$1'))} />
           </View>
         </ScrollView>
       </Modal>
@@ -173,7 +174,8 @@ export default function GoalsScreen() {
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Amount (R)</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
-              placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={contribAmount} onChangeText={setContribAmount} autoFocus />
+              placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={contribAmount}
+              onChangeText={v => setContribAmount(v.replace(/[^0-9.]/g, '').replace(/^0+([1-9])/, '$1'))} autoFocus />
           </View>
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Note (Optional)</Text>

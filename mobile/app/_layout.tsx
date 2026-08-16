@@ -87,7 +87,7 @@ function AppShell({ session }: { session: Session | null }) {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : theme}>
       <AuthGate session={session} />
-      <Stack screenOptions={{ headerShown: false }}>
+      <Stack screenOptions={{ headerShown: false, headerBackTitle: '' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="pricing" options={{ headerShown: false }} />
@@ -104,6 +104,7 @@ function AppShell({ session }: { session: Session | null }) {
         <Stack.Screen name="school-hub" options={{ headerShown: true }} />
         <Stack.Screen name="emergency-child-profile" options={{ headerShown: true }} />
         <Stack.Screen name="monthly-report" options={{ headerShown: true }} />
+        <Stack.Screen name="id-verification" options={{ headerShown: true, gestureEnabled: false, headerBackVisible: false }} />
       </Stack>
     </ThemeProvider>
   );

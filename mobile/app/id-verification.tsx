@@ -85,7 +85,7 @@ export default function IdVerificationScreen() {
   if (alreadyVerified === null) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
-        <Stack.Screen options={{ title: 'Verify Identity' }} />
+        <Stack.Screen options={{ title: 'Verify Identity', headerBackVisible: false, gestureEnabled: false }} />
         <ActivityIndicator color={brand.blue} />
       </View>
     );
@@ -94,7 +94,7 @@ export default function IdVerificationScreen() {
   if (alreadyVerified) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 }}>
-        <Stack.Screen options={{ title: 'Verify Identity' }} />
+        <Stack.Screen options={{ title: 'Verify Identity', headerBackVisible: false, gestureEnabled: false }} />
         <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center' }}>
           <Ionicons name="shield-checkmark" size={36} color={brand.teal} />
         </View>
@@ -112,7 +112,11 @@ export default function IdVerificationScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
-      <Stack.Screen options={{ title: 'Verify Identity' }} />
+      <Stack.Screen options={{ title: 'Verify Identity', headerBackVisible: false, gestureEnabled: false, headerRight: () => (
+        <Pressable onPress={() => router.back()} hitSlop={12} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}>
+          <Text style={{ fontSize: 16, color: brand.blue }}>Not Now</Text>
+        </Pressable>
+      ) }} />
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 40, gap: 20 }} keyboardShouldPersistTaps="handled">
 
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous', padding: 16, gap: 6, borderWidth: 0.5, borderColor: colors.separator }}>

@@ -184,23 +184,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ── ID verification nudge ── */}
-        {idVerified === false && (
-          <Pressable onPress={() => router.push('/id-verification' as any)}
-            style={({ pressed }) => ({
-              marginHorizontal: 20, marginBottom: 14, flexDirection: 'row', alignItems: 'center',
-              gap: 12, backgroundColor: brand.blue + '10', borderRadius: 14, borderCurve: 'continuous',
-              padding: 14, borderWidth: 1, borderColor: brand.blue + '25',
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-            })}>
-            <Ionicons name="finger-print-outline" size={22} color={brand.blue} />
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '600', color: colors.label }}>Verify your identity</Text>
-              <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 1 }}>Build trust with your co-parent using your SA ID</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={15} color={colors.secondaryLabel} style={{ opacity: 0.4 }} />
-          </Pressable>
-        )}
+        {/* ID verification nudge hidden until KoraPay production keys active */}
 
         {/* ── Custody hero card ── */}
         <Pressable onPress={() => router.push('/(tabs)/calendar')}

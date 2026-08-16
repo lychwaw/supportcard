@@ -1,10 +1,11 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, Pressable, TextInput, ScrollView,
   FlatList, KeyboardAvoidingView, ActivityIndicator, Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
 
@@ -116,12 +117,41 @@ function AssistantBubble({ content, actions }: { content: string; actions?: Acti
   );
 }
 
+function UpgradeWall() {
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: 32, paddingBottom: insets.bottom + 32 }}>
+      <View style={{ width: 76, height: 76, borderRadius: 22, backgroundColor: brand.teal + '20', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous', marginBottom: 20 }}>
+        <Ionicons name="flash" size={36} color={brand.teal} />
+      </View>
+      <Text style={{ fontSize: 22, fontWeight: '700', color: colors.label, textAlign: 'center', marginBottom: 10, letterSpacing: -0.3 }}>My SCAI</Text>
+      <Text style={{ fontSize: 15, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+        The AI co-parenting assistant is available on Essential, Plus, and Premium plans.
+      </Text>
+      <Pressable onPress={() => router.push('/pricing' as any)}
+        style={({ pressed }) => ({ backgroundColor: brand.teal, borderRadius: 16, borderCurve: 'continuous', paddingVertical: 16, paddingHorizontal: 40, opacity: pressed ? 0.8 : 1 })}>
+        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>View Plans</Text>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function MyScaiTabScreen() {
   const insets = useSafeAreaInsets();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [tier, setTier] = useState<string | null>(null);
   const flatListRef = useRef<FlatList<Message>>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('profiles' as any).select('subscription_tier').eq('id', user.id).maybeSingle();
+      setTier((data as any)?.subscription_tier ?? 'preview');
+    })();
+  }, []);
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -161,6 +191,9 @@ export default function MyScaiTabScreen() {
     if (item.role === 'user') return <UserBubble content={item.content} />;
     return <AssistantBubble content={item.content} actions={item.actions} />;
   }, []);
+
+  if (tier === null) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  if (tier === 'preview' || tier === 'free') return <UpgradeWall />;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

@@ -3,6 +3,7 @@ import { ScrollView, View, Text, Pressable, ActivityIndicator, Alert, Modal, Tex
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as WebBrowser from 'expo-web-browser';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
@@ -16,7 +17,7 @@ const DOC_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: st
   Other:     { icon: 'document-outline',     color: brand.body },
 };
 
-type Document = { id: string; document_type: string; description: string | null; file_name: string | null; created_at: string; metadata?: { storage_path?: string } | null };
+type Document = { id: string; document_type: string; description: string | null; file_name: string | null; file_path: string | null; created_at: string; metadata?: { storage_path?: string } | null };
 
 export default function DocumentsScreen() {
   const insets = useSafeAreaInsets();
@@ -55,14 +56,27 @@ export default function DocumentsScreen() {
       const ext = asset.uri.split('.').pop() ?? 'jpg';
       const fileName = `${uploadType.toLowerCase()}_${Date.now()}.${ext}`;
       const storagePath = `${user.id}/${fileName}`;
-      const response = await fetch(asset.uri);
-      const blob = await response.blob();
-      const { error: upErr } = await supabase.storage.from('documents').upload(storagePath, blob, { contentType: asset.mimeType ?? 'image/jpeg', upsert: false });
-      if (upErr) throw upErr;
+      const contentType = asset.mimeType ?? 'image/jpeg';
+
+      const { data: signedData, error: signErr } = await supabase.storage
+        .from('legal-docs')
+        .createSignedUploadUrl(storagePath);
+      if (signErr || !signedData) throw signErr ?? new Error('Could not prepare upload');
+
+      const uploadResult = await FileSystem.uploadAsync(signedData.signedUrl, asset.uri, {
+        httpMethod: 'PUT',
+        headers: { 'Content-Type': contentType },
+      });
+      if (uploadResult.status < 200 || uploadResult.status >= 300) throw new Error('File upload failed');
+
       const { error: dbErr } = await (supabase.from('legal_documents' as any) as any).insert({
         user_id: user.id,
+        uploaded_by: user.id,
         document_type: uploadType,
         file_name: fileName,
+        file_path: storagePath,
+        file_size: asset.fileSize ?? 0,
+        mime_type: contentType,
         description: uploadDesc.trim() || null,
         metadata: { storage_path: storagePath },
       });
@@ -79,13 +93,14 @@ export default function DocumentsScreen() {
   };
 
   const handleOpenDocument = async (doc: Document) => {
-    const path = doc.metadata?.storage_path;
+    const path = doc.file_path ?? doc.metadata?.storage_path;
     if (path) {
-      const { data } = supabase.storage.from('documents').getPublicUrl(path);
-      if (data?.publicUrl) {
-        await WebBrowser.openBrowserAsync(data.publicUrl);
+      const { data, error } = await supabase.storage.from('legal-docs').createSignedUrl(path, 60);
+      if (data?.signedUrl) {
+        await WebBrowser.openBrowserAsync(data.signedUrl);
         return;
       }
+      if (error) console.error('Signed URL error:', error.message);
     }
     Alert.alert(doc.file_name || 'Document', doc.description || 'No description');
   };
@@ -94,9 +109,8 @@ export default function DocumentsScreen() {
     Alert.alert('Delete document', `Delete "${doc.file_name}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        if (doc.metadata?.storage_path) {
-          await supabase.storage.from('documents').remove([doc.metadata.storage_path]);
-        }
+        const path = doc.file_path ?? doc.metadata?.storage_path;
+        if (path) await supabase.storage.from('legal-docs').remove([path]);
         await (supabase.from('legal_documents' as any) as any).delete().eq('id', doc.id);
         loadDocuments();
       }},
@@ -219,7 +233,7 @@ export default function DocumentsScreen() {
                         <Text style={{ fontSize: 11, color: colors.secondaryLabel }}>{date}</Text>
                       </View>
                     </View>
-                    <Ionicons name={doc.metadata?.storage_path ? 'open-outline' : 'chevron-forward'} size={15} color={colors.secondaryLabel} style={{ opacity: 0.35 }} />
+                    <Ionicons name={(doc.file_path ?? doc.metadata?.storage_path) ? 'open-outline' : 'chevron-forward'} size={15} color={colors.secondaryLabel} style={{ opacity: 0.35 }} />
                   </Pressable>
                 );
               })}
