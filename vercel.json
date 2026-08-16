@@ -1,6 +1,7 @@
 {
   "buildCommand": "echo api-only",
   "outputDirectory": "public",
+  "cleanUrls": true,
   "installCommand": "npm install --omit=dev --ignore-scripts",
   "headers": [
     {
