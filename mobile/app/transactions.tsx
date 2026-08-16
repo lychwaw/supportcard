@@ -110,7 +110,7 @@ export default function TransactionsScreen() {
             { label: 'Approved', value: String(approvedCount), color: '#22C55E' },
           ].map(stat => (
             <View key={stat.label} style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous', paddingVertical: 14, alignItems: 'center', gap: 4, borderWidth: 0.5, borderColor: colors.separator }}>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: stat.color, fontVariant: ['tabular-nums'] }}>{stat.value}</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: stat.color, fontVariant: ['tabular-nums'] }}>{stat.value}</Text>
               <Text style={{ fontSize: 11, color: colors.secondaryLabel, fontWeight: '600' }}>{stat.label}</Text>
             </View>
           ))}
@@ -152,7 +152,7 @@ export default function TransactionsScreen() {
               return (
                 <View key={group.key}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '800', color: colors.label }}>{group.label}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: colors.label }}>{group.label}</Text>
                     <Text style={{ fontSize: 11, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] }}>
                       R{groupTotal.toFixed(0)}{groupApproved > 0 ? ` · R${groupApproved.toFixed(0)} approved` : ''}
                     </Text>
@@ -166,7 +166,7 @@ export default function TransactionsScreen() {
                             <Ionicons name={CATEGORY_ICON[item.category] ?? 'cube-outline'} size={20} color={brand.blue} />
                           </View>
                           <View style={{ width: 70, flexShrink: 0 }}>
-                            <Text style={{ fontSize: 15, fontWeight: '800', color: brand.blue, fontVariant: ['tabular-nums'] }}>R{Number(item.amount).toFixed(0)}</Text>
+                            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.blue, fontVariant: ['tabular-nums'] }}>R{Number(item.amount).toFixed(0)}</Text>
                             <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 1 }}>{item.category}</Text>
                           </View>
                           <View style={{ flex: 1, minWidth: 0 }}>

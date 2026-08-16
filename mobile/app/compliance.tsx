@@ -124,16 +124,15 @@ export default function ComplianceScreen() {
           <>
             {/* Overview stat cards */}
             <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 4 }}>
-              <Text style={{ fontWeight: '800', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>Overview</Text>
+              <Text style={{ fontWeight: '600', fontSize: 13, color: colors.secondaryLabel, marginBottom: 12 }}>Overview</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -16, paddingHorizontal: 16 }} contentContainerStyle={{ gap: 10 }}>
                 {[
                   { value: String(activeCount), label: 'Active Orders', color: brand.blue },
                   { value: nextLabel, label: 'Next Due', color: '#F59E0B' },
                   { value: rateLabel, label: 'This Month', color: brand.teal },
                 ].map(card => (
-                  <View key={card.label} style={{ width: 120, height: 90, borderRadius: 18, borderCurve: 'continuous', backgroundColor: card.color, padding: 14, justifyContent: 'space-between', overflow: 'hidden' }}>
-                    <View style={{ position: 'absolute', right: -15, top: -15, width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-                    <Text style={{ fontSize: 26, fontWeight: '800', color: '#fff', fontVariant: ['tabular-nums'] }}>{card.value}</Text>
+                  <View key={card.label} style={{ width: 120, height: 90, borderRadius: 18, borderCurve: 'continuous', backgroundColor: card.color, padding: 14, justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 26, fontWeight: '700', color: '#fff', fontVariant: ['tabular-nums'] }}>{card.value}</Text>
                     <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', fontWeight: '600' }}>{card.label}</Text>
                   </View>
                 ))}
@@ -143,7 +142,7 @@ export default function ComplianceScreen() {
             {/* Court Orders */}
             <View style={{ paddingHorizontal: 16, paddingTop: 24 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontWeight: '800', fontSize: 15, color: colors.label }}>Court Orders & Obligations</Text>
+                <Text style={{ fontWeight: '700', fontSize: 15, color: colors.label }}>Court Orders & Obligations</Text>
                 <Pressable onPress={() => setShowAddOrderModal(true)} hitSlop={12}>
                   <Text style={{ fontSize: 14, fontWeight: '700', color: brand.blue }}>+ Add</Text>
                 </Pressable>
@@ -185,7 +184,7 @@ export default function ComplianceScreen() {
 
             {/* Compliance Log */}
             <View style={{ paddingHorizontal: 16, paddingTop: 24 }}>
-              <Text style={{ fontWeight: '800', fontSize: 15, color: colors.label, marginBottom: 12 }}>Recent Compliance Log</Text>
+              <Text style={{ fontWeight: '700', fontSize: 15, color: colors.label, marginBottom: 12 }}>Recent Compliance Log</Text>
               {logs.length === 0 ? (
                 <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderCurve: 'continuous', padding: 24, alignItems: 'center', gap: 8, borderWidth: 0.5, borderColor: colors.separator }}>
                   <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: brand.teal + '12', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
@@ -216,7 +215,7 @@ export default function ComplianceScreen() {
 
             {/* Quick Actions */}
             <View style={{ paddingHorizontal: 16, paddingTop: 24 }}>
-              <Text style={{ fontWeight: '800', fontSize: 15, color: colors.label, marginBottom: 12 }}>Quick Actions</Text>
+              <Text style={{ fontWeight: '700', fontSize: 15, color: colors.label, marginBottom: 12 }}>Quick Actions</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 {[
                   { icon: 'document-outline' as const, label: 'Export Report', note: 'PDF on Premium', onPress: () => router.push('/monthly-report' as any) },
@@ -249,28 +248,28 @@ export default function ComplianceScreen() {
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Title *</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Title *</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label }}
                 placeholder="e.g. Maintenance Order, Parenting Plan" placeholderTextColor={colors.secondaryLabel}
                 value={orderTitle} onChangeText={setOrderTitle} autoFocus />
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Reference Number (optional)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Reference Number (optional)</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label }}
                 placeholder="e.g. Case 12345/2026" placeholderTextColor={colors.secondaryLabel}
                 value={orderRef} onChangeText={setOrderRef} />
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Due Date (optional)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Due Date (optional)</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label }}
                 placeholder="YYYY-MM-DD" placeholderTextColor={colors.secondaryLabel}
                 keyboardType="numbers-and-punctuation" value={orderDueDate} onChangeText={setOrderDueDate} />
             </View>
             <View style={{ gap: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Status</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Status</Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
                 {(['active', 'pending'] as const).map(s => (
                   <Pressable key={s} onPress={() => setOrderStatus(s)}
@@ -297,7 +296,7 @@ export default function ComplianceScreen() {
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <View style={{ gap: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Event Type</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Event Type</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {EVENT_TYPES.map(type => (
@@ -312,7 +311,7 @@ export default function ComplianceScreen() {
               </ScrollView>
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Description</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Description</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label, minHeight: 100, textAlignVertical: 'top' }}
                 placeholder="Describe what happened…" placeholderTextColor={colors.secondaryLabel}

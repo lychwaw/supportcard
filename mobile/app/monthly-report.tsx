@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
@@ -98,7 +98,7 @@ export default function MonthlyReportScreen() {
 
         {/* Month selector */}
         <View style={{ backgroundColor: colors.surface, paddingTop: 12, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10, paddingHorizontal: 20 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10, paddingHorizontal: 20 }}>
             Select Month
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}>
@@ -121,15 +121,12 @@ export default function MonthlyReportScreen() {
         <View style={{ padding: 20, gap: 20 }}>
           {/* Generate CTA */}
           <Pressable onPress={handleGenerate} disabled={isGenerating}
-            style={({ pressed }) => ({ borderRadius: 18, borderCurve: 'continuous', overflow: 'hidden', opacity: pressed || isGenerating ? 0.8 : 1 })}>
-            <LinearGradient colors={['#1E3A5F', '#2B74D6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-              style={{ padding: 20, alignItems: 'center', gap: 6 }}>
-              <Ionicons name="bar-chart-outline" size={22} color="#fff" />
-              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 17 }}>
-                {isGenerating ? 'Generating…' : `Generate ${selectedOption.label} Report`}
-              </Text>
-              <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>AI-powered summary of the month</Text>
-            </LinearGradient>
+            style={({ pressed }) => ({ borderRadius: 18, borderCurve: 'continuous', backgroundColor: brand.blue, padding: 20, alignItems: 'center', gap: 6, opacity: pressed || isGenerating ? 0.8 : 1 })}>
+            <Ionicons name="bar-chart-outline" size={22} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 17 }}>
+              {isGenerating ? 'Generating…' : `Generate ${selectedOption.label} Report`}
+            </Text>
+            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>AI-powered summary of the month</Text>
           </Pressable>
 
           {/* Loading */}
@@ -154,7 +151,7 @@ export default function MonthlyReportScreen() {
                   <Ionicons name="bar-chart-outline" size={22} color={brand.blue} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 18, fontWeight: '800', color: colors.label }}>Monthly Summary</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: colors.label }}>Monthly Summary</Text>
                   <View style={{ alignSelf: 'flex-start', backgroundColor: brand.blue + '12', borderRadius: 8, borderCurve: 'continuous', paddingHorizontal: 10, paddingVertical: 3, marginTop: 4 }}>
                     <Text style={{ fontSize: 12, fontWeight: '700', color: brand.blue }}>{MONTH_NAMES[selectedOption.month]} {selectedOption.year}</Text>
                   </View>
@@ -171,7 +168,7 @@ export default function MonthlyReportScreen() {
                   { value: String(stats.checkinsCount), label: 'Check-ins', color: brand.teal },
                 ].map(chip => (
                   <View key={chip.label} style={{ flex: 1, backgroundColor: chip.color + '12', borderRadius: 12, borderCurve: 'continuous', padding: 12, alignItems: 'center', gap: 4 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '800', color: chip.color, fontVariant: ['tabular-nums'] }}>{chip.value}</Text>
+                    <Text style={{ fontSize: 17, fontWeight: '700', color: chip.color, fontVariant: ['tabular-nums'] }}>{chip.value}</Text>
                     <Text style={{ fontSize: 11, color: colors.secondaryLabel, fontWeight: '600', textAlign: 'center' }}>{chip.label}</Text>
                   </View>
                 ))}
@@ -196,7 +193,7 @@ export default function MonthlyReportScreen() {
               <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
                 <Ionicons name="calendar-outline" size={32} color={brand.blue} />
               </View>
-              <Text style={{ fontSize: 17, fontWeight: '800', color: colors.label, textAlign: 'center' }}>Select a month and generate your report</Text>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, textAlign: 'center' }}>Select a month and generate your report</Text>
               <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 20 }}>
                 Your AI co-parenting assistant will summarise expenses, events, and custody check-ins, then suggest ways to improve next month.
               </Text>

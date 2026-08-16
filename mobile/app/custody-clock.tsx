@@ -3,7 +3,7 @@ import { router, Stack } from 'expo-router';
 import { View, Text, Pressable, ScrollView, Modal, TextInput, ActivityIndicator, Switch, Alert, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
+
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
@@ -167,7 +167,7 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
         <ScrollView contentContainerStyle={{ gap: 20, padding: 16 }}>
           {/* Event type pills */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Event Type</Text>
+            <Text style={{ fontWeight: '600', fontSize: 12, color: colors.secondaryLabel }}>Event Type</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {EVENT_TYPES.map(et => {
                 const meta = EVENT_META[et.key];
@@ -185,7 +185,7 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
           {/* Child selector */}
           {childList.length > 0 && (
             <View style={{ gap: 8 }}>
-              <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Child (optional)</Text>
+              <Text style={{ fontWeight: '600', fontSize: 12, color: colors.secondaryLabel }}>Child (optional)</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {[{ id: null, name: 'General' }, ...childList].map((c: any) => (
@@ -201,7 +201,7 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
 
           {/* Notes */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Notes *</Text>
+            <Text style={{ fontWeight: '600', fontSize: 12, color: colors.secondaryLabel }}>Notes *</Text>
             <TextInput
               style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5, borderColor: colors.separator, padding: 16, fontSize: 15, color: colors.label, minHeight: 96, textAlignVertical: 'top', borderCurve: 'continuous' }}
               placeholder="Add notes about this check-in…" placeholderTextColor={colors.secondaryLabel}
@@ -292,7 +292,7 @@ function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose
         </View>
         <ScrollView contentContainerStyle={{ gap: 20, padding: 16 }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Zone Name *</Text>
+            <Text style={{ fontWeight: '600', fontSize: 12, color: colors.secondaryLabel }}>Zone Name *</Text>
             <TextInput
               style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5, borderColor: colors.separator, padding: 16, fontSize: 15, color: colors.label, borderCurve: 'continuous' }}
               placeholder="e.g. Mom's House" placeholderTextColor={colors.secondaryLabel}
@@ -300,7 +300,7 @@ function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose
             />
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontWeight: '700', fontSize: 12, color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Zone Type</Text>
+            <Text style={{ fontWeight: '600', fontSize: 12, color: colors.secondaryLabel }}>Zone Type</Text>
             <View style={{ gap: 8 }}>
               {ZONE_TYPES.map(zt => (
                 <Pressable key={zt} onPress={() => setZoneType(zt)}
@@ -401,24 +401,19 @@ export default function CustodyClockScreen() {
       <View style={{ flex: 1, backgroundColor: colors.background }}>
 
         {/* ── Hero strip ── */}
-        <LinearGradient
-          colors={[brand.teal, '#0A7A6E']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12, borderRadius: 20, paddingHorizontal: 20, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' }}
-        >
-          <View style={{ position: 'absolute', right: -20, top: -20, width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.06)' }} />
+        <View style={{ marginHorizontal: 16, marginTop: 12, marginBottom: 12, borderRadius: 20, borderCurve: 'continuous', paddingHorizontal: 20, paddingVertical: 18, flexDirection: 'row', alignItems: 'center', backgroundColor: brand.teal }}>
           <View style={{ flex: 1 }}>
-            <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>Today</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600' }}>Today</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 2 }}>
-              <Text style={{ color: '#fff', fontSize: 40, fontWeight: '900', letterSpacing: -2, lineHeight: 44 }}>{todayCheckIns.length}</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 18, fontWeight: '600' }}>check-in{todayCheckIns.length !== 1 ? 's' : ''}</Text>
+              <Text style={{ color: '#fff', fontSize: 40, fontWeight: '700', letterSpacing: -1.5, lineHeight: 44, fontVariant: ['tabular-nums'] }}>{todayCheckIns.length}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 18, fontWeight: '600' }}>check-in{todayCheckIns.length !== 1 ? 's' : ''}</Text>
             </View>
           </View>
           <Pressable onPress={() => setShowCheckInModal(true)}
             style={({ pressed }) => ({ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 14, paddingHorizontal: 18, paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>+ Log</Text>
           </Pressable>
-        </LinearGradient>
+        </View>
 
         {/* ── Tabs ── */}
         <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, backgroundColor: colors.surface, borderRadius: 14, padding: 4, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>

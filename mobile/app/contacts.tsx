@@ -136,7 +136,7 @@ export default function ContactsScreen() {
               if (!group || group.length === 0) return null;
               return (
                 <View key={type}>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>
                     {type}
                   </Text>
                   <View style={{ gap: 10 }}>
@@ -197,22 +197,22 @@ export default function ContactsScreen() {
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Full Name *</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Full Name *</Text>
               <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 14, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
                 placeholder="Dr. Jane Smith" placeholderTextColor={colors.secondaryLabel} value={name} onChangeText={setName} autoCapitalize="words" autoFocus />
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Phone Number *</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Phone Number *</Text>
               <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 14, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
                 placeholder="+27 21 000 0000" placeholderTextColor={colors.secondaryLabel} keyboardType="phone-pad" value={phone} onChangeText={setPhone} />
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Relationship / Role</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Relationship / Role</Text>
               <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 14, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
                 placeholder="Paediatrician, Class teacher…" placeholderTextColor={colors.secondaryLabel} value={relationship} onChangeText={setRelationship} autoCapitalize="sentences" />
             </View>
             <View style={{ gap: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Contact Type</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Contact Type</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {CONTACT_TYPES.map(type => (
                   <Pressable key={type} onPress={() => setContactType(type)}

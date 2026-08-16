@@ -6,55 +6,71 @@
 <title>Privacy Policy — SupportCard</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; background: #fff; padding: 40px 20px; }
-  .wrap { max-width: 680px; margin: 0 auto; }
-  h1 { font-size: 28px; font-weight: 800; margin-bottom: 6px; }
-  .sub { color: #666; font-size: 14px; margin-bottom: 40px; }
-  h2 { font-size: 17px; font-weight: 700; margin: 32px 0 10px; }
-  p, li { font-size: 15px; line-height: 1.7; color: #333; }
-  ul { padding-left: 20px; margin-top: 8px; }
-  li { margin-bottom: 6px; }
-  a { color: #2B74D6; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 15px;
+    line-height: 1.75;
+    color: #2c2c2e;
+    background: #fff;
+    padding: 48px 20px 80px;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+  .brand { font-size: 13px; color: #8e8e93; margin-bottom: 32px; }
+  h1 { font-size: 22px; font-weight: 600; margin-bottom: 4px; letter-spacing: -0.3px; }
+  h2 { font-size: 14px; font-weight: 600; margin: 28px 0 6px; text-transform: uppercase; letter-spacing: 0.5px; color: #8e8e93; }
+  p { margin-bottom: 12px; color: #3a3a3c; }
+  ul { padding-left: 18px; margin-bottom: 12px; }
+  li { margin-bottom: 5px; color: #3a3a3c; }
+  a { color: #2c2c2e; text-decoration: underline; text-underline-offset: 2px; }
+  hr { border: none; border-top: 1px solid #e5e5ea; margin: 40px 0; }
+  .footer { font-size: 13px; color: #8e8e93; margin-top: 48px; }
   @media (prefers-color-scheme: dark) {
-    body { background: #000; color: #f0f0f0; }
-    p, li { color: #ccc; }
-    .sub { color: #888; }
+    body { background: #1c1c1e; color: #f2f2f7; }
+    p, li { color: #ebebf0; }
+    h1 { color: #f2f2f7; }
+    h2 { color: #6e6e73; }
+    a { color: #f2f2f7; }
+    hr { border-color: #3a3a3c; }
+    .brand, .footer { color: #6e6e73; }
   }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <p class="brand">SupportCard by South Sphere Tech (Pty) Ltd</p>
   <h1>Privacy Policy</h1>
-  <p class="sub">SupportCard &mdash; Last updated August 2026</p>
+  <p class="brand">Last updated August 2026</p>
+
+  <hr>
 
   <h2>1. Who We Are</h2>
-  <p>SupportCard ("we", "our", "us") is a co-parenting communication and expense-tracking platform operated by Southsphere. Contact us at <a href="mailto:support@supportcard.co.za">support@supportcard.co.za</a>.</p>
+  <p>SupportCard is a co-parenting communication and expense-tracking platform operated by South Sphere Tech (Pty) Ltd. For privacy inquiries contact <a href="mailto:info@southsphere.global">info@southsphere.global</a>.</p>
 
   <h2>2. What We Collect</h2>
   <ul>
     <li><strong>Account information</strong> — name and email address when you sign up.</li>
     <li><strong>Co-parenting data</strong> — expense requests, calendar events, custody logs, messages, and documents you create in the app.</li>
     <li><strong>Child profiles</strong> — names and details you add for your children.</li>
-    <li><strong>Device token</strong> — for push notifications (stored securely, never shared).</li>
-    <li><strong>Location</strong> — only when you explicitly log a custody check-in; never tracked in the background.</li>
+    <li><strong>Device token</strong> — for push notifications; stored securely, never sold or shared beyond delivery.</li>
+    <li><strong>Location</strong> — only when you explicitly log a custody check-in. Never tracked in the background.</li>
   </ul>
 
   <h2>3. How We Use Your Data</h2>
   <ul>
-    <li>To provide the SupportCard service — syncing data between co-parents you have linked.</li>
+    <li>To provide the SupportCard service and sync data between linked co-parents.</li>
     <li>To send push notifications about expenses, messages, and calendar events.</li>
-    <li>To generate AI-assisted summaries and tone feedback (processed server-side; your messages are not stored by the AI provider).</li>
-    <li>To process subscription payments via Dodo Payments (we never store card details).</li>
+    <li>To generate AI-assisted summaries and tone feedback — processed server-side; your messages are not persistently stored by the AI provider.</li>
+    <li>To process subscription payments via Dodo Payments. We never store card details.</li>
   </ul>
 
   <h2>4. No Money Moves Through the App</h2>
   <p>SupportCard is a record-keeping tool only. We do not hold, transfer, or facilitate the movement of funds between users. Subscription billing is handled entirely by Dodo Payments.</p>
 
   <h2>5. Data Sharing</h2>
-  <p>We do not sell your data. We share data only with:</p>
+  <p>We do not sell your data. We share it only with the following service providers:</p>
   <ul>
-    <li><strong>Supabase</strong> — our database and authentication provider (EU/US data centres).</li>
-    <li><strong>Anthropic</strong> — AI processing for SCAI assistant and tone-check (no persistent storage of your content).</li>
+    <li><strong>Supabase</strong> — database and authentication (EU/US data centres).</li>
+    <li><strong>Anthropic</strong> — AI processing for the SCAI assistant and tone-check. No persistent storage of your content.</li>
     <li><strong>Dodo Payments</strong> — subscription billing only.</li>
     <li><strong>Apple</strong> — push notifications via APNs.</li>
   </ul>
@@ -63,19 +79,20 @@
   <p>Your data is retained while your account is active. You may delete your account at any time from Settings → Delete Account. Deletion is permanent and removes all your data within 30 days.</p>
 
   <h2>7. Children's Privacy</h2>
-  <p>SupportCard is designed for use by adults (parents and legal guardians). We do not knowingly collect data directly from children under 13. Child profile data entered by parents is protected under the same security controls as all user data.</p>
+  <p>SupportCard is designed for use by adults — parents and legal guardians. We do not knowingly collect data directly from children under 13. Child profile data entered by parents is protected under the same security controls as all user data.</p>
 
   <h2>8. Security</h2>
   <p>All data is encrypted in transit (TLS 1.2+) and at rest. Authentication tokens are stored in the device's secure keychain. Row-level security ensures users can only access their own data.</p>
 
   <h2>9. Your Rights</h2>
-  <p>You have the right to access, correct, or delete your data at any time. Email <a href="mailto:support@supportcard.co.za">support@supportcard.co.za</a> for any privacy requests.</p>
+  <p>You have the right to access, correct, or delete your data at any time. Email <a href="mailto:info@southsphere.global">info@southsphere.global</a> for any privacy request.</p>
 
   <h2>10. Changes</h2>
   <p>We may update this policy. We will notify you via the app for material changes.</p>
 
-  <h2>Contact</h2>
-  <p><a href="mailto:support@supportcard.co.za">support@supportcard.co.za</a></p>
+  <hr>
+
+  <p class="footer">&copy; 2026 South Sphere Tech (Pty) Ltd &mdash; <a href="/terms">Terms of Service</a></p>
 </div>
 </body>
 </html>

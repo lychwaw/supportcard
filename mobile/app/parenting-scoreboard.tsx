@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
@@ -85,23 +84,19 @@ export default function ParentingScoreboardScreen() {
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 40 + insets.bottom }} showsVerticalScrollIndicator={false}>
 
         {/* Hero score card */}
-        <LinearGradient colors={['#1E3A5F', '#2B74D6']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 24, borderCurve: 'continuous', padding: 28, alignItems: 'center', overflow: 'hidden' }}>
-          <View style={{ position: 'absolute', right: -40, top: -40, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          <Text style={{ fontSize: 12, fontWeight: '800', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>
-            This Month
+        <View style={{ borderRadius: 22, borderCurve: 'continuous', padding: 24, alignItems: 'center', backgroundColor: '#1C3252' }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: 'rgba(255,255,255,0.5)', marginBottom: 6 }}>
+            This month
           </Text>
-          <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff', marginBottom: 24 }}>Co-Parenting Score</Text>
-          <View style={{ width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 3, borderColor: 'rgba(255,255,255,0.3)' }}>
-            <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ fontSize: 36, fontWeight: '900', color: '#fff', fontVariant: ['tabular-nums'] }}>{score}</Text>
-              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', fontWeight: '600' }}>/ 100</Text>
-            </View>
+          <Text style={{ fontSize: 16, fontWeight: '700', color: '#fff', marginBottom: 22 }}>Co-Parenting Score</Text>
+          <View style={{ width: 110, height: 110, borderRadius: 55, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center', marginBottom: 14, borderWidth: 2, borderColor: 'rgba(255,255,255,0.18)' }}>
+            <Text style={{ fontSize: 36, fontWeight: '700', color: '#fff', fontVariant: ['tabular-nums'] }}>{score}</Text>
+            <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', fontWeight: '600' }}>/ 100</Text>
           </View>
-          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', textAlign: 'center' }}>
+          <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', textAlign: 'center' }}>
             Your coordination score this month
           </Text>
-        </LinearGradient>
+        </View>
 
         {/* 2x2 Stat grid */}
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -115,7 +110,7 @@ export default function ParentingScoreboardScreen() {
               <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: s.color + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
                 <Ionicons name={s.icon} size={22} color={s.color} />
               </View>
-              <Text style={{ fontSize: 28, fontWeight: '900', color: s.color, fontVariant: ['tabular-nums'] }}>{s.value}</Text>
+              <Text style={{ fontSize: 28, fontWeight: '700', color: s.color, fontVariant: ['tabular-nums'] }}>{s.value}</Text>
               <Text style={{ fontSize: 12, color: colors.secondaryLabel, textAlign: 'center' }}>{s.label}</Text>
             </View>
           ))}
@@ -152,7 +147,7 @@ export default function ParentingScoreboardScreen() {
             </View>
             <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>Coordination Streak</Text>
           </View>
-          <Text style={{ fontSize: 36, fontWeight: '900', color: brand.teal, fontVariant: ['tabular-nums'] }}>{metrics.streakDays}</Text>
+          <Text style={{ fontSize: 36, fontWeight: '700', color: brand.teal, fontVariant: ['tabular-nums'] }}>{metrics.streakDays}</Text>
           <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>days of logging activity in the last 30 days</Text>
         </View>
 
@@ -160,7 +155,7 @@ export default function ParentingScoreboardScreen() {
         <View style={{ backgroundColor: brand.blue + '08', borderRadius: 20, borderCurve: 'continuous', padding: 20, borderLeftWidth: 3, borderLeftColor: brand.blue, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <Ionicons name="bulb-outline" size={14} color={brand.blue} />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: brand.blue, letterSpacing: 0.8 }}>INSIGHT</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: brand.blue }}>Insight</Text>
           </View>
           <Text style={{ fontSize: 14, color: colors.label, lineHeight: 21 }}>{insight}</Text>
         </View>

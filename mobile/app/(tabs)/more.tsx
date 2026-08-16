@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
@@ -152,23 +152,17 @@ export default function MoreScreen() {
       showsVerticalScrollIndicator={false}
     >
       {/* ── Profile hero ── */}
-      <LinearGradient
-        colors={['#1E3A5F', '#2B74D6']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={{ paddingTop: insets.top + 24, paddingBottom: 28, paddingHorizontal: 24 }}
-      >
-        <View style={{ position: 'absolute', right: -20, bottom: -20, width: 200, height: 200, borderRadius: 100, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+      <View style={{ paddingTop: insets.top + 24, paddingBottom: 28, paddingHorizontal: 24, backgroundColor: '#1C3252' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
-            <Text style={{ fontSize: 28, fontWeight: '800', color: '#fff' }}>{profile.initials}</Text>
+          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)' }}>
+            <Text style={{ fontSize: 28, fontWeight: '700', color: '#fff' }}>{profile.initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.4 }}>{profile.name}</Text>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 }}>{profile.name}</Text>
             {profile.email ? <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{profile.email}</Text> : null}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 }}>
-              <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: tierColor + '28', borderWidth: 1, borderColor: tierColor + '50' }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: tierColor === brand.body ? '#fff' : tierColor }}>{profile.plan}</Text>
-              </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6 }}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tierColor === brand.body ? 'rgba(255,255,255,0.5)' : tierColor }} />
+              <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)' }}>{profile.plan}</Text>
             </View>
           </View>
           <Pressable onPress={() => router.push('/settings')}
@@ -176,7 +170,7 @@ export default function MoreScreen() {
             <Ionicons name="settings-outline" size={18} color="#fff" />
           </Pressable>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* ── Quick actions ── */}
       <View style={{ flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginTop: 18, marginBottom: 4 }}>
@@ -196,7 +190,7 @@ export default function MoreScreen() {
             <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: item.color + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
               <Ionicons name={item.icon} size={19} color={item.color} />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.3 }}>{item.label}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>{item.label}</Text>
           </Pressable>
         ))}
       </View>
@@ -205,7 +199,7 @@ export default function MoreScreen() {
       <View style={{ paddingHorizontal: 16 }}>
         {sections.map(section => (
           <View key={section.heading}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 26, marginBottom: 8, paddingHorizontal: 4 }}>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginTop: 26, marginBottom: 8, paddingHorizontal: 4 }}>
               {section.heading}
             </Text>
             <MenuCard rows={section.rows} />

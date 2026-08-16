@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
@@ -167,29 +166,24 @@ export default function FamilyScreen() {
         <>
           {/* ── Co-Parent Section ── */}
           <View style={{ padding: 16, gap: 12 }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+            <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel }}>
               Co-Parent
             </Text>
 
             {coParent ? (
-              <LinearGradient
-                colors={['#1E3A5F', '#2B74D6']}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                style={{ borderRadius: 20, borderCurve: 'continuous', padding: 20, flexDirection: 'row', alignItems: 'center', gap: 14, overflow: 'hidden' }}
-              >
-                <View style={{ position: 'absolute', right: -30, top: -30, width: 130, height: 130, borderRadius: 65, backgroundColor: 'rgba(255,255,255,0.07)' }} />
-                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }}>
-                  <Text style={{ color: '#fff', fontSize: 24, fontWeight: '800' }}>{coInitial}</Text>
+              <View style={{ borderRadius: 18, borderCurve: 'continuous', padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#1C3252' }}>
+                <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)' }}>
+                  <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>{coInitial}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff' }}>{coParent.full_name || 'Co-Parent'}</Text>
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{coParent.email}</Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{coParent.email}</Text>
                 </View>
-                <View style={{ backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                <View style={{ backgroundColor: 'rgba(74,222,128,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                   <Ionicons name="checkmark-circle" size={13} color="#4ADE80" />
-                  <Text style={{ fontSize: 12, color: '#4ADE80', fontWeight: '700' }}>Linked</Text>
+                  <Text style={{ fontSize: 12, color: '#4ADE80', fontWeight: '600' }}>Linked</Text>
                 </View>
-              </LinearGradient>
+              </View>
             ) : (
               <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 24, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
                 <View style={{ width: 60, height: 60, borderRadius: 18, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderCurve: 'continuous' }}>
@@ -212,7 +206,7 @@ export default function FamilyScreen() {
           {/* ── Children Section ── */}
           <View style={{ padding: 16, gap: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel }}>
                 Children ({children.length})
               </Text>
               <Pressable
@@ -265,8 +259,8 @@ export default function FamilyScreen() {
                       </View>
 
                       {/* Custody split bar */}
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>
-                        Custody Split
+                      <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 8 }}>
+                        Custody split
                       </Text>
                       <View style={{ height: 8, backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
                         <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${myPct}%`, backgroundColor: brand.blue, borderRadius: 4 }} />
@@ -323,7 +317,7 @@ export default function FamilyScreen() {
 
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Child's Name</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Child's name</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 16, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
                 placeholder="e.g. Amara"
@@ -334,11 +328,11 @@ export default function FamilyScreen() {
               />
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                Your Custody % ({custodySplit}%)
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>
+                Your custody % ({custodySplit}%)
               </Text>
               <TextInput
-                style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '800', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center' }}
+                style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center' }}
                 keyboardType="number-pad"
                 placeholder="50"
                 placeholderTextColor={colors.secondaryLabel}
@@ -376,7 +370,7 @@ export default function FamilyScreen() {
               </Text>
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Co-Parent's Email</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Co-parent's email</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 16, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
                 placeholder="coparent@email.com"

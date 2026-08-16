@@ -98,7 +98,7 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
         </View>
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 20 }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Term</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Term</Text>
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
               {TERMS.map(t => (
                 <Pressable key={t} onPress={() => setTerm(t)}
@@ -109,12 +109,12 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
             </View>
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Year</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Year</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 16, color: colors.label }}
               placeholder="2026" placeholderTextColor={colors.secondaryLabel} keyboardType="numeric" value={year} onChangeText={setYear} />
           </View>
           <View style={{ gap: 10 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Child (optional)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Child (optional)</Text>
             <PillRow items={pillItems} selected={childId} onSelect={setChildId} />
           </View>
           <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: brand.blue + '20', borderLeftWidth: 3, borderLeftColor: brand.blue }}>
@@ -174,19 +174,19 @@ function AddNoticeModal({ visible, onClose, onSaved, children }: { visible: bool
         </View>
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 20 }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>School Name (optional)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>School Name (optional)</Text>
             <TextInput style={inputStyle} placeholder="e.g. Springfield Primary" placeholderTextColor={colors.secondaryLabel} value={schoolName} onChangeText={setSchoolName} />
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Notice *</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Notice *</Text>
             <TextInput style={[inputStyle, { minHeight: 120, textAlignVertical: 'top' }]} placeholder="Paste or type the school notice here…" placeholderTextColor={colors.secondaryLabel} multiline value={noticeText} onChangeText={setNoticeText} />
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Date</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Date</Text>
             <TextInput style={inputStyle} placeholder="YYYY-MM-DD" placeholderTextColor={colors.secondaryLabel} value={date} onChangeText={setDate} />
           </View>
           <View style={{ gap: 10 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Category</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Category</Text>
             <View style={{ flexDirection: 'row', gap: 8 }}>
               {CATEGORIES.map(cat => {
                 const isUrgent = cat === 'Urgent';
@@ -202,7 +202,7 @@ function AddNoticeModal({ visible, onClose, onSaved, children }: { visible: bool
             </View>
           </View>
           <View style={{ gap: 10 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Child (optional)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Child (optional)</Text>
             <PillRow items={pillItems} selected={childId} onSelect={setChildId} />
           </View>
         </ScrollView>
@@ -402,7 +402,7 @@ export default function SchoolHubScreen() {
                 <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: brand.blue + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
                   <Ionicons name="bar-chart-outline" size={32} color={brand.blue} />
                 </View>
-                <Text style={{ fontSize: 22, fontWeight: '800', color: colors.label, textAlign: 'center' }}>{viewReport.file_name}</Text>
+                <Text style={{ fontSize: 22, fontWeight: '700', color: colors.label, textAlign: 'center' }}>{viewReport.file_name}</Text>
                 {viewReport.description ? <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center' }}>{viewReport.description}</Text> : null}
               </View>
               <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, overflow: 'hidden' }}>

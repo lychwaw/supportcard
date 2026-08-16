@@ -6,7 +6,6 @@ import {
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
@@ -133,17 +132,12 @@ export default function QuickAddScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Header ── */}
-        <LinearGradient
-          colors={['#1E3A5F', '#2B74D6']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ paddingTop: insets.top + 24, paddingBottom: 32, paddingHorizontal: 24, overflow: 'hidden' }}
-        >
-          <View style={{ position: 'absolute', right: -30, top: -30, width: 180, height: 180, borderRadius: 90, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          <Text style={{ fontSize: 32, fontWeight: '900', color: '#fff', letterSpacing: -0.8 }}>Quick Add</Text>
-          <Text style={{ fontSize: 15, color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>
+        <View style={{ paddingTop: insets.top + 20, paddingBottom: 24, paddingHorizontal: 24, backgroundColor: colors.background }}>
+          <Text style={{ fontSize: 32, fontWeight: '700', color: colors.label, letterSpacing: -0.6 }}>Quick Add</Text>
+          <Text style={{ fontSize: 15, color: colors.secondaryLabel, marginTop: 4 }}>
             Log, request, or message in seconds
           </Text>
-        </LinearGradient>
+        </View>
 
         {/* ── Action grid ── */}
         <View style={{ padding: 16, flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 }}>

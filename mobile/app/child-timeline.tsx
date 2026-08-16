@@ -21,7 +21,7 @@ const KIND_ICON: Record<TimelineItemKind, keyof typeof Ionicons.glyphMap> = {
   expense: 'cash-outline', event: 'calendar-outline', checkin: 'location-outline', document: 'document-outline',
 };
 const KIND_LABELS: Record<TimelineItemKind, string> = {
-  expense: 'EXPENSE', event: 'EVENT', checkin: 'CHECK-IN', document: 'DOCUMENT',
+  expense: 'Expense', event: 'Event', checkin: 'Check-in', document: 'Document',
 };
 
 function monthKey(iso: string) {
@@ -122,7 +122,7 @@ export default function ChildTimelineScreen() {
             <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
               <Ionicons name="calendar-outline" size={32} color={brand.blue} />
             </View>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: colors.label, textAlign: 'center' }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.label, textAlign: 'center' }}>
               {selectedChild ? selectedChild.name : 'All Children'}
             </Text>
             <Text style={{ fontSize: 15, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 22 }}>
@@ -137,7 +137,7 @@ export default function ChildTimelineScreen() {
               {/* Month header */}
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, marginBottom: 16, gap: 10 }}>
                 <View style={{ flex: 1, height: 0.5, backgroundColor: colors.separator }} />
-                <Text style={{ fontSize: 11, fontWeight: '800', color: colors.secondaryLabel, letterSpacing: 1 }}>{group.month}</Text>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>{group.month}</Text>
                 <View style={{ flex: 1, height: 0.5, backgroundColor: colors.separator }} />
               </View>
               <View style={{ gap: 0 }}>
@@ -164,7 +164,7 @@ function TimelineCard({ item, isLast }: { item: TimelineItem; isLast: boolean })
       <View style={{ flex: 1, paddingLeft: 12, paddingBottom: 16 }}>
         <View style={{ backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: colors.separator }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
-            <Text style={{ fontSize: 11, fontWeight: '700', color: colors.secondaryLabel, letterSpacing: 0.8, flex: 1 }}>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel, flex: 1 }}>
               <Ionicons name={KIND_ICON[item.kind]} size={11} color={dotColor} /> {KIND_LABELS[item.kind]}
             </Text>
             {item.createdVia === 'scai' && (

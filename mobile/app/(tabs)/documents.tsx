@@ -121,7 +121,7 @@ export default function DocumentsScreen() {
         <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 20, marginBottom: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <View>
-              <Text style={{ fontSize: 34, fontWeight: '800', color: colors.label, letterSpacing: -1 }}>Documents</Text>
+              <Text style={{ fontSize: 34, fontWeight: '700', color: colors.label, letterSpacing: -1 }}>Documents</Text>
               <Text style={{ fontSize: 14, color: colors.secondaryLabel, marginTop: 4 }}>
                 {documents.length} file{documents.length !== 1 ? 's' : ''} stored securely
               </Text>
@@ -237,7 +237,7 @@ export default function DocumentsScreen() {
           </View>
           <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }}>
             <View style={{ gap: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Document Type</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Document Type</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {(['Legal', 'Medical', 'School', 'Financial', 'Other'] as const).map(t => {
                   const meta = DOC_META[t] ?? DOC_META.Other;
@@ -251,7 +251,7 @@ export default function DocumentsScreen() {
               </View>
             </View>
             <View style={{ gap: 8 }}>
-              <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Description (optional)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Description (optional)</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label }}
                 placeholder="e.g. Birth certificate, grant letter" placeholderTextColor={colors.secondaryLabel}

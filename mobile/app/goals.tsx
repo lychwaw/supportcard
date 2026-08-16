@@ -107,7 +107,7 @@ export default function GoalsScreen() {
                   {goal.child?.name && <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>For {goal.child.name}</Text>}
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: done ? '#22C55E' : brand.blue, fontVariant: ['tabular-nums'] }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: done ? '#22C55E' : brand.blue, fontVariant: ['tabular-nums'] }}>
                     R{raised.toFixed(0)}
                   </Text>
                   <Text style={{ fontSize: 12, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] }}>
@@ -145,13 +145,13 @@ export default function GoalsScreen() {
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} style={{ backgroundColor: colors.background }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Goal Title</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Goal Title</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
               placeholder="e.g. School Camp, New Bicycle" placeholderTextColor={colors.secondaryLabel} value={goalTitle} onChangeText={setGoalTitle} autoFocus />
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Target Amount (R)</Text>
-            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 28, fontWeight: '800', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Target Amount (R)</Text>
+            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 28, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
               placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={goalTarget} onChangeText={setGoalTarget} />
           </View>
         </ScrollView>
@@ -171,12 +171,12 @@ export default function GoalsScreen() {
             <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>Contributions are logged for transparency — money transfers happen off-platform via EFT.</Text>
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Amount (R)</Text>
-            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '800', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Amount (R)</Text>
+            <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
               placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={contribAmount} onChangeText={setContribAmount} autoFocus />
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Note (Optional)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Note (Optional)</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator }}
               placeholder="e.g. Birthday gift, monthly contribution" placeholderTextColor={colors.secondaryLabel} value={contribNote} onChangeText={setContribNote} />
           </View>

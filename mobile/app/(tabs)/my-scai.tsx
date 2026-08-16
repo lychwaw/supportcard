@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
 
@@ -47,7 +46,7 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
           <Ionicons name="flash" size={36} color={brand.teal} />
         </View>
         <View style={{ alignItems: 'center', gap: 6 }}>
-          <Text style={{ fontWeight: '800', fontSize: 26, color: colors.label, letterSpacing: -0.5 }}>My SCAI</Text>
+          <Text style={{ fontWeight: '700', fontSize: 26, color: colors.label, letterSpacing: -0.5 }}>My SCAI</Text>
           <Text style={{ color: colors.secondaryLabel, fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
             Your AI co-parenting assistant.{'\n'}Schedule, request, log — just ask.
           </Text>
@@ -55,7 +54,7 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
       </View>
 
       {/* Suggestions grid */}
-      <Text style={{ fontSize: 13, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+      <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 12 }}>
         Try asking me to…
       </Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -83,13 +82,9 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
 function UserBubble({ content }: { content: string }) {
   return (
     <View style={{ alignItems: 'flex-end', marginVertical: 4, paddingHorizontal: 16 }}>
-      <LinearGradient
-        colors={[brand.blue, '#1751A8']}
-        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={{ maxWidth: '78%', borderRadius: 20, borderBottomRightRadius: 4, paddingVertical: 12, paddingHorizontal: 16 }}
-      >
+      <View style={{ maxWidth: '78%', backgroundColor: brand.blue, borderRadius: 20, borderBottomRightRadius: 4, paddingVertical: 12, paddingHorizontal: 16 }}>
         <Text style={{ color: '#fff', fontSize: 15, lineHeight: 22 }}>{content}</Text>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -179,7 +174,7 @@ export default function MyScaiTabScreen() {
           <Ionicons name="flash" size={20} color={brand.teal} />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 20, fontWeight: '800', color: colors.label, letterSpacing: -0.3 }}>My SCAI</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: colors.label, letterSpacing: -0.3 }}>My SCAI</Text>
           <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>AI Co-Parenting Assistant</Text>
         </View>
         {messages.length > 0 && (

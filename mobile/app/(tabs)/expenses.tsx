@@ -3,7 +3,6 @@ import { ScrollView, View, Text, Pressable, TextInput, Modal, KeyboardAvoidingVi
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { scanReceiptFromCamera, scanReceiptFromLibrary } from '@/lib/receipt-scanner';
@@ -169,7 +168,7 @@ export default function ExpensesScreen() {
       {/* ── Header ── */}
       <View style={{ paddingTop: insets.top + 16, paddingHorizontal: 20, marginBottom: 4 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <Text style={{ fontSize: 34, fontWeight: '800', color: colors.label, letterSpacing: -1 }}>Expenses</Text>
+          <Text style={{ fontSize: 34, fontWeight: '700', color: colors.label, letterSpacing: -1 }}>Expenses</Text>
           <Pressable onPress={() => router.push('/transactions')}
             style={({ pressed }) => ({
               width: 36, height: 36, borderRadius: 18, backgroundColor: brand.blue + '18',
@@ -183,17 +182,12 @@ export default function ExpensesScreen() {
 
       {/* ── Hero summary card ── */}
       <View style={{ paddingHorizontal: 20, marginBottom: 16 }}>
-        <LinearGradient
-          colors={['#0C9488', '#0D7A6E']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 24, padding: 24, overflow: 'hidden' }}
-        >
-          <View style={{ position: 'absolute', right: -30, top: -30, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' }}>Total Approved</Text>
-          <Text style={{ color: '#fff', fontSize: 52, fontWeight: '900', letterSpacing: -2, lineHeight: 58, marginTop: 6 }}>
+        <View style={{ borderRadius: 20, padding: 22, backgroundColor: brand.teal, borderCurve: 'continuous' }}>
+          <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600' }}>Total Approved</Text>
+          <Text style={{ color: '#fff', fontSize: 44, fontWeight: '700', letterSpacing: -1.5, lineHeight: 52, marginTop: 4, fontVariant: ['tabular-nums'] }}>
             R{totalApproved.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Text>
-          <View style={{ flexDirection: 'row', gap: 16, marginTop: 16 }}>
+          <View style={{ flexDirection: 'row', gap: 16, marginTop: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F59E0B' }} />
               <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600' }}>
@@ -207,7 +201,7 @@ export default function ExpensesScreen() {
               </Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
       </View>
 
       {/* ── Tabs ── */}
@@ -268,7 +262,7 @@ export default function ExpensesScreen() {
                       <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{cat}</Text>
                       <Text style={{ fontSize: 13, color: colors.secondaryLabel }}>{items.length} request{items.length !== 1 ? 's' : ''}</Text>
                     </View>
-                    <Text style={{ fontSize: 17, fontWeight: '800', color: colors.label, letterSpacing: -0.5 }}>R{total.toFixed(0)}</Text>
+                    <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>R{total.toFixed(0)}</Text>
                   </View>
                   <View style={{ height: 4, backgroundColor: colors.separator, borderRadius: 2 }}>
                     <View style={{ height: 4, borderRadius: 2, backgroundColor: col, width: `${pct}%` }} />
@@ -306,7 +300,7 @@ export default function ExpensesScreen() {
                       <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>{formatDate(req.created_at)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <Text style={{ fontSize: 17, fontWeight: '800', color: colors.label, letterSpacing: -0.5 }}>R{Number(req.amount).toFixed(0)}</Text>
+                      <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>R{Number(req.amount).toFixed(0)}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#F59E0B' }} />
                         <Text style={{ fontSize: 11, fontWeight: '700', color: '#F59E0B' }}>Pending</Text>
@@ -411,15 +405,15 @@ export default function ExpensesScreen() {
               <View style={{ flex: 1, height: 0.5, backgroundColor: colors.separator }} />
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Amount (Rand)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>Amount (Rand)</Text>
               <TextInput
-                style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 18, fontSize: 36, fontWeight: '800', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', letterSpacing: -1, borderCurve: 'continuous' }}
+                style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 18, fontSize: 36, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', letterSpacing: -1, borderCurve: 'continuous' }}
                 keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.separator}
                 value={amount} onChangeText={setAmount}
               />
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Category</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>Category</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {CATEGORIES.map(cat => {
@@ -439,7 +433,7 @@ export default function ExpensesScreen() {
               </ScrollView>
             </View>
             <View>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Description (Optional)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>Description (optional)</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 16, fontSize: 15, color: colors.label, borderWidth: 0.5, borderColor: colors.separator, height: 100, textAlignVertical: 'top', borderCurve: 'continuous' }}
                 placeholder="What was this expense for?" placeholderTextColor={colors.secondaryLabel}

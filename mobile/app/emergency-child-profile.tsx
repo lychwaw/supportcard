@@ -44,7 +44,7 @@ function ProfileRow({ icon, label, value }: { icon: keyof typeof Ionicons.glyphM
         <Ionicons name={icon} size={17} color={brand.blue} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: colors.secondaryLabel, marginBottom: 3, letterSpacing: 0.6 }}>{label.toUpperCase()}</Text>
+        <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 3 }}>{label}</Text>
         <Text style={{ fontSize: 15, color: colors.label, lineHeight: 21 }} selectable>{value}</Text>
       </View>
     </View>
@@ -75,7 +75,7 @@ function ChipInput({ label, items, onAdd, onRemove, color = 'blue', placeholder 
   const handleAdd = () => { const v = text.trim(); if (v) { onAdd(v); setText(''); } };
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</Text>
+      <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>{label}</Text>
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <TextInput
           style={{ flex: 1, backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 12, fontSize: 15, color: colors.label }}
@@ -83,7 +83,7 @@ function ChipInput({ label, items, onAdd, onRemove, color = 'blue', placeholder 
           value={text} onChangeText={setText} onSubmitEditing={handleAdd} returnKeyType="done" />
         <Pressable onPress={handleAdd}
           style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, borderCurve: 'continuous', paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', transform: [{ scale: pressed ? 0.95 : 1 }] })}>
-          <Text style={{ color: '#fff', fontWeight: '800', fontSize: 18, lineHeight: 22 }}>+</Text>
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 18, lineHeight: 22 }}>+</Text>
         </Pressable>
       </View>
       {items.length > 0 && (
@@ -146,7 +146,7 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
   }, [childId, scheme, memberNum, bloodType, allergies, medications, doctorName, doctorPhone, dentistName, dentistPhone, medNotes, emergencyNotes, onSaved]);
 
   const inputStyle = { backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label };
-  const sectionLabelStyle = { fontSize: 12, fontWeight: '800' as const, color: colors.secondaryLabel, textTransform: 'uppercase' as const, letterSpacing: 0.8 };
+  const sectionLabelStyle = { fontSize: 12, fontWeight: '600' as const, color: colors.secondaryLabel };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
@@ -161,7 +161,7 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
         <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={{ padding: 20, gap: 24, paddingBottom: 60 }}>
           {/* Medical Aid */}
           <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.label }}>Medical Aid</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.label }}>Medical Aid</Text>
             <View style={{ gap: 10 }}>
               <View style={{ gap: 6 }}>
                 <Text style={sectionLabelStyle}>Scheme Name</Text>
@@ -175,7 +175,7 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
           </View>
           {/* Blood Type */}
           <View style={{ gap: 10 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.label }}>Blood Type</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.label }}>Blood Type</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {BLOOD_TYPES.map(bt => (
                 <Pressable key={bt} onPress={() => setBloodType(bt === bloodType ? '' : bt)}
@@ -189,7 +189,7 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
           <ChipInput label="Current Medications" items={medications} onAdd={v => setMedications(p => [...p, v])} onRemove={i => setMedications(p => p.filter((_, idx) => idx !== i))} color="blue" placeholder="e.g. Ventolin 100mcg…" />
           {/* Doctor */}
           <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.label }}>Doctor</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.label }}>Doctor</Text>
             <View style={{ gap: 10 }}>
               <View style={{ gap: 6 }}><Text style={sectionLabelStyle}>Doctor Name</Text><TextInput style={inputStyle} placeholder="Dr. Jane Smith" placeholderTextColor={colors.secondaryLabel} value={doctorName} onChangeText={setDoctorName} /></View>
               <View style={{ gap: 6 }}><Text style={sectionLabelStyle}>Doctor Phone</Text><TextInput style={inputStyle} placeholder="+27 11 000 0000" placeholderTextColor={colors.secondaryLabel} keyboardType="phone-pad" value={doctorPhone} onChangeText={setDoctorPhone} /></View>
@@ -197,7 +197,7 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
           </View>
           {/* Dentist */}
           <View style={{ gap: 12 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.label }}>Dentist</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.label }}>Dentist</Text>
             <View style={{ gap: 10 }}>
               <View style={{ gap: 6 }}><Text style={sectionLabelStyle}>Dentist Name</Text><TextInput style={inputStyle} placeholder="Dr. John Doe" placeholderTextColor={colors.secondaryLabel} value={dentistName} onChangeText={setDentistName} /></View>
               <View style={{ gap: 6 }}><Text style={sectionLabelStyle}>Dentist Phone</Text><TextInput style={inputStyle} placeholder="+27 11 000 0001" placeholderTextColor={colors.secondaryLabel} keyboardType="phone-pad" value={dentistPhone} onChangeText={setDentistPhone} /></View>
@@ -205,12 +205,12 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
           </View>
           {/* Medical Notes */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: colors.label }}>Medical Notes</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.label }}>Medical Notes</Text>
             <TextInput style={[inputStyle, { minHeight: 100, textAlignVertical: 'top' }]} placeholder="Any ongoing conditions, treatment notes, special needs…" placeholderTextColor={colors.secondaryLabel} multiline value={medNotes} onChangeText={setMedNotes} />
           </View>
           {/* Emergency Notes */}
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: brand.error }}>Emergency Action</Text>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: brand.error }}>Emergency Action</Text>
             <TextInput
               style={{ backgroundColor: '#FEF2F2', borderRadius: 14, borderCurve: 'continuous', borderWidth: 1.5, borderColor: '#FECACA', padding: 14, fontSize: 15, color: '#1F2937', minHeight: 100, textAlignVertical: 'top' }}
               placeholder="In emergency, call 10111 first, then… (include any critical instructions)" placeholderTextColor="#F87171"
@@ -231,8 +231,8 @@ function ProfileCard({ profile, childName, onEdit, onShare }: { profile: Emergen
             <Ionicons name="heart-circle" size={28} color={brand.error} />
           </View>
           <View>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: colors.label }}>{childName}</Text>
-            <Text style={{ fontSize: 12, color: brand.error, fontWeight: '700', letterSpacing: 0.4 }}>Emergency Profile</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.label }}>{childName}</Text>
+            <Text style={{ fontSize: 12, color: brand.error, fontWeight: '600' }}>Emergency Profile</Text>
           </View>
         </View>
         <Pressable onPress={onShare}
@@ -252,7 +252,7 @@ function ProfileCard({ profile, childName, onEdit, onShare }: { profile: Emergen
             <View style={{ width: 32, height: 32, borderRadius: 10, borderCurve: 'continuous', backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="warning-outline" size={17} color="#F59E0B" />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.secondaryLabel, letterSpacing: 0.6 }}>ALLERGIES</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>Allergies</Text>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingLeft: 42 }}>
             {profile.allergies.map((a, i) => <Chip key={i} label={a} color="red" />)}
@@ -266,7 +266,7 @@ function ProfileCard({ profile, childName, onEdit, onShare }: { profile: Emergen
             <View style={{ width: 32, height: 32, borderRadius: 10, borderCurve: 'continuous', backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center' }}>
               <Ionicons name="medical-outline" size={17} color={brand.blue} />
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: colors.secondaryLabel, letterSpacing: 0.6 }}>MEDICATIONS</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>Medications</Text>
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingLeft: 42 }}>
             {profile.medications.map((m, i) => <Chip key={i} label={m} color="blue" />)}
@@ -284,7 +284,7 @@ function ProfileCard({ profile, childName, onEdit, onShare }: { profile: Emergen
 
       {profile.emergency_notes && (
         <View style={{ marginTop: 4, padding: 16, backgroundColor: '#FEF2F2', borderRadius: 14, borderCurve: 'continuous', gap: 6, borderWidth: 1, borderColor: '#FECACA' }}>
-          <Text style={{ fontSize: 12, fontWeight: '800', color: brand.error, letterSpacing: 0.6 }}>EMERGENCY ACTION</Text>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: brand.error }}>Emergency Action</Text>
           <Text style={{ fontSize: 14, color: '#1F2937', lineHeight: 21 }} selectable>{profile.emergency_notes}</Text>
         </View>
       )}
@@ -363,7 +363,7 @@ export default function EmergencyChildProfileScreen() {
               <View style={{ width: 64, height: 64, borderRadius: 20, borderCurve: 'continuous', backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="person-outline" size={32} color={brand.blue} />
               </View>
-              <Text style={{ fontSize: 17, fontWeight: '800', color: colors.label }}>Select a child</Text>
+              <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Select a child</Text>
               <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 21 }}>Choose a child above to view or create their emergency profile</Text>
             </View>
           ) : profile ? (
@@ -373,7 +373,7 @@ export default function EmergencyChildProfileScreen() {
               <View style={{ width: 72, height: 72, borderRadius: 22, borderCurve: 'continuous', backgroundColor: '#FEF2F2', alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="heart-circle" size={40} color={brand.error} />
               </View>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: colors.label }}>No emergency profile yet</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: colors.label }}>No emergency profile yet</Text>
               <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 21 }}>
                 Create an emergency profile for {selectedChildName} with medical aid details, allergies, medications, and emergency contacts.
               </Text>

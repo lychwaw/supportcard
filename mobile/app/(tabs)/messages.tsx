@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
@@ -160,16 +159,12 @@ export default function MessagesTabScreen() {
           </View>
         )}
         {isMe ? (
-          <LinearGradient
-            colors={[brand.blue, '#1751A8']}
-            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-            style={{ maxWidth: '75%', borderRadius: 20, borderBottomRightRadius: 4, padding: 12 }}
-          >
+          <View style={{ maxWidth: '75%', backgroundColor: brand.blue, borderRadius: 20, borderBottomRightRadius: 4, padding: 12 }}>
             <Text style={{ fontSize: 15, color: '#fff', lineHeight: 21 }}>{item.content}</Text>
             <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 4, textAlign: 'right' }}>
               {new Date(item.created_at).toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' })}
             </Text>
-          </LinearGradient>
+          </View>
         ) : (
           <View style={{ maxWidth: '75%', backgroundColor: colors.surface, borderRadius: 20, borderBottomLeftRadius: 4, padding: 12, borderWidth: 0.5, borderColor: colors.separator }}>
             {item.sender?.full_name && (
@@ -192,7 +187,7 @@ export default function MessagesTabScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
           {coParentName ? (
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: brand.blue + '20', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: brand.blue + '30' }}>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: brand.blue }}>{coInitial}</Text>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: brand.blue }}>{coInitial}</Text>
             </View>
           ) : (
             <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.separator, alignItems: 'center', justifyContent: 'center' }}>
@@ -200,7 +195,7 @@ export default function MessagesTabScreen() {
             </View>
           )}
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: colors.label, letterSpacing: -0.3 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.label, letterSpacing: -0.3 }}>
               {coParentName ? coParentName : 'Messages'}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>

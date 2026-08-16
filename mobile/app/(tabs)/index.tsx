@@ -3,7 +3,6 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, M
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
@@ -166,7 +165,7 @@ export default function HomeScreen() {
             {now.toLocaleDateString('en-ZA', { weekday: 'long', day: 'numeric', month: 'long' })}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 6 }}>
-            <Text style={{ fontSize: 34, fontWeight: '800', color: colors.label, letterSpacing: -1, lineHeight: 40 }}>
+            <Text style={{ fontSize: 34, fontWeight: '700', color: colors.label, letterSpacing: -1, lineHeight: 40 }}>
               {getGreeting()},{'\n'}
               <Text style={{ color: brand.blue }}>{userName || 'Co-Parent'}</Text>
             </Text>
@@ -175,7 +174,7 @@ export default function HomeScreen() {
                 <Ionicons name="notifications-outline" size={24} color={colors.label} />
                 {pendingCount > 0 && (
                   <View style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: brand.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 }}>
-                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{pendingCount > 9 ? '9+' : pendingCount}</Text>
+                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{pendingCount > 9 ? '9+' : pendingCount}</Text>
                   </View>
                 )}
               </View>
@@ -186,36 +185,27 @@ export default function HomeScreen() {
         {/* ── Custody hero card ── */}
         <Pressable onPress={() => router.push('/(tabs)/calendar')}
           style={({ pressed }) => ({ marginHorizontal: 20, marginBottom: 14, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
-          <LinearGradient
-            colors={['#2B74D6', '#1751A8']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderRadius: 28, padding: 28, overflow: 'hidden' }}
-          >
-            {/* Decorative circles */}
-            <View style={{ position: 'absolute', right: -50, top: -50, width: 220, height: 220, borderRadius: 110, backgroundColor: 'rgba(255,255,255,0.06)' }} />
-            <View style={{ position: 'absolute', right: 60, bottom: -70, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(255,255,255,0.04)' }} />
-
-            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+          <View style={{ borderRadius: 24, padding: 28, backgroundColor: '#1C3252', borderCurve: 'continuous' }}>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '600' }}>
               Custody this month
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 8, gap: 6 }}>
-              <Text style={{ color: '#fff', fontSize: 80, fontWeight: '900', letterSpacing: -4, lineHeight: 84 }}>
+              <Text style={{ color: '#fff', fontSize: 72, fontWeight: '700', letterSpacing: -3, lineHeight: 76, fontVariant: ['tabular-nums'] }}>
                 {custodyDays}
               </Text>
-              <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 30, fontWeight: '700', marginBottom: 10 }}>
+              <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 28, fontWeight: '600', marginBottom: 8 }}>
                 /{daysInMonth}
               </Text>
             </View>
-            <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 14, marginTop: 2 }}>days logged</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 14, marginTop: 2 }}>days logged</Text>
 
-            <View style={{ height: 5, backgroundColor: 'rgba(255,255,255,0.14)', borderRadius: 3, marginTop: 24 }}>
-              <View style={{ height: 5, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.85)', width: `${Math.round(progress * 100)}%` }} />
+            <View style={{ height: 4, backgroundColor: 'rgba(255,255,255,0.12)', borderRadius: 2, marginTop: 22 }}>
+              <View style={{ height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.75)', width: `${Math.round(progress * 100)}%` }} />
             </View>
-            <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, marginTop: 6 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.38)', fontSize: 12, marginTop: 6 }}>
               {Math.round(progress * 100)}% of {monthName}
             </Text>
-          </LinearGradient>
+          </View>
         </Pressable>
 
         {/* ── 3 stat tiles ── */}
@@ -229,10 +219,10 @@ export default function HomeScreen() {
             <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: brand.blue + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
               <Ionicons name="calendar" size={17} color={brand.blue} />
             </View>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: colors.label, letterSpacing: -0.5 }} numberOfLines={1}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }} numberOfLines={1}>
               {nextEvent ? nextEvent.type.split(' ')[0] : '—'}
             </Text>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Next up</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>Next up</Text>
           </Pressable>
 
           <Pressable onPress={() => router.push('/(tabs)/expenses')}
@@ -244,10 +234,10 @@ export default function HomeScreen() {
             <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: '#F59E0B18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
               <Ionicons name="receipt" size={17} color="#F59E0B" />
             </View>
-            <Text style={{ fontSize: 32, fontWeight: '900', color: pendingCount > 0 ? '#F59E0B' : colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>
+            <Text style={{ fontSize: 32, fontWeight: '700', color: pendingCount > 0 ? '#F59E0B' : colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>
               {pendingCount}
             </Text>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Pending</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>Pending</Text>
           </Pressable>
 
           <Pressable onPress={() => router.push('/family')}
@@ -259,10 +249,10 @@ export default function HomeScreen() {
             <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
               <Ionicons name="people" size={17} color={brand.teal} />
             </View>
-            <Text style={{ fontSize: 32, fontWeight: '900', color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>
+            <Text style={{ fontSize: 32, fontWeight: '700', color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>
               {childrenCount}
             </Text>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Children</Text>
+            <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>Children</Text>
           </Pressable>
         </View>
 
@@ -294,7 +284,7 @@ export default function HomeScreen() {
         {!loading && todayItems.length > 0 && (
           <View style={{ marginBottom: 28 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 14 }}>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.label, letterSpacing: -0.4 }}>Today</Text>
+              <Text style={{ fontSize: 22, fontWeight: '700', color: colors.label, letterSpacing: -0.4 }}>Today</Text>
               <Text style={{ fontSize: 13, color: colors.secondaryLabel }}>
                 {now.toLocaleDateString('en-ZA', { weekday: 'short', day: 'numeric', month: 'short' })}
               </Text>
@@ -308,7 +298,7 @@ export default function HomeScreen() {
         {!loading && earlierItems.length > 0 && (
           <View style={{ marginBottom: 28 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 14 }}>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: colors.label, letterSpacing: -0.4 }}>Recent</Text>
+              <Text style={{ fontSize: 22, fontWeight: '700', color: colors.label, letterSpacing: -0.4 }}>Recent</Text>
             </View>
             {earlierItems.slice(0, 6).map(item => <FeedCard key={item.id} item={item} />)}
           </View>
@@ -367,7 +357,7 @@ export default function HomeScreen() {
             )}
             {todayItems.length > 0 && (
               <>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginTop: 4 }}>Today</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginTop: 4 }}>Today</Text>
                 {todayItems.slice(0, 5).map(item => {
                   const { bg, icon } = ICON_MAP[item.type];
                   return (

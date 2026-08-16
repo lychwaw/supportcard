@@ -6,7 +6,7 @@ import {
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
@@ -27,7 +27,7 @@ function SettingsGroup({ label, children }: { label?: string; children: React.Re
   return (
     <View style={{ marginBottom: 8 }}>
       {label && (
-        <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8, paddingHorizontal: 4 }}>
+        <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 8, paddingHorizontal: 4 }}>
           {label}
         </Text>
       )}
@@ -119,7 +119,7 @@ function ChangePasswordModal({ visible, onClose }: { visible: boolean; onClose: 
         </View>
         <View style={{ padding: 20, gap: 16 }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.6 }}>New Password</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>New Password</Text>
             <TextInput
               style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5, borderColor: colors.separator, padding: 16, fontSize: 16, color: colors.label, borderCurve: 'continuous' }}
               placeholder="At least 6 characters"
@@ -175,7 +175,7 @@ function EditProfileModal({ visible, currentName, onClose, onSaved }: { visible:
         </View>
         <View style={{ padding: 20, gap: 16 }}>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.6 }}>Display Name</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Display Name</Text>
             <TextInput
               style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5, borderColor: colors.separator, padding: 16, fontSize: 16, color: colors.label, borderCurve: 'continuous' }}
               placeholder="Your name"
@@ -314,25 +314,21 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Profile hero ── */}
-        <LinearGradient
-          colors={['#1E3A5F', '#2B74D6']}
-          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-          style={{ borderRadius: 24, padding: 24, overflow: 'hidden', marginBottom: 8 }}
-        >
-          <View style={{ position: 'absolute', right: -20, bottom: -20, width: 160, height: 160, borderRadius: 80, backgroundColor: 'rgba(255,255,255,0.05)' }} />
+        <View style={{ borderRadius: 24, borderCurve: 'continuous', padding: 24, marginBottom: 8, backgroundColor: '#1C3252' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-            <View style={{ width: 66, height: 66, borderRadius: 33, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.28)' }}>
-              <Text style={{ fontSize: 28, fontWeight: '800', color: '#fff' }}>
+            <View style={{ width: 66, height: 66, borderRadius: 33, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.23)' }}>
+              <Text style={{ fontSize: 28, fontWeight: '700', color: '#fff' }}>
                 {loading ? '…' : userInfo.initials}
               </Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 20, fontWeight: '800', color: '#fff', letterSpacing: -0.4 }}>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#fff', letterSpacing: -0.3 }}>
                 {loading ? 'Loading…' : userInfo.displayName}
               </Text>
               {userInfo.email ? <Text selectable style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{userInfo.email}</Text> : null}
-              <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: tierColor + '28', borderWidth: 1, borderColor: tierColor + '50', alignSelf: 'flex-start', marginTop: 8 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: tierColor === brand.body ? 'rgba(255,255,255,0.7)' : tierColor }}>{userInfo.plan}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 }}>
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: tierColor === brand.body ? 'rgba(255,255,255,0.5)' : tierColor }} />
+                <Text style={{ fontSize: 13, fontWeight: '600', color: 'rgba(255,255,255,0.7)' }}>{userInfo.plan}</Text>
               </View>
             </View>
           </View>
@@ -340,7 +336,7 @@ export default function SettingsScreen() {
             style={({ pressed }) => ({ marginTop: 18, paddingVertical: 10, borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', transform: [{ scale: pressed ? 0.97 : 1 }], borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' })}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Edit Profile</Text>
           </Pressable>
-        </LinearGradient>
+        </View>
 
         <SettingsGroup label="Account">
           <SettingsRow label="Notifications" subtitle="Push alerts for events & messages"
@@ -354,7 +350,7 @@ export default function SettingsScreen() {
                 return (
                   <Pressable key={opt.value} onPress={() => setCurrency(opt.value)}
                     style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: active ? brand.blue : 'transparent' }}>
-                    <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : colors.secondaryLabel }}>{opt.flag} {opt.value}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : colors.secondaryLabel }}>{opt.value}</Text>
                   </Pressable>
                 );
               })}
@@ -365,11 +361,7 @@ export default function SettingsScreen() {
         </SettingsGroup>
 
         <SettingsGroup label="Subscription">
-          <SettingsRow label="Current Plan" icon="star-outline" iconColor="#F59E0B" rightElement={
-            <View style={{ paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, backgroundColor: tierColor + '18' }}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: tierColor }}>{userInfo.plan}</Text>
-            </View>
-          } />
+          <SettingsRow label="Current Plan" icon="star-outline" iconColor="#F59E0B" value={userInfo.plan} />
           <SettingsRow label="Upgrade Plan" icon="arrow-up-circle-outline" iconColor={brand.teal} showChevron onPress={() => router.push('/pricing' as any)} />
           <SettingsRow label="Billing History" icon="receipt-outline" iconColor={brand.blue} showChevron
             onPress={() => Alert.alert('Billing History', userInfo.plan === 'Preview' ? 'You are on the free Preview plan. Upgrade to see billing history.' : `You are on the ${userInfo.plan} plan. Invoices are managed via Dodo Payments.`)}
@@ -414,7 +406,7 @@ export default function SettingsScreen() {
             <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: brand.error + '18', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', borderCurve: 'continuous' }}>
               <Ionicons name="warning-outline" size={26} color={brand.error} />
             </View>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: colors.label, textAlign: 'center', letterSpacing: -0.3 }}>Wipe family history?</Text>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: colors.label, textAlign: 'center' }}>Wipe family history?</Text>
             <Text style={{ fontSize: 14, color: colors.secondaryLabel, lineHeight: 21, textAlign: 'center' }}>
               Permanently deletes all expenses, custody check-ins, zones, and calendar events.{'\n\n'}Children and co-parent links are kept. Cannot be undone.
             </Text>

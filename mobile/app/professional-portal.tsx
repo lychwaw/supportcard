@@ -113,7 +113,7 @@ export default function ProfessionalPortalScreen() {
             <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderCurve: 'continuous' }}>
               <Ionicons name="shield-checkmark-outline" size={32} color={brand.blue} />
             </View>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: colors.label, textAlign: 'center', marginBottom: 10 }}>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: colors.label, textAlign: 'center', marginBottom: 10 }}>
               Professional Access Required
             </Text>
             <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 21 }}>
@@ -149,7 +149,7 @@ export default function ProfessionalPortalScreen() {
         </View>
 
         {/* Linked Families */}
-        <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel }}>
           Linked Families
         </Text>
 
@@ -171,7 +171,7 @@ export default function ProfessionalPortalScreen() {
                 <View key={link.id} style={{ backgroundColor: colors.surface, borderRadius: 18, borderCurve: 'continuous', padding: 16, borderWidth: 0.5, borderColor: colors.separator }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                     <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: brand.blue + '18', alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ fontWeight: '800', fontSize: 20, color: brand.blue }}>{initial}</Text>
+                      <Text style={{ fontWeight: '700', fontSize: 20, color: brand.blue }}>{initial}</Text>
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{link.parent?.full_name ?? 'Parent'}</Text>
@@ -195,7 +195,7 @@ export default function ProfessionalPortalScreen() {
         )}
 
         {/* Read-only record access */}
-        <Text style={{ fontSize: 13, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel }}>
           Read-Only Record Access
         </Text>
 
@@ -245,7 +245,7 @@ export default function ProfessionalPortalScreen() {
             ) : recordsData ? (
               <>
                 {/* Expenses */}
-                <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Expense Records</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Expense Records</Text>
                 {recordsData.expenses.length === 0 ? (
                   <View style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 18, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
                     <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>No expense records</Text>
@@ -269,7 +269,7 @@ export default function ProfessionalPortalScreen() {
                 )}
 
                 {/* Calendar events */}
-                <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Calendar & Handoffs</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Calendar & Handoffs</Text>
                 {recordsData.events.length === 0 ? (
                   <View style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 18, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
                     <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>No events</Text>
@@ -290,7 +290,7 @@ export default function ProfessionalPortalScreen() {
                 )}
 
                 {/* Documents */}
-                <Text style={{ fontSize: 12, fontWeight: '800', color: colors.secondaryLabel, textTransform: 'uppercase', letterSpacing: 0.8 }}>Documents</Text>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Documents</Text>
                 {recordsData.docs.length === 0 ? (
                   <View style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 18, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
                     <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>No documents</Text>
