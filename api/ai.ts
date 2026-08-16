@@ -89,7 +89,19 @@ Rules:
 - If tone is "positive" or "neutral", set "rewrite" to null.
 - Never invent facts, names, or details not present in the original message.`;
 
-async function handleToneCheck(req: any, res: any) {
+async function handleToneCheck(req: any, res: any, supabase: any, authUser: any) {
+  const { data: allowed, error: rateErr } = await supabase.rpc('check_ai_action_rate_limit', {
+    p_user_id: authUser.id,
+    p_action: 'tone-check',
+    p_max_per_day: 200,
+  });
+  if (rateErr) {
+    console.warn('Tone-check rate-limit RPC error:', rateErr.message);
+  } else if (allowed === false) {
+    res.status(429).json({ error: 'Daily AI usage limit reached. Try again tomorrow.' });
+    return;
+  }
+
   const { message } = req.body || {};
 
   if (!message || typeof message !== 'string') {
@@ -430,14 +442,13 @@ async function handleScaiChat(req: any, res: any, supabase: any, authUser: any, 
   }
 
   // ── Rate limit (atomic DB increment) ───────────────────────────────────────
-  const { data: allowed, error: rateErr } = await supabase.rpc('check_ai_rate_limit', {
+  const { data: allowed, error: rateErr } = await supabase.rpc('check_ai_action_rate_limit', {
     p_user_id: authUser.id,
+    p_action: 'scai-chat',
     p_max_per_day: 150,
   });
   if (rateErr) {
-    // If the RPC doesn't exist yet (migration not yet applied), log and continue.
-    // Once migrated, a real failure here blocks the call.
-    console.warn('Rate-limit RPC error (migration pending?):', rateErr.message);
+    console.warn('SCAI rate-limit RPC error:', rateErr.message);
   } else if (allowed === false) {
     res.status(429).json({ error: 'Daily AI usage limit reached. Try again tomorrow.' });
     return;
@@ -546,7 +557,19 @@ async function handleScaiChat(req: any, res: any, supabase: any, authUser: any, 
 
 // ─── AI Receipt Scanner ───────────────────────────────────────────────────────
 
-async function handleScanReceipt(req: any, res: any) {
+async function handleScanReceipt(req: any, res: any, supabase: any, authUser: any) {
+  const { data: allowed, error: rateErr } = await supabase.rpc('check_ai_action_rate_limit', {
+    p_user_id: authUser.id,
+    p_action: 'scan-receipt',
+    p_max_per_day: 30,
+  });
+  if (rateErr) {
+    console.warn('Scan-receipt rate-limit RPC error:', rateErr.message);
+  } else if (allowed === false) {
+    res.status(429).json({ error: 'Daily receipt scan limit reached. Try again tomorrow.' });
+    return;
+  }
+
   const { image_base64, media_type = 'image/jpeg' } = req.body || {};
 
   if (!image_base64 || typeof image_base64 !== 'string') {
@@ -660,11 +683,11 @@ export default async function handler(req: any, res: any) {
 
   try {
     if (action === 'tone-check') {
-      await handleToneCheck(req, res);
+      await handleToneCheck(req, res, supabase, authUser);
     } else if (action === 'scai-chat') {
       await handleScaiChat(req, res, supabase, authUser, token);
     } else if (action === 'scan-receipt') {
-      await handleScanReceipt(req, res);
+      await handleScanReceipt(req, res, supabase, authUser);
     } else {
       res.status(400).json({ error: 'Missing or invalid action' });
     }
