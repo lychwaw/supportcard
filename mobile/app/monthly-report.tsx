@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Pressable, ScrollView, ActivityIndicator, Alert, Share } from 'react-native';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -175,7 +175,7 @@ export default function MonthlyReportScreen() {
               </View>
 
               <View style={{ gap: 10 }}>
-                <Pressable onPress={() => Alert.alert('Coming Soon', 'Share via PDF is a Premium feature coming soon.')}
+                <Pressable onPress={() => reportText && Share.share({ message: reportText, title: `SupportCard Report — ${monthOptions[selectedIdx].label}` })}
                   style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, borderCurve: 'continuous', padding: 16, alignItems: 'center', transform: [{ scale: pressed ? 0.97 : 1 }] })}>
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Share Report</Text>
                 </Pressable>

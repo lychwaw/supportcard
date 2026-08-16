@@ -17,6 +17,7 @@ interface UserInfo {
   displayName: string;
   initials: string;
   plan: string;
+  idVerified: boolean;
 }
 
 const TIER_COLORS: Record<string, string> = {
@@ -198,7 +199,7 @@ function EditProfileModal({ visible, currentName, onClose, onSaved }: { visible:
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const [userInfo, setUserInfo] = useState<UserInfo>({ email: '', displayName: 'Your Account', initials: '?', plan: 'Preview' });
+  const [userInfo, setUserInfo] = useState<UserInfo>({ email: '', displayName: 'Your Account', initials: '?', plan: 'Preview', idVerified: false });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [loading, setLoading] = useState(true);
   const [wiping, setWiping] = useState(false);
@@ -215,11 +216,11 @@ export default function SettingsScreen() {
         if (user) {
           const email = user.email ?? '';
           const displayName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || 'Your Account';
-          const { data: profile } = await supabase.from('profiles' as any).select('subscription_tier').eq('id', user.id).maybeSingle();
+          const { data: profile } = await supabase.from('profiles' as any).select('subscription_tier, id_verified').eq('id', user.id).maybeSingle();
           const raw = (profile as any)?.subscription_tier ?? 'preview';
           const tierMap: Record<string, string> = { preview: 'Preview', essential: 'Essential', plus: 'Plus', premium: 'Premium', family_plus: 'Plus', free: 'Preview', legal: 'Premium' };
           const plan = tierMap[raw] ?? raw.charAt(0).toUpperCase() + raw.slice(1);
-          setUserInfo({ email, displayName, initials: (displayName !== 'Your Account' ? displayName : email).charAt(0).toUpperCase(), plan });
+          setUserInfo({ email, displayName, initials: (displayName !== 'Your Account' ? displayName : email).charAt(0).toUpperCase(), plan, idVerified: (profile as any)?.id_verified ?? false });
         }
       } finally {
         setLoading(false);
@@ -356,7 +357,6 @@ export default function SettingsScreen() {
               })}
             </View>
           } />
-          <SettingsRow label="Language" value="English" icon="globe-outline" iconColor="#8B5CF6" showChevron onPress={() => Alert.alert('Language', 'Language selection coming soon.')} />
           <SettingsRow label="Change Password" icon="lock-closed-outline" iconColor="#F59E0B" showChevron onPress={handleChangePassword} isLast />
         </SettingsGroup>
 
@@ -364,12 +364,21 @@ export default function SettingsScreen() {
           <SettingsRow label="Current Plan" icon="star-outline" iconColor="#F59E0B" value={userInfo.plan} />
           <SettingsRow label="Upgrade Plan" icon="arrow-up-circle-outline" iconColor={brand.teal} showChevron onPress={() => router.push('/pricing' as any)} />
           <SettingsRow label="Billing History" icon="receipt-outline" iconColor={brand.blue} showChevron
-            onPress={() => Alert.alert('Billing History', userInfo.plan === 'Preview' ? 'You are on the free Preview plan. Upgrade to see billing history.' : `You are on the ${userInfo.plan} plan. Invoices are managed via Dodo Payments.`)}
+            onPress={() => Alert.alert('Billing History', userInfo.plan === 'Preview' ? 'You are on the free Preview plan. Upgrade to see billing history.' : `You are on the ${userInfo.plan} plan. Subscription receipts are available in the App Store under your Apple ID.`)}
             isLast
           />
         </SettingsGroup>
 
         <SettingsGroup label="Privacy & Security">
+          <SettingsRow
+            label="Verify Identity"
+            subtitle={userInfo.idVerified ? 'SA ID verified' : 'Verify your SA ID number'}
+            icon={userInfo.idVerified ? 'shield-checkmark-outline' : 'finger-print-outline'}
+            iconColor={userInfo.idVerified ? brand.teal : brand.blue}
+            value={userInfo.idVerified ? '✓' : undefined}
+            showChevron={!userInfo.idVerified}
+            onPress={() => !userInfo.idVerified && router.push('/id-verification' as any)}
+          />
           <SettingsRow label="Privacy Policy" icon="shield-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard.co.za/privacy')} />
           <SettingsRow label="Terms of Service" icon="document-text-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard.co.za/terms')} />
           <SettingsRow label="Delete Account" icon="trash-outline" iconColor={brand.error} destructive onPress={handleDeleteAccount} isLast />

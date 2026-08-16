@@ -117,11 +117,6 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Child (optional)</Text>
             <PillRow items={pillItems} selected={childId} onSelect={setChildId} />
           </View>
-          <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: brand.blue + '20', borderLeftWidth: 3, borderLeftColor: brand.blue }}>
-            <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
-              Document file upload support coming soon. This will log the report card record — attach a file in the next update.
-            </Text>
-          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </Modal>
@@ -420,11 +415,6 @@ export default function SchoolHubScreen() {
                     </View>
                   </View>
                 ))}
-              </View>
-              <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 14, borderLeftWidth: 3, borderLeftColor: brand.blue, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
-                <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
-                  File attachment support is coming soon. Both co-parents can view this record once uploaded.
-                </Text>
               </View>
             </ScrollView>
           )}
