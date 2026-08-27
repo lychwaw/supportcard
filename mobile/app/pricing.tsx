@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
-import { formatPrice, CURRENCY_OPTIONS } from '@/lib/currency';
+import { CURRENCY_OPTIONS } from '@/lib/currency';
 import { purchaseWithRevenueCat, restoreRevenueCatPurchases } from '@/lib/revenuecat';
 
 function FeatureRow({ text, accent }: { text: string; accent?: boolean }) {
@@ -32,7 +32,28 @@ export default function PricingScreen() {
   const { currency, setCurrency } = useCurrency();
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
-  const p = (usd: number) => formatPrice(usd, currency);
+  // Actual App Store Connect prices — must match exactly what Apple charges
+  const PRICES: Record<string, { USD: string; ZAR: string }> = {
+    supportcard_essential_monthly: { USD: '$3.99', ZAR: 'R89.99' },
+    supportcard_plus_monthly:      { USD: '$5.99', ZAR: 'R129.99' },
+    supportcard_premium_monthly:   { USD: '$12.99', ZAR: 'R269.00' },
+  };
+
+  const p = (packageId: string) => {
+    const tier = PRICES[packageId];
+    if (!tier) return 'Free';
+    return currency === 'USD' ? tier.USD : tier.ZAR;
+  };
+
+  const syncTier = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
+    await fetch(`${apiBase}/api/sync-tier`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    }).catch(() => {});
+  };
 
   const handleCTA = async (tier: string, free?: boolean) => {
     if (free) { router.replace('/(tabs)/'); return; }
@@ -41,6 +62,7 @@ export default function PricingScreen() {
     try {
       if (Platform.OS === 'ios') {
         await purchaseWithRevenueCat(tier);
+        await syncTier();
         router.replace('/(tabs)/');
       } else {
         // Web — use Dodo checkout
@@ -77,6 +99,7 @@ export default function PricingScreen() {
   const handleRestore = async () => {
     try {
       await restoreRevenueCatPurchases();
+      await syncTier();
       Alert.alert('Restored', 'Your purchases have been restored.');
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not restore purchases.');
@@ -137,7 +160,7 @@ export default function PricingScreen() {
           <Text style={{ fontWeight: '700', fontSize: 30, color: colors.label, marginTop: 12, letterSpacing: -0.4 }}>Preview</Text>
           <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Tiny trial access</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 4 }}>
-            <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p(0)}</Text>
+            <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>Free</Text>
           </View>
           <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>For testing the basics.</Text>
           <Divider />
@@ -169,7 +192,7 @@ export default function PricingScreen() {
           <Text style={{ fontWeight: '700', fontSize: 30, color: colors.label, marginTop: 12, letterSpacing: -0.4 }}>Essential</Text>
           <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Basic capped use</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 4 }}>
-            <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p(4.99)}</Text>
+            <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p('supportcard_essential_monthly')}</Text>
             <Text style={{ color: colors.secondaryLabel, fontSize: 17 }}>/mo</Text>
           </View>
           <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>For simple structure without AI.</Text>
@@ -209,7 +232,7 @@ export default function PricingScreen() {
             <Text style={{ fontWeight: '700', fontSize: 30, color: '#fff', marginTop: 12, letterSpacing: -0.4 }}>Plus</Text>
             <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, marginTop: 3 }}>Advanced features</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 6, flexWrap: 'wrap' }}>
-              <Text style={{ fontWeight: '700', fontSize: 46, color: '#fff', letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p(6.99)}</Text>
+              <Text style={{ fontWeight: '700', fontSize: 46, color: '#fff', letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p('supportcard_plus_monthly')}</Text>
               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 17 }}>/mo</Text>
             </View>
             <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, marginTop: 4 }}>The smart co-parenting system.</Text>
@@ -245,7 +268,7 @@ export default function PricingScreen() {
           <Text style={{ fontWeight: '700', fontSize: 30, color: colors.label, marginTop: 12, letterSpacing: -0.4 }}>Premium</Text>
           <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Advanced records</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 4 }}>
-            <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p(14.99)}</Text>
+            <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p('supportcard_premium_monthly')}</Text>
             <Text style={{ color: colors.secondaryLabel, fontSize: 17 }}>/mo</Text>
           </View>
           <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>The complete protection plan.</Text>
@@ -273,25 +296,23 @@ export default function PricingScreen() {
           </Pressable>
         </View>
 
-        {/* ── Founder Offer ── */}
-        <View style={{ backgroundColor: colors.surface, borderRadius: 22, borderCurve: 'continuous', padding: 20, borderWidth: 0.5, borderColor: brand.blue + '30', flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-          <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: brand.blue + '15', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderCurve: 'continuous' }}>
-            <Ionicons name="gift-outline" size={26} color={brand.blue} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: brand.blue, marginBottom: 4 }}>Founder Offer</Text>
-            <Text style={{ color: colors.label, fontSize: 14, lineHeight: 21 }}>
-              Plus is <Text style={{ fontWeight: '700' }}>{p(6.99)}/month</Text> for the first 5,000 families. Lock in this rate as long as you stay subscribed.
-            </Text>
-          </View>
-        </View>
-
         {/* Restore Purchases — required by Apple */}
         {Platform.OS === 'ios' && (
           <Pressable onPress={handleRestore} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignItems: 'center', paddingVertical: 8 })}>
             <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>Restore Purchases</Text>
           </Pressable>
         )}
+
+        {/* Terms & Privacy — required by Apple for auto-renewable subscriptions */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, paddingVertical: 12 }}>
+          <Pressable onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/terms')} hitSlop={8}>
+            <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>Terms of Use</Text>
+          </Pressable>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>·</Text>
+          <Pressable onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/privacy')} hitSlop={8}>
+            <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>Privacy Policy</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

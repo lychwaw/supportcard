@@ -15,11 +15,14 @@ let configured = false;
 export function initRevenueCat(userId: string) {
   if (Platform.OS !== 'ios') return;
   if (!IOS_KEY) return;
-  if (configured) return;
   try {
-    Purchases.setLogLevel(LOG_LEVEL.ERROR);
-    Purchases.configure({ apiKey: IOS_KEY, appUserID: userId });
-    configured = true;
+    if (!configured) {
+      Purchases.setLogLevel(LOG_LEVEL.ERROR);
+      Purchases.configure({ apiKey: IOS_KEY, appUserID: userId });
+      configured = true;
+    } else {
+      Purchases.logIn(userId).catch(() => {});
+    }
   } catch (e) {
     console.warn('RevenueCat init failed:', e);
   }
@@ -42,4 +45,18 @@ export async function purchaseWithRevenueCat(tier: string): Promise<void> {
 
 export async function restoreRevenueCatPurchases(): Promise<void> {
   await Purchases.restorePurchases();
+}
+
+export async function getRevenueCatPrices(): Promise<Record<string, string>> {
+  if (Platform.OS !== 'ios' || !configured) return {};
+  try {
+    const offerings = await Purchases.getOfferings();
+    const prices: Record<string, string> = {};
+    for (const pkg of offerings.current?.availablePackages ?? []) {
+      prices[pkg.identifier] = pkg.product.priceString;
+    }
+    return prices;
+  } catch {
+    return {};
+  }
 }
