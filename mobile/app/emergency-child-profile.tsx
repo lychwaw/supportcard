@@ -137,6 +137,15 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
         medical_notes: medNotes.trim() || null, emergency_notes: emergencyNotes.trim() || null,
       }, { onConflict: 'child_id' });
       if (error) throw error;
+      // Notify co-parent (best-effort)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/apns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'notify-emergency', child_name: childName }),
+        }).catch(() => {});
+      }
       onSaved();
     } catch (e: any) {
       Alert.alert('Error', e?.message ?? 'Could not save profile.');

@@ -93,13 +93,12 @@ export default function FamilyScreen() {
     }
 
     setLinking(true);
-    const { data: match } = await supabase
-      .from('profiles' as any)
-      .select('id, full_name, email')
-      .eq('email', email)
-      .maybeSingle();
+    const { data: rows, error: rpcErr } = await supabase
+      .rpc('find_coparent_by_email' as any, { lookup_email: email });
 
-    if (!match) {
+    const match = (rows as any[])?.[0] ?? null;
+
+    if (rpcErr || !match) {
       setLinking(false);
       Alert.alert(
         'Not registered yet',
@@ -112,13 +111,7 @@ export default function FamilyScreen() {
       return;
     }
 
-    const cp = match as any;
-    const childToLink = children.find(c => !c.co_parent_id);
-    if (!childToLink) {
-      setLinking(false);
-      Alert.alert('Already linked', 'All children already have a co-parent linked.');
-      return;
-    }
+    const cp = { id: match.user_id, full_name: match.full_name, email: match.display_email } as any;
 
     if (cp.id === userId) {
       setLinking(false);
@@ -126,9 +119,38 @@ export default function FamilyScreen() {
       return;
     }
 
-    const { error } = await supabase.from('children' as any).update({ co_parent_id: cp.id }).eq('id', childToLink.id);
+    const kidsToLink = children.filter(c => !c.co_parent_id);
+    if (kidsToLink.length === 0) {
+      setLinking(false);
+      Alert.alert('Already linked', 'All children already have a co-parent linked.');
+      return;
+    }
+
+    // Link ALL unlinked children to this co-parent
+    let linkError: string | null = null;
+    for (const kid of kidsToLink) {
+      const { error } = await supabase.from('children' as any).update({ co_parent_id: cp.id }).eq('id', kid.id);
+      if (error) { linkError = error.message; break; }
+    }
     setLinking(false);
-    if (error) { Alert.alert('Error', error.message); return; }
+    if (linkError) { Alert.alert('Error', linkError); return; }
+
+    // Update UI immediately — don't wait for load() which requires a profiles RLS read
+    setCoParent(cp);
+    setChildren(prev => prev.map(c => c.co_parent_id ? c : { ...c, co_parent_id: cp.id }));
+
+    // Best-effort push notification
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/apns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'notify-linked', co_parent_id: cp.id }),
+        }).catch(() => {});
+      }
+    } catch {}
+
     setShowInvite(false);
     setInviteEmail('');
     Alert.alert('Co-parent linked!', `${cp.full_name || cp.email} is now linked. They can now see shared events and messages.`);

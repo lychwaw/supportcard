@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { initRevenueCat } from '@/lib/revenuecat';
+import { CurrencyProvider } from '@/context/currency-context';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -28,12 +29,12 @@ const theme = {
 // ─── OTA update check ────────────────────────────────────────────────────────
 
 async function checkForUpdates() {
-  if (__DEV__) return; // never check in dev mode
+  if (__DEV__) return;
   try {
     const update = await Updates.checkForUpdateAsync();
     if (update.isAvailable) {
       await Updates.fetchUpdateAsync();
-      await Updates.reloadAsync();
+      // Update downloaded — will apply on next cold launch (avoids JS context teardown crash)
     }
   } catch {
     // Non-fatal — continue with current bundle
@@ -86,6 +87,7 @@ function AppShell({ session }: { session: Session | null }) {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : theme}>
+      <CurrencyProvider>
       <AuthGate session={session} />
       <Stack screenOptions={{ headerShown: false, headerBackTitle: '' }}>
         <Stack.Screen name="(tabs)" />
@@ -106,6 +108,7 @@ function AppShell({ session }: { session: Session | null }) {
         <Stack.Screen name="monthly-report" options={{ headerShown: true }} />
         <Stack.Screen name="id-verification" options={{ headerShown: true, gestureEnabled: false, headerBackVisible: false }} />
       </Stack>
+      </CurrencyProvider>
     </ThemeProvider>
   );
 }

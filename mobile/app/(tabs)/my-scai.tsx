@@ -126,7 +126,7 @@ function UpgradeWall() {
       </View>
       <Text style={{ fontSize: 22, fontWeight: '700', color: colors.label, textAlign: 'center', marginBottom: 10, letterSpacing: -0.3 }}>My SCAI</Text>
       <Text style={{ fontSize: 15, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
-        The AI co-parenting assistant is available on Essential, Plus, and Premium plans.
+        The AI co-parenting assistant is available on Plus and Premium plans.
       </Text>
       <Pressable onPress={() => router.push('/pricing' as any)}
         style={({ pressed }) => ({ backgroundColor: brand.teal, borderRadius: 16, borderCurve: 'continuous', paddingVertical: 16, paddingHorizontal: 40, opacity: pressed ? 0.8 : 1 })}>
@@ -172,9 +172,12 @@ export default function MyScaiTabScreen() {
         body: JSON.stringify({ action: 'scai-chat', messages: allMessages }),
       });
       const data = await res.json();
+      const reply = res.status === 403
+        ? 'My SCAI requires a Plus or Premium plan. Tap View Plans to upgrade.'
+        : cleanText(data.reply ?? data.error ?? 'Sorry, I could not process that.');
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(), role: 'assistant',
-        content: cleanText(data.reply ?? 'Sorry, I could not process that.'),
+        content: reply,
         actions: data.actions ?? [],
       }]);
     } catch (err) {
@@ -193,7 +196,7 @@ export default function MyScaiTabScreen() {
   }, []);
 
   if (tier === null) return <View style={{ flex: 1, backgroundColor: colors.background }} />;
-  if (tier === 'preview' || tier === 'free') return <UpgradeWall />;
+  if (tier === 'preview' || tier === 'free' || tier === 'essential') return <UpgradeWall />;
 
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.background }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>

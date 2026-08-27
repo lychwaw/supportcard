@@ -95,6 +95,12 @@ export function usePushNotifications() {
         router.push('/(tabs)/messages');
       } else if (type === 'calendar' || type === 'event') {
         router.push('/(tabs)/calendar');
+      } else if (type === 'document') {
+        router.push('/(tabs)/documents');
+      } else if (type === 'school') {
+        router.push('/school-hub');
+      } else if (type === 'emergency') {
+        router.push('/emergency-child-profile');
       } else {
         router.push('/(tabs)/');
       }

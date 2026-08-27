@@ -3,9 +3,19 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, M
 import { router, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useCurrency } from '@/hooks/use-currency';
+
+const MSGS_LAST_READ_PATH = (FileSystem.documentDirectory ?? '') + 'msgs_last_read.json';
+async function getMsgsLastRead(): Promise<string> {
+  try {
+    const raw = await FileSystem.readAsStringAsync(MSGS_LAST_READ_PATH);
+    return JSON.parse(raw).ts ?? '1970-01-01T00:00:00.000Z';
+  } catch { return '1970-01-01T00:00:00.000Z'; }
+}
 
 type FeedType = 'event' | 'expense' | 'document' | 'checkin' | 'message';
 
@@ -15,7 +25,7 @@ interface FeedItem {
   title: string;
   subtitle: string;
   time: string;
-  amount?: string;
+  amount?: number;
   badge?: string;
   badgeColor?: string;
   section: 'today' | 'earlier';
@@ -68,6 +78,7 @@ export default function HomeScreen() {
   const [nextEvent, setNextEvent]     = useState<{ date: string; type: string } | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
   const [idVerified, setIdVerified] = useState<boolean | null>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -76,9 +87,10 @@ export default function HomeScreen() {
 
       const today = now.toISOString().slice(0, 10);
 
+      const lastRead = await getMsgsLastRead();
       const [
         profileRes, childrenRes, expenses, events, checkins,
-        messages, pendingRes, upcomingRes, custodyRes,
+        messages, pendingRes, upcomingRes, custodyRes, unreadRes,
       ] = await Promise.all([
         supabase.from('profiles' as any).select('full_name, id_verified').eq('id', user.id).single(),
         supabase.from('children' as any).select('id', { count: 'exact' }).or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`),
@@ -91,9 +103,12 @@ export default function HomeScreen() {
         supabase.from('expense_requests' as any).select('id', { count: 'exact' }).eq('requester_id', user.id).eq('status', 'pending'),
         supabase.from('calendar_events' as any).select('event_type,event_date').gte('event_date' as any, today).order('event_date' as any).limit(1),
         supabase.from('calendar_events' as any).select('id', { count: 'exact' }).gte('event_date', monthStart).lte('event_date', monthEnd).ilike('event_type' as any, '%custody%'),
+        supabase.from('messages' as any).select('id', { count: 'exact', head: true }).eq('receiver_id', user.id).gt('created_at', lastRead),
       ]);
 
-      setUserName((profileRes as any).data?.full_name?.split(' ')[0] ?? '');
+      const rawName: string = (profileRes as any).data?.full_name ?? '';
+      const firstName = rawName.includes('@') ? '' : rawName.split(' ')[0];
+      setUserName(firstName);
       setIdVerified((profileRes as any).data?.id_verified ?? false);
       setChildrenCount((childrenRes as any).count ?? 0);
       setPendingCount((pendingRes as any).count ?? 0);
@@ -101,6 +116,7 @@ export default function HomeScreen() {
 
       const upcoming = ((upcomingRes.data as any[]) ?? []);
       setNextEvent(upcoming[0] ? { date: upcoming[0].event_date, type: upcoming[0].event_type ?? 'Event' } : null);
+      setUnreadCount((unreadRes as any).count ?? 0);
 
       const feed: FeedItem[] = [];
 
@@ -108,7 +124,7 @@ export default function HomeScreen() {
         feed.push({
           id: `exp-${e.id}`, type: 'expense',
           title: e.category, subtitle: e.description ?? e.category,
-          amount: `R${Number(e.amount).toFixed(2)}`, time: formatTime(e.created_at),
+          amount: Number(e.amount), time: formatTime(e.created_at),
           badge: e.status.charAt(0).toUpperCase() + e.status.slice(1),
           badgeColor: STATUS_COLORS[e.status] || brand.body,
           section: isToday(e.created_at) ? 'today' : 'earlier',
@@ -259,6 +275,30 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel }}>Children</Text>
           </Pressable>
         </View>
+
+        {/* ── Unread messages banner ── */}
+        {!loading && unreadCount > 0 && (
+          <Pressable onPress={() => router.push('/(tabs)/messages')}
+            style={({ pressed }) => ({
+              marginHorizontal: 20, marginBottom: 16,
+              backgroundColor: brand.blue, borderRadius: 16, padding: 16,
+              flexDirection: 'row', alignItems: 'center', gap: 12,
+              borderCurve: 'continuous', transform: [{ scale: pressed ? 0.97 : 1 }],
+            })}>
+            <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' }}>
+              <Ionicons name="chatbubble" size={18} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 15, fontWeight: '700', color: '#fff' }}>
+                {unreadCount} unread {unreadCount === 1 ? 'message' : 'messages'}
+              </Text>
+              <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 1 }}>Tap to reply</Text>
+            </View>
+            <View style={{ minWidth: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#fff' }}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+            </View>
+          </Pressable>
+        )}
 
         {/* ── Loading ── */}
         {loading && <ActivityIndicator color={brand.blue} style={{ marginTop: 40 }} />}
@@ -423,6 +463,8 @@ export default function HomeScreen() {
 }
 
 function FeedCard({ item }: { item: FeedItem }) {
+  const { currency } = useCurrency();
+  const sym = currency === 'USD' ? '$' : 'R';
   const { bg, icon } = ICON_MAP[item.type];
   const dest = item.type === 'expense' ? '/(tabs)/expenses'
     : item.type === 'event' ? '/(tabs)/calendar'
@@ -446,7 +488,7 @@ function FeedCard({ item }: { item: FeedItem }) {
         <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 3 }} numberOfLines={1}>{item.subtitle}</Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 6 }}>
-        {item.amount && <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{item.amount}</Text>}
+        {item.amount != null && <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{sym}{item.amount.toFixed(2)}</Text>}
         {!item.amount && <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>{item.time}</Text>}
         {item.badge && item.badgeColor && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

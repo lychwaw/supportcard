@@ -2,13 +2,16 @@
   "$schema": "https://raw.githubusercontent.com/expo/eas-cli/main/packages/eas-json/schemas/eas.schema.json",
   "cli": {
     "version": ">= 16.0.0",
-    "appVersionSource": "remote"
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
   },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "ios": { "simulator": true },
+      "ios": {
+        "simulator": true
+      },
       "env": {
         "EXPO_PUBLIC_API_BASE_URL": "https://supportcard-prod.vercel.app",
         "EXPO_PUBLIC_SUPABASE_URL": "https://owwxfifduexcahsvtyzn.supabase.co"

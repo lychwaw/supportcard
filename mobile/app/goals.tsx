@@ -4,10 +4,13 @@ import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
+import { useCurrency } from '@/hooks/use-currency';
 
 type Goal = { id: string; title: string; target_amount: number; child_id: string | null; child?: { name: string } | null };
 
 export default function GoalsScreen() {
+  const { currency } = useCurrency();
+  const sym = currency === 'USD' ? '$' : 'R';
   const [goals, setGoals] = useState<Goal[]>([]);
   const [contributions, setContributions] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -48,7 +51,7 @@ export default function GoalsScreen() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSaving(false); return; }
-    const { error } = await supabase.from('child_goals' as any).insert({ title: goalTitle.trim(), target_amount: target, created_by: user.id });
+    const { error } = await supabase.from('child_goals' as any).insert({ name: goalTitle.trim(), title: goalTitle.trim(), target_amount: target, created_by: user.id });
     setSaving(false);
     if (error) { Alert.alert('Error', error.message); return; }
     setShowAdd(false); setGoalTitle(''); setGoalTarget(''); load();
@@ -108,10 +111,10 @@ export default function GoalsScreen() {
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 2 }}>
                   <Text style={{ fontSize: 16, fontWeight: '700', color: done ? '#22C55E' : brand.blue, fontVariant: ['tabular-nums'] }}>
-                    R{raised.toFixed(0)}
+                    {sym}{raised.toFixed(0)}
                   </Text>
                   <Text style={{ fontSize: 12, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] }}>
-                    / R{Number(goal.target_amount).toFixed(0)}
+                    / {sym}{Number(goal.target_amount).toFixed(0)}
                   </Text>
                 </View>
               </View>
@@ -150,7 +153,7 @@ export default function GoalsScreen() {
               placeholder="e.g. School Camp, New Bicycle" placeholderTextColor={colors.secondaryLabel} value={goalTitle} onChangeText={setGoalTitle} autoFocus />
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Target Amount (R)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Target Amount ({sym})</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 28, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
               placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={goalTarget}
               onChangeText={v => setGoalTarget(v.replace(/[^0-9.]/g, '').replace(/^0+([1-9])/, '$1'))} />
@@ -172,7 +175,7 @@ export default function GoalsScreen() {
             <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>Contributions are logged for transparency — money transfers happen off-platform via EFT.</Text>
           </View>
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Amount (R)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Amount ({sym})</Text>
             <TextInput style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', fontVariant: ['tabular-nums'] }}
               placeholder="0" placeholderTextColor={colors.secondaryLabel} keyboardType="decimal-pad" value={contribAmount}
               onChangeText={v => setContribAmount(v.replace(/[^0-9.]/g, '').replace(/^0+([1-9])/, '$1'))} autoFocus />

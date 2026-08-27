@@ -81,6 +81,15 @@ export default function DocumentsScreen() {
         metadata: { storage_path: storagePath },
       });
       if (dbErr) throw dbErr;
+      // Notify co-parent (best-effort)
+      supabase.auth.getSession().then(({ data: { session } }: any) => {
+        if (!session) return;
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/apns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'notify-document', doc_type: uploadType, doc_name: uploadDesc.trim() || fileName }),
+        }).catch(() => {});
+      });
       setShowUpload(false);
       setUploadDesc('');
       setUploadType('Other');

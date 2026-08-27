@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Stack } from 'expo-router/stack';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
+import { useCurrency } from '@/hooks/use-currency';
 
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   School: 'school-outline', Food: 'restaurant-outline', Clothing: 'shirt-outline',
@@ -61,6 +62,8 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 ];
 
 export default function TransactionsScreen() {
+  const { currency } = useCurrency();
+  const sym = currency === 'USD' ? '$' : 'R';
   const [requests, setRequests] = useState<ExpenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -105,7 +108,7 @@ export default function TransactionsScreen() {
         {/* Summary tiles */}
         <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
           {[
-            { label: 'Requested', value: `R${totalRequested.toFixed(0)}`, color: '#F59E0B' },
+            { label: 'Requested', value: `${sym}${totalRequested.toFixed(0)}`, color: '#F59E0B' },
             { label: 'Pending', value: String(pendingCount), color: brand.blue },
             { label: 'Approved', value: String(approvedCount), color: '#22C55E' },
           ].map(stat => (
@@ -154,7 +157,7 @@ export default function TransactionsScreen() {
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                     <Text style={{ fontSize: 14, fontWeight: '700', color: colors.label }}>{group.label}</Text>
                     <Text style={{ fontSize: 11, color: colors.secondaryLabel, fontVariant: ['tabular-nums'] }}>
-                      R{groupTotal.toFixed(0)}{groupApproved > 0 ? ` · R${groupApproved.toFixed(0)} approved` : ''}
+                      {sym}{groupTotal.toFixed(0)}{groupApproved > 0 ? ` · ${sym}${groupApproved.toFixed(0)} approved` : ''}
                     </Text>
                   </View>
                   <View style={{ gap: 8 }}>
@@ -166,7 +169,7 @@ export default function TransactionsScreen() {
                             <Ionicons name={CATEGORY_ICON[item.category] ?? 'cube-outline'} size={20} color={brand.blue} />
                           </View>
                           <View style={{ width: 70, flexShrink: 0 }}>
-                            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.blue, fontVariant: ['tabular-nums'] }}>R{Number(item.amount).toFixed(0)}</Text>
+                            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.blue, fontVariant: ['tabular-nums'] }}>{sym}{Number(item.amount).toFixed(0)}</Text>
                             <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 1 }}>{item.category}</Text>
                           </View>
                           <View style={{ flex: 1, minWidth: 0 }}>
@@ -192,7 +195,7 @@ export default function TransactionsScreen() {
                   {hasApproved && (
                     <View style={{ backgroundColor: '#22C55E10', borderRadius: 12, borderCurve: 'continuous', padding: 12, marginTop: 10, borderLeftWidth: 3, borderLeftColor: '#22C55E' }}>
                       <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>
-                        Settlement of R{groupApproved.toFixed(0)} due — arrange via EFT/bank transfer
+                        Settlement of {sym}{groupApproved.toFixed(0)} due — arrange via EFT/bank transfer
                       </Text>
                     </View>
                   )}

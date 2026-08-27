@@ -106,6 +106,15 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
         metadata: { term, year, child_id: childId, storage_path: filePath },
       });
       if (error) throw error;
+      // Notify co-parent (best-effort)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/apns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'notify-school', notice_text: `${term} ${year} report card uploaded` }),
+        }).catch(() => {});
+      }
       setAsset(null);
       onSaved();
     } catch (e: any) {
@@ -191,6 +200,15 @@ function AddNoticeModal({ visible, onClose, onSaved, children }: { visible: bool
         notice_text: noticeText.trim(), child_id: childId, notice_date: date, category,
       });
       if (error) throw error;
+      // Notify co-parent (best-effort)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/apns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'notify-school', notice_text: noticeText.trim(), school_name: schoolName.trim() || null }),
+        }).catch(() => {});
+      }
       setSchoolName(''); setNoticeText(''); setChildId(null);
       setDate(new Date().toISOString().split('T')[0]); setCategory(CATEGORIES[0]);
       onSaved();

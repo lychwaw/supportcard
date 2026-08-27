@@ -40,6 +40,8 @@ export default function CalendarScreen() {
   const [notes, setNotes] = useState('');
   const [addDate, setAddDate] = useState('');
   const [saving, setSaving] = useState(false);
+  const [recurrence, setRecurrence] = useState<'none' | 'weekly' | 'biweekly' | 'monthly'>('none');
+  const [occurrences, setOccurrences] = useState(4);
 
   const loadEvents = useCallback(async () => {
     setLoading(true);
@@ -70,8 +72,23 @@ export default function CalendarScreen() {
     setAddDate(selectedISO);
     setEventType(EVENT_TYPES[0]);
     setNotes('');
+    setRecurrence('none');
+    setOccurrences(4);
     setShowAdd(true);
   };
+
+  function generateDates(start: string, rec: typeof recurrence, count: number): string[] {
+    const dates: string[] = [];
+    const base = new Date(start + 'T00:00:00');
+    for (let i = 0; i < count; i++) {
+      const d = new Date(base);
+      if (rec === 'weekly') d.setDate(d.getDate() + 7 * i);
+      else if (rec === 'biweekly') d.setDate(d.getDate() + 14 * i);
+      else if (rec === 'monthly') d.setMonth(d.getMonth() + i);
+      dates.push(toISO(d.getFullYear(), d.getMonth(), d.getDate()));
+    }
+    return dates;
+  }
 
   const saveEvent = async () => {
     if (!addDate) return;
@@ -90,14 +107,25 @@ export default function CalendarScreen() {
     const hasConflict = existing && existing.length > 0;
 
     const doSave = async () => {
-      const { error } = await supabase.from('calendar_events' as any).insert({
-        user_id: user.id, event_date: addDate, event_type: eventType,
+      const dates = recurrence === 'none' ? [addDate] : generateDates(addDate, recurrence, occurrences);
+      const rows = dates.map(d => ({
+        user_id: user.id, event_date: d, event_type: eventType,
         notes: notes.trim() || null, created_via: 'manual',
-      });
+      }));
+      const { error } = await supabase.from('calendar_events' as any).insert(rows);
       setSaving(false);
       if (error) { Alert.alert('Error', error.message); return; }
       setShowAdd(false);
       loadEvents();
+      // Notify co-parent (best-effort)
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/apns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'notify-calendar', event_type: eventType, event_date: addDate }),
+        }).catch(() => {});
+      }
     };
 
     if (hasConflict) {
@@ -279,7 +307,9 @@ export default function CalendarScreen() {
             <Pressable onPress={() => setShowAdd(false)}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Add Event</Text>
             <Pressable onPress={saveEvent} disabled={saving}>
-              <Text style={{ color: saving ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>{saving ? 'Saving...' : 'Save'}</Text>
+              <Text style={{ color: saving ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>
+                {saving ? 'Saving...' : recurrence !== 'none' ? `Save (${occurrences}×)` : 'Save'}
+              </Text>
             </Pressable>
           </View>
 
@@ -308,6 +338,43 @@ export default function CalendarScreen() {
                 </View>
               </ScrollView>
             </View>
+
+            <View>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 6 }}>REPEAT</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(['none', 'weekly', 'biweekly', 'monthly'] as const).map(r => {
+                    const label = r === 'none' ? 'No repeat' : r === 'weekly' ? 'Weekly' : r === 'biweekly' ? 'Every 2 weeks' : 'Monthly';
+                    return (
+                      <Pressable key={r} onPress={() => setRecurrence(r)}
+                        style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5,
+                          borderColor: recurrence === r ? brand.blue : colors.separator,
+                          backgroundColor: recurrence === r ? brand.blue + '12' : colors.surface }}>
+                        <Text style={{ fontSize: 13, fontWeight: '600', color: recurrence === r ? brand.blue : colors.secondaryLabel }}>{label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </ScrollView>
+            </View>
+
+            {recurrence !== 'none' && (
+              <View>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 6 }}>REPEAT FOR</Text>
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {[4, 8, 13, 26].map(n => (
+                    <Pressable key={n} onPress={() => setOccurrences(n)}
+                      style={{ flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, alignItems: 'center',
+                        borderColor: occurrences === n ? brand.blue : colors.separator,
+                        backgroundColor: occurrences === n ? brand.blue + '12' : colors.surface }}>
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: occurrences === n ? brand.blue : colors.secondaryLabel }}>
+                        {recurrence === 'monthly' ? `${n} mo` : `${n}×`}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
 
             <View>
               <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 6 }}>NOTES (OPTIONAL)</Text>

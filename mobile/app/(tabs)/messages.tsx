@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View, Text, TextInput, Pressable, FlatList,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as FileSystem from 'expo-file-system/legacy';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 
@@ -46,6 +48,7 @@ export default function MessagesTabScreen() {
   const [coParentId, setCoParentId] = useState<string | null>(null);
   const [coParentName, setCoParentName] = useState<string | null>(null);
   const [toneWarning, setToneWarning] = useState<ToneWarning | null>(null);
+  const [ready, setReady] = useState(false);
   const pendingTextRef  = useRef<string>('');
   const flatListRef     = useRef<FlatList>(null);
   // Refs hold the resolved IDs so realtime callbacks always have the latest values
@@ -85,6 +88,7 @@ export default function MessagesTabScreen() {
       }
 
       await loadMessages();
+      setReady(true);
       channel = supabase
         .channel('messages-realtime-tab')
         .on('postgres_changes', {
@@ -99,6 +103,45 @@ export default function MessagesTabScreen() {
     })();
     return () => { channel?.unsubscribe(); };
   }, []);
+
+  // Clear unread badge whenever Messages comes into focus.
+  useFocusEffect(useCallback(() => {
+    const path = (FileSystem.documentDirectory ?? '') + 'msgs_last_read.json';
+    FileSystem.writeAsStringAsync(path, JSON.stringify({ ts: new Date().toISOString() })).catch(() => {});
+  }, []));
+
+  // Re-check co-parent every time the Messages tab comes into focus.
+  // Covers the case where family.tsx just linked a co-parent while this tab was mounted.
+  useFocusEffect(
+    useCallback(() => {
+      (async () => {
+        const myId = userIdRef.current;
+        if (!myId) return; // Still loading auth — the mount effect will handle it
+        const { data: kids } = await supabase
+          .from('children' as any)
+          .select('parent_id, co_parent_id')
+          .or(`parent_id.eq.${myId},co_parent_id.eq.${myId}`)
+          .limit(1);
+        if (!kids?.length) return;
+        const child = kids[0] as any;
+        const partnerId: string | null = child.parent_id === myId ? child.co_parent_id : child.parent_id;
+        if (partnerId === coParentIdRef.current) return; // No change
+        coParentIdRef.current = partnerId;
+        setCoParentId(partnerId);
+        if (partnerId) {
+          const { data: profile } = await supabase
+            .from('profiles' as any)
+            .select('full_name')
+            .eq('id', partnerId)
+            .single();
+          setCoParentName((profile as any)?.full_name?.split(' ')[0] ?? null);
+          await loadMessages();
+        } else {
+          setCoParentName(null);
+        }
+      })();
+    }, [])
+  );
 
   const loadMessages = async () => {
     const myId    = userIdRef.current;
@@ -126,6 +169,27 @@ export default function MessagesTabScreen() {
         sender_id: user.id,
         receiver_id: coParentId,
       });
+
+      // Push notification to co-parent when app is backgrounded (best-effort).
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: profile } = await supabase
+          .from('profiles' as any)
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        const senderName = (profile as any)?.full_name?.split(' ')[0] ?? 'Co-parent';
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/apns`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({
+            action: 'notify-message',
+            recipient_id: coParentId,
+            sender_name: senderName,
+            message_preview: text.trim().slice(0, 100),
+          }),
+        }).catch(() => {});
+      }
     }
     setIsSending(false);
     loadMessages();
@@ -237,7 +301,7 @@ export default function MessagesTabScreen() {
           contentContainerStyle={{ paddingVertical: 14, flexGrow: 1 }}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
           style={{ backgroundColor: colors.background }}
-          ListEmptyComponent={() => (
+          ListEmptyComponent={() => ready ? (
             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 80, paddingHorizontal: 32, gap: 14 }}>
               <View style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: brand.blue + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
                 <Ionicons name="chatbubbles-outline" size={30} color={brand.blue} />
@@ -251,7 +315,7 @@ export default function MessagesTabScreen() {
                   : 'Link a co-parent in Family settings to start messaging'}
               </Text>
             </View>
-          )}
+          ) : null}
         />
 
         {/* Tone warning */}

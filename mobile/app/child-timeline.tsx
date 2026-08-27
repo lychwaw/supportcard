@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
+import { useCurrency } from '@/hooks/use-currency';
 
 type Child = { id: string; name: string };
 type TimelineItemKind = 'expense' | 'event' | 'checkin' | 'document';
@@ -43,6 +44,8 @@ function groupByMonth(items: TimelineItem[]): { month: string; items: TimelineIt
 
 export default function ChildTimelineScreen() {
   const insets = useSafeAreaInsets();
+  const { currency } = useCurrency();
+  const sym = currency === 'USD' ? '$' : 'R';
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
@@ -77,7 +80,7 @@ export default function ChildTimelineScreen() {
     const [{ data: expenses }, { data: events }, { data: checkins }, { data: docs }] = await Promise.all([expensesQ, eventsQ, checkinsQ, docsQ]);
 
     const items: TimelineItem[] = [
-      ...((expenses as any[]) || []).map((e: any): TimelineItem => ({ id: `expense-${e.id}`, kind: 'expense', title: e.description || e.category || 'Expense', subtitle: `R${Number(e.amount ?? 0).toFixed(2)} · ${(e.status || 'pending').toUpperCase()}`, createdAt: e.created_at, createdVia: e.created_via })),
+      ...((expenses as any[]) || []).map((e: any): TimelineItem => ({ id: `expense-${e.id}`, kind: 'expense', title: e.description || e.category || 'Expense', subtitle: `${sym}${Number(e.amount ?? 0).toFixed(2)} · ${(e.status || 'pending').toUpperCase()}`, createdAt: e.created_at, createdVia: e.created_via })),
       ...((events as any[]) || []).map((e: any): TimelineItem => ({ id: `event-${e.id}`, kind: 'event', title: e.event_type || 'Calendar Event', subtitle: e.notes || e.event_date || '', createdAt: e.created_at, createdVia: e.created_via })),
       ...((checkins as any[]) || []).map((c: any): TimelineItem => ({ id: `checkin-${c.id}`, kind: 'checkin', title: c.event_type || 'Custody Check-in', subtitle: c.notes || '', createdAt: c.created_at, createdVia: c.created_via })),
       ...((docs as any[]) || []).map((d: any): TimelineItem => ({ id: `doc-${d.id}`, kind: 'document', title: d.document_type || d.file_name || 'Document', subtitle: d.description || d.file_name || '', createdAt: d.created_at, createdVia: null })),

@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
+import { useCurrency } from '@/hooks/use-currency';
 import { scanReceiptFromCamera, scanReceiptFromLibrary } from '@/lib/receipt-scanner';
 
 const CATEGORIES = ['School', 'Food', 'Clothing', 'Activities', 'Healthcare', 'Transportation', 'Other'];
@@ -34,6 +35,8 @@ function formatDate(dateStr: string) {
 
 export default function ExpensesScreen() {
   const insets = useSafeAreaInsets();
+  const { currency } = useCurrency();
+  const sym = currency === 'USD' ? '$' : 'R';
   const [requests, setRequests] = useState<ExpenseRequest[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -47,11 +50,25 @@ export default function ExpensesScreen() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [mainTab, setMainTab] = useState<MainTab>('Pending');
   const [direction, setDirection] = useState<Direction>('To Approve');
+  const [myChildren, setMyChildren] = useState<{ id: string; name: string }[]>([]);
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) setUserId(user.id);
+    if (user) {
+      setUserId(user.id);
+      // Fetch this user's children so we can attach child_id to new requests
+      const { data: kids } = await supabase
+        .from('children' as any)
+        .select('id, name')
+        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`);
+      const kidList = (kids as any[] || []) as { id: string; name: string }[];
+      setMyChildren(kidList);
+      if (kidList.length > 0 && !selectedChildId) {
+        setSelectedChildId(kidList[0].id);
+      }
+    }
     const { data } = await supabase
       .from('expense_requests' as any)
       .select('*, child:child_id(name)')
@@ -149,11 +166,17 @@ export default function ExpensesScreen() {
     setSubmitError(null);
     const n = parseFloat(amount);
     if (!n || n <= 0) { setSubmitError('Enter a valid amount greater than 0'); return; }
+    if (myChildren.length === 0) {
+      setSubmitError('Add a child in Family settings before submitting expense requests.');
+      return;
+    }
+    const childId = selectedChildId ?? myChildren[0]?.id ?? null;
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSubmitting(false); setSubmitError('Not signed in'); return; }
     const { error } = await supabase.from('expense_requests' as any).insert({
-      requester_id: user.id, amount: n, category, description: description || null, status: 'pending',
+      requester_id: user.id, amount: n, category, description: description || null,
+      status: 'pending', child_id: childId,
     });
     setSubmitting(false);
     if (error) { setSubmitError(error.message); return; }
@@ -186,7 +209,7 @@ export default function ExpensesScreen() {
         <View style={{ borderRadius: 20, padding: 22, backgroundColor: brand.teal, borderCurve: 'continuous' }}>
           <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600' }}>Total Approved</Text>
           <Text style={{ color: '#fff', fontSize: 44, fontWeight: '700', letterSpacing: -1.5, lineHeight: 52, marginTop: 4, fontVariant: ['tabular-nums'] }}>
-            R{totalApproved.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            {sym}{totalApproved.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Text>
           <View style={{ flexDirection: 'row', gap: 16, marginTop: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -263,7 +286,7 @@ export default function ExpensesScreen() {
                       <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{cat}</Text>
                       <Text style={{ fontSize: 13, color: colors.secondaryLabel }}>{items.length} request{items.length !== 1 ? 's' : ''}</Text>
                     </View>
-                    <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>R{total.toFixed(0)}</Text>
+                    <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>{sym}{total.toFixed(0)}</Text>
                   </View>
                   <View style={{ height: 4, backgroundColor: colors.separator, borderRadius: 2 }}>
                     <View style={{ height: 4, borderRadius: 2, backgroundColor: col, width: `${pct}%` }} />
@@ -301,7 +324,7 @@ export default function ExpensesScreen() {
                       <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>{formatDate(req.created_at)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>R{Number(req.amount).toFixed(0)}</Text>
+                      <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>{sym}{Number(req.amount).toFixed(0)}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#F59E0B' }} />
                         <Text style={{ fontSize: 11, fontWeight: '700', color: '#F59E0B' }}>Pending</Text>
@@ -405,6 +428,30 @@ export default function ExpensesScreen() {
               <Text style={{ color: colors.secondaryLabel, fontSize: 12 }}>or enter manually</Text>
               <View style={{ flex: 1, height: 0.5, backgroundColor: colors.separator }} />
             </View>
+            {myChildren.length > 1 && (
+              <View>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>For which child?</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    {myChildren.map(kid => {
+                      const active = selectedChildId === kid.id;
+                      return (
+                        <Pressable key={kid.id} onPress={() => setSelectedChildId(kid.id)}
+                          style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: active ? brand.blue : colors.separator, backgroundColor: active ? brand.blue + '18' : colors.surface }}>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: active ? brand.blue : colors.secondaryLabel }}>{kid.name}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </View>
+            )}
+            {myChildren.length === 1 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: brand.blue + '08', borderRadius: 12, padding: 12, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
+                <Ionicons name="person-outline" size={15} color={brand.blue} />
+                <Text style={{ fontSize: 13, color: colors.label }}>For <Text style={{ fontWeight: '700' }}>{myChildren[0].name}</Text></Text>
+              </View>
+            )}
             <View>
               <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>Amount (Rand)</Text>
               <TextInput

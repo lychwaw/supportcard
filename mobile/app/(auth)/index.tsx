@@ -110,22 +110,6 @@ export default function LoginScreen() {
     if (authError) setError(authError.message);
   }
 
-  async function handleForgotPassword() {
-    const addr = email.trim();
-    if (!addr) {
-      Alert.alert('Reset password', 'Enter your email address above, then tap Forgot password.');
-      return;
-    }
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(addr, {
-      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/reset-password` : undefined,
-    });
-    if (resetError) {
-      Alert.alert('Error', resetError.message);
-    } else {
-      Alert.alert('Check your email', `A password reset link has been sent to ${addr}.`);
-    }
-  }
-
   return (
     <LinearGradient colors={['#CEDFFF', '#FFFFFF']} locations={[0, 0.55]} style={{ flex: 1 }}>
     <KeyboardAvoidingView
@@ -250,10 +234,7 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Forgot password */}
-        <Pressable onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginBottom: 32 }} hitSlop={8}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: brand.blue }}>Forgot password?</Text>
-        </Pressable>
+        <View style={{ marginBottom: 32 }} />
 
         {/* Sign in button */}
         <Pressable

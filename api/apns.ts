@@ -89,10 +89,10 @@ async function handleNotifyExpense(req: any, res: any, supabase: any, authUser: 
     return;
   }
 
-  // Only the original requester of this expense can trigger its notification.
-  // Without this check any authenticated user knowing a UUID could spam co-parents.
-  if (expense.requester_id !== authUser.id) {
-    res.status(403).json({ error: 'Forbidden' });
+  // Only the approving co-parent (not the requester themselves) can trigger this.
+  // The child RLS check below further verifies the caller is a family member.
+  if (expense.requester_id === authUser.id) {
+    res.status(403).json({ error: 'Forbidden: requester cannot trigger their own approval notification' });
     return;
   }
 
@@ -112,8 +112,9 @@ async function handleNotifyExpense(req: any, res: any, supabase: any, authUser: 
     return;
   }
 
-  const recipientIds = [child.parent_id, child.co_parent_id]
-    .filter((id: any) => !!id && id !== expense.requester_id);
+  // Notify the person who submitted the expense that it was actioned.
+  // The caller is the approver/rejector, so we send to the requester.
+  const recipientIds = [expense.requester_id].filter(Boolean);
 
   if (recipientIds.length === 0) {
     res.status(200).json({ sent: 0, message: 'No recipients for this expense' });
@@ -130,7 +131,14 @@ async function handleNotifyExpense(req: any, res: any, supabase: any, authUser: 
     return;
   }
 
-  const title = 'New expense request';
+  // Fetch the current status so the notification body is accurate
+  const { data: expenseUpdated } = await supabase
+    .from('expense_requests')
+    .select('status')
+    .eq('id', expense_id)
+    .single();
+  const status = expenseUpdated?.status ?? 'actioned';
+  const title = status === 'approved' ? 'Expense approved ✓' : status === 'rejected' ? 'Expense declined' : 'Expense updated';
   const body = `${formatZar(Number(expense.amount))} for ${expense.category} (${child.name || 'child'})`;
   const tokens = (devices || []).map((d: any) => d.device_token).filter(Boolean);
 
@@ -143,6 +151,149 @@ async function handleNotifyExpense(req: any, res: any, supabase: any, authUser: 
     title,
     body,
     data: { type: 'expense_request', expense_id: expense.id },
+  })));
+
+  res.status(200).json({ sent: tokens.length });
+}
+
+async function handleNotifyLinked(req: any, res: any, supabase: any, authUser: any) {
+  const { co_parent_id } = req.body || {};
+  if (!co_parent_id) {
+    res.status(400).json({ error: 'Missing co_parent_id' });
+    return;
+  }
+
+  // Verify the caller actually has a child linking them to co_parent_id before
+  // sending — prevents authenticated users from spamming arbitrary accounts.
+  const { data: child } = await supabase
+    .from('children')
+    .select('id, name')
+    .eq('parent_id', authUser.id)
+    .eq('co_parent_id', co_parent_id)
+    .limit(1)
+    .maybeSingle();
+
+  if (!child) {
+    res.status(403).json({ error: 'No linked child found for this co-parent relationship' });
+    return;
+  }
+
+  const { data: devices } = await supabase
+    .from('push_devices')
+    .select('device_token')
+    .eq('user_id', co_parent_id);
+
+  const tokens = (devices || []).map((d: any) => d.device_token).filter(Boolean);
+  if (tokens.length === 0) {
+    res.status(200).json({ sent: 0, message: 'Co-parent has no registered devices' });
+    return;
+  }
+
+  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, {
+    title: "You've been added as a co-parent",
+    body: 'You can now message and collaborate with your co-parent on SupportCard.',
+    data: { type: 'coparent-linked' },
+  })));
+
+  res.status(200).json({ sent: tokens.length });
+}
+
+async function sendToCoParent(
+  supabase: any, authUserId: string, title: string, body: string, data: Record<string, any>,
+): Promise<number> {
+  const { data: child } = await supabase
+    .from('children')
+    .select('parent_id, co_parent_id')
+    .or(`parent_id.eq.${authUserId},co_parent_id.eq.${authUserId}`)
+    .limit(1)
+    .maybeSingle();
+  if (!child) return 0;
+  const coParentId: string | null = child.parent_id === authUserId ? child.co_parent_id : child.parent_id;
+  if (!coParentId) return 0;
+  const { data: devices } = await supabase.from('push_devices').select('device_token').eq('user_id', coParentId);
+  const tokens = ((devices || []) as any[]).map((d: any) => d.device_token).filter(Boolean);
+  if (tokens.length === 0) return 0;
+  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, { title, body, data })));
+  return tokens.length;
+}
+
+async function handleNotifyDocument(req: any, res: any, supabase: any, authUser: any) {
+  const { doc_type, doc_name } = req.body || {};
+  const type = typeof doc_type === 'string' ? doc_type.slice(0, 30) : 'document';
+  const name = typeof doc_name === 'string' ? doc_name.slice(0, 60) : '';
+  const body = name ? `${type}: ${name}` : `A new ${type} document was shared`;
+  const sent = await sendToCoParent(supabase, authUser.id, 'New document shared', body, { type: 'document' });
+  res.status(200).json({ sent });
+}
+
+async function handleNotifyCalendar(req: any, res: any, supabase: any, authUser: any) {
+  const { event_type, event_date } = req.body || {};
+  const evType = typeof event_type === 'string' ? event_type.slice(0, 40) : 'Event';
+  const date = typeof event_date === 'string' ? event_date.slice(0, 10) : '';
+  const body = date ? `${evType} on ${date}` : evType;
+  const sent = await sendToCoParent(supabase, authUser.id, 'New calendar event', body, { type: 'calendar' });
+  res.status(200).json({ sent });
+}
+
+async function handleNotifySchool(req: any, res: any, supabase: any, authUser: any) {
+  const { notice_text, school_name } = req.body || {};
+  const school = typeof school_name === 'string' && school_name ? school_name.slice(0, 40) : null;
+  const title = school ? `School notice — ${school}` : 'New school notice';
+  const preview = typeof notice_text === 'string' ? notice_text.slice(0, 100) : 'A new notice was added';
+  const sent = await sendToCoParent(supabase, authUser.id, title, preview, { type: 'school' });
+  res.status(200).json({ sent });
+}
+
+async function handleNotifyEmergency(req: any, res: any, supabase: any, authUser: any) {
+  const { child_name } = req.body || {};
+  const name = typeof child_name === 'string' && child_name ? child_name.slice(0, 40) : 'your child';
+  const sent = await sendToCoParent(
+    supabase, authUser.id,
+    'Emergency profile updated',
+    `The emergency profile for ${name} was updated`,
+    { type: 'emergency' },
+  );
+  res.status(200).json({ sent });
+}
+
+async function handleNotifyMessage(req: any, res: any, supabase: any, authUser: any) {
+  const { recipient_id, sender_name, message_preview } = req.body || {};
+  if (!recipient_id) {
+    res.status(400).json({ error: 'Missing recipient_id' });
+    return;
+  }
+
+  // Verify the caller and recipient share at least one child — blocks spamming arbitrary users.
+  const { data: child } = await supabase
+    .from('children')
+    .select('id')
+    .or(`and(parent_id.eq.${authUser.id},co_parent_id.eq.${recipient_id}),and(parent_id.eq.${recipient_id},co_parent_id.eq.${authUser.id})`)
+    .limit(1)
+    .maybeSingle();
+
+  if (!child) {
+    res.status(403).json({ error: 'No co-parent relationship found' });
+    return;
+  }
+
+  const { data: devices } = await supabase
+    .from('push_devices')
+    .select('device_token')
+    .eq('user_id', recipient_id);
+
+  const tokens = (devices || []).map((d: any) => d.device_token).filter(Boolean);
+  if (tokens.length === 0) {
+    res.status(200).json({ sent: 0, message: 'Recipient has no registered devices' });
+    return;
+  }
+
+  const name = typeof sender_name === 'string' ? sender_name.slice(0, 60) : 'Co-parent';
+  const preview = typeof message_preview === 'string' ? message_preview.slice(0, 100) : 'New message';
+
+  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, {
+    title: name,
+    body: preview,
+    data: { type: 'message' },
   })));
 
   res.status(200).json({ sent: tokens.length });
@@ -201,6 +352,18 @@ export default async function handler(req: any, res: any) {
       );
     } else if (action === 'notify-expense') {
       await handleNotifyExpense(req, res, supabase, authUser);
+    } else if (action === 'notify-linked') {
+      await handleNotifyLinked(req, res, supabase, authUser);
+    } else if (action === 'notify-document') {
+      await handleNotifyDocument(req, res, supabase, authUser);
+    } else if (action === 'notify-calendar') {
+      await handleNotifyCalendar(req, res, supabase, authUser);
+    } else if (action === 'notify-school') {
+      await handleNotifySchool(req, res, supabase, authUser);
+    } else if (action === 'notify-emergency') {
+      await handleNotifyEmergency(req, res, supabase, authUser);
+    } else if (action === 'notify-message') {
+      await handleNotifyMessage(req, res, supabase, authUser);
     } else if (action === 'test') {
       // Only allow in non-production environments.
       if (process.env.VERCEL_ENV === 'production') {

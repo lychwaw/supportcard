@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
+import { useCurrency } from '@/hooks/use-currency';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -27,14 +28,16 @@ function endOfMonth(year: number, month: number): string {
 function startOfMonth(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-01`;
 }
-function formatCurrency(val: number): string {
-  if (val >= 1_000_000) return `R${(val / 1_000_000).toFixed(1)}M`;
-  if (val >= 1_000) return `R${(val / 1_000).toFixed(1)}k`;
-  return `R${val.toFixed(2)}`;
+function formatCurrency(val: number, sym: string): string {
+  if (val >= 1_000_000) return `${sym}${(val / 1_000_000).toFixed(1)}M`;
+  if (val >= 1_000) return `${sym}${(val / 1_000).toFixed(1)}k`;
+  return `${sym}${val.toFixed(2)}`;
 }
 
 export default function MonthlyReportScreen() {
   const insets = useSafeAreaInsets();
+  const { currency } = useCurrency();
+  const sym = currency === 'USD' ? '$' : 'R';
   const monthOptions = buildMonthOptions();
 
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -73,17 +76,26 @@ export default function MonthlyReportScreen() {
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/ai`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-        body: JSON.stringify({ action: 'scai-chat', messages: [{ role: 'user', content: prompt }] }),
-      });
+      try {
+        const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/ai`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ action: 'scai-chat', messages: [{ role: 'user', content: prompt }] }),
+        });
 
-      if (!response.ok) throw new Error(`AI request failed: ${response.status}`);
-      const json = await response.json();
-      setReportText(json?.reply ?? json?.content ?? json?.choices?.[0]?.message?.content ?? 'Report generated successfully.');
+        if (response.status === 403) {
+          setReportText('__upgrade__');
+        } else if (!response.ok) {
+          setReportText('__error__');
+        } else {
+          const json = await response.json();
+          setReportText(json?.reply ?? json?.content ?? json?.choices?.[0]?.message?.content ?? '');
+        }
+      } catch {
+        setReportText('__error__');
+      }
     } catch (e: any) {
-      Alert.alert('Error', e?.message ?? 'Could not generate report. Please try again.');
+      Alert.alert('Error', e?.message ?? 'Could not load report data. Please try again.');
     } finally {
       setIsGenerating(false);
     }
@@ -143,8 +155,8 @@ export default function MonthlyReportScreen() {
             </View>
           )}
 
-          {/* Report card */}
-          {!isGenerating && reportText && stats && (
+          {/* Report card — shows whenever stats are available */}
+          {!isGenerating && stats && (
             <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 20, borderLeftWidth: 3, borderLeftColor: brand.blue, borderWidth: 0.5, borderColor: colors.separator, gap: 16 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: brand.blue + '15', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
@@ -158,12 +170,25 @@ export default function MonthlyReportScreen() {
                 </View>
               </View>
 
-              <Text style={{ fontSize: 15, color: colors.label, lineHeight: 23 }} selectable>{reportText}</Text>
+              {/* AI summary text — only when available */}
+              {reportText && reportText !== '__upgrade__' && reportText !== '__error__' && (
+                <Text style={{ fontSize: 15, color: colors.label, lineHeight: 23 }} selectable>{reportText}</Text>
+              )}
+
+              {/* Upgrade prompt when user lacks Plus */}
+              {reportText === '__upgrade__' && (
+                <View style={{ backgroundColor: brand.teal + '12', borderRadius: 12, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Ionicons name="flash" size={18} color={brand.teal} />
+                  <Text style={{ fontSize: 14, color: colors.label, flex: 1, lineHeight: 20 }}>
+                    Upgrade to <Text style={{ fontWeight: '700', color: brand.teal }}>Plus</Text> to unlock the AI-powered narrative summary.
+                  </Text>
+                </View>
+              )}
 
               {/* Stat chips */}
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 {[
-                  { value: formatCurrency(stats.totalAmount), label: 'Total Expenses', color: '#F59E0B' },
+                  { value: formatCurrency(stats.totalAmount, sym), label: 'Total Expenses', color: '#F59E0B' },
                   { value: String(stats.eventsCount), label: 'Events', color: brand.blue },
                   { value: String(stats.checkinsCount), label: 'Check-ins', color: brand.teal },
                 ].map(chip => (
@@ -175,10 +200,12 @@ export default function MonthlyReportScreen() {
               </View>
 
               <View style={{ gap: 10 }}>
-                <Pressable onPress={() => reportText && Share.share({ message: reportText, title: `SupportCard Report — ${monthOptions[selectedIdx].label}` })}
-                  style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, borderCurve: 'continuous', padding: 16, alignItems: 'center', transform: [{ scale: pressed ? 0.97 : 1 }] })}>
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Share Report</Text>
-                </Pressable>
+                {reportText && reportText !== '__upgrade__' && reportText !== '__error__' && (
+                  <Pressable onPress={() => Share.share({ message: reportText, title: `SupportCard Report — ${monthOptions[selectedIdx].label}` })}
+                    style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, borderCurve: 'continuous', padding: 16, alignItems: 'center', transform: [{ scale: pressed ? 0.97 : 1 }] })}>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Share Report</Text>
+                  </Pressable>
+                )}
                 <Pressable onPress={handleGenerate}
                   style={({ pressed }) => ({ borderRadius: 14, borderCurve: 'continuous', padding: 16, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator, backgroundColor: colors.background, transform: [{ scale: pressed ? 0.97 : 1 }] })}>
                   <Text style={{ color: colors.secondaryLabel, fontWeight: '600', fontSize: 15 }}>Regenerate</Text>
@@ -187,8 +214,8 @@ export default function MonthlyReportScreen() {
             </View>
           )}
 
-          {/* Empty state */}
-          {!isGenerating && !reportText && (
+          {/* Empty state — only shown before first generation */}
+          {!isGenerating && !stats && (
             <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 48, alignItems: 'center', gap: 14, borderWidth: 0.5, borderColor: colors.separator }}>
               <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
                 <Ionicons name="calendar-outline" size={32} color={brand.blue} />

@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
+import { useCurrency } from '@/hooks/use-currency';
 
 type ProfessionalLink = {
   id: string;
@@ -14,15 +15,12 @@ type ProfessionalLink = {
   parent?: { full_name: string | null; email: string | null } | null;
 };
 
-const RECORD_ROWS: Array<{ icon: 'receipt-outline' | 'calendar-outline' | 'document-outline'; title: string }> = [
-  { icon: 'receipt-outline',  title: 'Expense Records' },
-  { icon: 'calendar-outline', title: 'Calendar & Handoffs' },
-  { icon: 'document-outline', title: 'Documents' },
-];
 
 export default function ProfessionalPortalScreen() {
   const insets = useSafeAreaInsets();
   const { permissions, loading: permLoading } = usePermissions();
+  const { currency } = useCurrency();
+  const sym = currency === 'USD' ? '$' : 'R';
   const [links, setLinks] = useState<ProfessionalLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewRecordsLink, setViewRecordsLink] = useState<ProfessionalLink | null>(null);
@@ -32,12 +30,24 @@ export default function ProfessionalPortalScreen() {
   const loadLinks = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
-    const { data } = await supabase
+    const { data: linkData } = await supabase
       .from('professional_links' as any)
-      .select('*, parent_id, parent:parent_id(full_name, email)')
+      .select('*')
       .eq('professional_id', user.id)
       .eq('status', 'active');
-    setLinks((data as ProfessionalLink[] | null) ?? []);
+    const links = (linkData as any[] | null) ?? [];
+    const parentIds = links.map((l: any) => l.parent_id).filter(Boolean);
+    let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
+    if (parentIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles' as any)
+        .select('id, full_name, email')
+        .in('id', parentIds);
+      for (const p of (profiles as any[]) ?? []) {
+        profileMap[p.id] = { full_name: p.full_name, email: p.email };
+      }
+    }
+    setLinks(links.map((l: any) => ({ ...l, parent: profileMap[l.parent_id] ?? null })));
     setLoading(false);
   }, []);
 
@@ -49,8 +59,8 @@ export default function ProfessionalPortalScreen() {
       const parentId = link.parent_id ?? (link as any).id;
       const [expRes, evRes, docRes] = await Promise.all([
         supabase.from('expense_requests' as any).select('id,category,amount,status,created_at').eq('requester_id', parentId).order('created_at', { ascending: false }).limit(20),
-        supabase.from('calendar_events' as any).select('id,event_type,event_date,notes').order('event_date' as any, { ascending: false }).limit(20),
-        supabase.from('legal_documents' as any).select('id,document_type,file_name,created_at').order('created_at', { ascending: false }).limit(20),
+        supabase.from('calendar_events' as any).select('id,event_type,event_date,notes').eq('user_id' as any, parentId).order('event_date' as any, { ascending: false }).limit(20),
+        supabase.from('legal_documents' as any).select('id,document_type,file_name,created_at').eq('user_id' as any, parentId).order('created_at', { ascending: false }).limit(20),
       ]);
       setRecordsData({ expenses: (expRes.data as any[]) ?? [], events: (evRes.data as any[]) ?? [], docs: (docRes.data as any[]) ?? [] });
     } catch {
@@ -65,12 +75,13 @@ export default function ProfessionalPortalScreen() {
     for (const link of links) {
       lines.push(`Family: ${link.parent?.full_name ?? 'Parent'} (${link.parent?.email ?? ''})`, '');
     }
-    const { data: expenses } = await supabase.from('expense_requests' as any).select('category,amount,status,created_at').order('created_at', { ascending: false }).limit(50);
-    const { data: events } = await supabase.from('calendar_events' as any).select('event_type,event_date').order('event_date' as any, { ascending: false }).limit(50);
+    const parentIds = links.map(l => l.parent_id).filter(Boolean);
+    const { data: expenses } = await supabase.from('expense_requests' as any).select('category,amount,status,created_at').in('requester_id' as any, parentIds).order('created_at', { ascending: false }).limit(50);
+    const { data: events } = await supabase.from('calendar_events' as any).select('event_type,event_date').in('user_id' as any, parentIds).order('event_date' as any, { ascending: false }).limit(50);
     if (expenses?.length) {
       lines.push('--- EXPENSE RECORDS ---');
       for (const e of expenses as any[]) {
-        lines.push(`${(e.created_at as string).slice(0, 10)}  ${e.category}  R${Number(e.amount).toFixed(2)}  [${e.status}]`);
+        lines.push(`${(e.created_at as string).slice(0, 10)}  ${e.category}  ${sym}${Number(e.amount).toFixed(2)}  [${e.status}]`);
       }
       lines.push('');
     }
@@ -194,26 +205,6 @@ export default function ProfessionalPortalScreen() {
           </View>
         )}
 
-        {/* Read-only record access */}
-        <Text style={{ fontSize: 13, fontWeight: '600', color: colors.secondaryLabel }}>
-          Read-Only Record Access
-        </Text>
-
-        <View style={{ backgroundColor: colors.surface, borderRadius: 18, borderCurve: 'continuous', overflow: 'hidden', borderWidth: 0.5, borderColor: colors.separator }}>
-          {RECORD_ROWS.map((row, i) => (
-            <View key={row.title}>
-              {i > 0 && <View style={{ height: 0.5, backgroundColor: colors.separator, marginLeft: 60 }} />}
-              <Pressable onPress={() => Alert.alert(row.title, `Viewing as professional — read only.`)}
-                style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 16, backgroundColor: pressed ? brand.blue + '06' : 'transparent' })}>
-                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: brand.blue + '12', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous', marginRight: 14 }}>
-                  <Ionicons name={row.icon} size={18} color={brand.blue} />
-                </View>
-                <Text style={{ flex: 1, fontSize: 15, color: colors.label }}>{row.title}</Text>
-                <Ionicons name="chevron-forward" size={16} color={colors.secondaryLabel} style={{ opacity: 0.5 }} />
-              </Pressable>
-            </View>
-          ))}
-        </View>
 
         {/* Note */}
         <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 14, borderLeftWidth: 3, borderLeftColor: brand.blue, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
@@ -258,7 +249,7 @@ export default function ProfessionalPortalScreen() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12, gap: 12 }}>
                           <Ionicons name="receipt-outline" size={16} color="#F59E0B" />
                           <Text style={{ flex: 1, fontSize: 14, color: colors.label }}>{e.category}</Text>
-                          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] }}>R{Number(e.amount).toFixed(2)}</Text>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: colors.label, fontVariant: ['tabular-nums'] }}>{sym}{Number(e.amount).toFixed(2)}</Text>
                           <View style={{ backgroundColor: e.status === 'approved' ? '#22C55E18' : e.status === 'rejected' ? '#EF444418' : '#F59E0B18', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 2 }}>
                             <Text style={{ fontSize: 11, fontWeight: '700', color: e.status === 'approved' ? '#22C55E' : e.status === 'rejected' ? '#EF4444' : '#F59E0B' }}>{e.status}</Text>
                           </View>
