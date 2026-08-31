@@ -118,6 +118,8 @@ export default function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<Role>('parent');
   const [currency, setCurrency] = useState<Currency>('ZAR');
+  const [referralCode, setReferralCode] = useState('');
+  const [referralFocused, setReferralFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -169,9 +171,23 @@ export default function SignupScreen() {
     setLoading(false);
     if (authError) {
       setError(authError.message);
-    } else {
-      setSuccess(true);
+      return;
     }
+    // Fire-and-forget referral capture — non-blocking, failure is silent
+    // The user has 7 days post-signup to enter a code so this also runs
+    // in the settings screen later. Here we just capture it if provided at signup.
+    if (referralCode.trim() && data.session) {
+      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
+      fetch(`${apiBase}/api/referral-capture`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${data.session.access_token}`,
+        },
+        body: JSON.stringify({ code: referralCode.trim().toUpperCase() }),
+      }).catch(() => {});
+    }
+    setSuccess(true);
   }
 
   if (success) {
@@ -626,6 +642,39 @@ export default function SignupScreen() {
               );
             })}
           </View>
+        </View>
+
+        {/* Referral code — optional */}
+        <View style={{ marginBottom: 32 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: brand.dark, marginBottom: 4, letterSpacing: 0.1 }}>
+            Referral code
+          </Text>
+          <Text style={{ fontSize: 12, color: brand.body, marginBottom: 12 }}>
+            Optional — enter a code if someone referred you
+          </Text>
+          <TextInput
+            value={referralCode}
+            onChangeText={v => setReferralCode(v.toUpperCase().replace(/\s/g, ''))}
+            onFocus={() => setReferralFocused(true)}
+            onBlur={() => setReferralFocused(false)}
+            placeholder="e.g. LIESEL42"
+            placeholderTextColor={brand.body}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={12}
+            style={{
+              height: 52,
+              borderRadius: 12,
+              borderWidth: 1.5,
+              borderColor: referralFocused ? brand.blue : brand.separator,
+              backgroundColor: '#FFFFFF',
+              paddingHorizontal: 16,
+              fontSize: 15,
+              color: brand.dark,
+              letterSpacing: 2,
+              borderCurve: 'continuous',
+            }}
+          />
         </View>
 
         {/* Create account button */}

@@ -64,7 +64,6 @@ export default async function handler(req: any, res: any) {
     const supabase = getSupabase();
 
     if (ACTIVE_EVENTS.has(eventType)) {
-      // Find which tier this entitlement maps to
       const tier = (entitlement_ids ?? [])
         .map((e: string) => ENTITLEMENT_TO_TIER[e])
         .find(Boolean) ?? null;
@@ -74,12 +73,59 @@ export default async function handler(req: any, res: any) {
           subscription_tier:   tier,
           subscription_status: 'active',
         }).eq('id', userId);
+
+        // Write subscription_started_at on the first active event (INITIAL_PURCHASE)
+        // so the 90-day qualification window starts from the right moment.
+        if (eventType === 'INITIAL_PURCHASE') {
+          const { data: referral } = await supabase
+            .from('referrals')
+            .select('id, status')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+          if (referral && referral.status === 'pending') {
+            await supabase.from('referrals').update({
+              tier,
+              subscription_started_at: new Date().toISOString(),
+            }).eq('id', referral.id);
+
+            await supabase.from('referral_events').insert({
+              referral_id: referral.id,
+              event_type:  'subscription_started',
+              old_status:  'pending',
+              new_status:  'pending',
+              meta:        { tier, rc_event: eventType },
+            });
+          }
+        }
       }
     } else if (LAPSED_EVENTS.has(eventType)) {
       await supabase.from('profiles').update({
         subscription_tier:   'preview',
         subscription_status: 'cancelled',
       }).eq('id', userId);
+
+      // Void any pending referral if the subscription lapses before 90 days
+      const { data: referral } = await supabase
+        .from('referrals')
+        .select('id, status')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (referral && referral.status === 'pending') {
+        await supabase.from('referrals').update({
+          status:      'void',
+          void_reason: `subscription_lapsed:${eventType}`,
+        }).eq('id', referral.id);
+
+        await supabase.from('referral_events').insert({
+          referral_id: referral.id,
+          event_type:  'voided',
+          old_status:  'pending',
+          new_status:  'void',
+          meta:        { reason: eventType },
+        });
+      }
     }
 
     res.status(200).json({ received: true });
