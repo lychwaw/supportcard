@@ -363,7 +363,10 @@ export default function SettingsScreen() {
         <SettingsGroup label="Subscription">
           <SettingsRow label="Current Plan" icon="star-outline" iconColor="#F59E0B" value={userInfo.plan} />
           <SettingsRow label="Upgrade Plan" icon="arrow-up-circle-outline" iconColor={brand.teal} showChevron onPress={() => router.push('/pricing' as any)} />
-          <SettingsRow label="Billing History" icon="receipt-outline" iconColor={brand.blue} showChevron
+          <SettingsRow label="Manage Subscription" icon="settings-outline" iconColor={brand.blue} showChevron
+            onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+          />
+          <SettingsRow label="Billing History" icon="receipt-outline" iconColor={brand.body} showChevron
             onPress={() => Alert.alert('Billing History', userInfo.plan === 'Preview' ? 'You are on the free Preview plan. Upgrade to see billing history.' : `You are on the ${userInfo.plan} plan. Subscription receipts are available in the App Store under your Apple ID.`)}
             isLast
           />

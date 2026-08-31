@@ -12,33 +12,77 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
-import * as Linking from 'expo-linking';
+import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
 import { type Currency, CURRENCY_OPTIONS } from '@/lib/currency';
 
 WebBrowser.maybeCompleteAuthSession();
 
-async function handleOAuth(provider: 'google' | 'apple', setError: (e: string) => void) {
+const REDIRECT_URL = 'supportcard://';
+
+async function handleGoogleSignIn(setError: (e: string) => void) {
   setError('');
   if (Platform.OS === 'web') {
     const { error } = await supabase.auth.signInWithOAuth({
-      provider,
+      provider: 'google',
       options: { redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined },
     });
     if (error) setError(error.message);
     return;
   }
-  const redirectTo = Linking.createURL('/');
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider,
-    options: { redirectTo, skipBrowserRedirect: true },
+    provider: 'google',
+    options: { redirectTo: REDIRECT_URL, skipBrowserRedirect: true },
   });
   if (error || !data.url) { setError(error?.message ?? 'Could not start sign-in'); return; }
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
-  if (result.type === 'success') {
-    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(result.url);
+  const result = await WebBrowser.openAuthSessionAsync(data.url, REDIRECT_URL);
+  if (result.type !== 'success') return;
+  const url = result.url;
+  if (url.includes('code=')) {
+    const { error: sessionError } = await supabase.auth.exchangeCodeForSession(url);
     if (sessionError) setError(sessionError.message);
+  } else {
+    const fragment = url.includes('#') ? url.split('#')[1] : url.split('?').slice(1).join('?');
+    const params = new URLSearchParams(fragment ?? '');
+    const accessToken = params.get('access_token');
+    const refreshToken = params.get('refresh_token');
+    if (accessToken && refreshToken) {
+      const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+      if (sessionError) setError(sessionError.message);
+    } else {
+      setError('Sign-in failed — please try again.');
+    }
+  }
+}
+
+async function handleAppleSignIn(setError: (e: string) => void) {
+  setError('');
+  if (Platform.OS === 'web') {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'apple',
+      options: { redirectTo: typeof window !== 'undefined' ? window.location.origin : undefined },
+    });
+    if (error) setError(error.message);
+    return;
+  }
+  try {
+    const credential = await AppleAuthentication.signInAsync({
+      requestedScopes: [
+        AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
+        AppleAuthentication.AppleAuthenticationScope.EMAIL,
+      ],
+    });
+    if (!credential.identityToken) { setError('Apple Sign In failed — no identity token received.'); return; }
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: credential.identityToken,
+    });
+    if (error) setError(error.message);
+  } catch (e: any) {
+    if (e?.code !== 'ERR_REQUEST_CANCELED') {
+      setError(e?.message ?? 'Apple Sign In failed.');
+    }
   }
 }
 
@@ -116,16 +160,12 @@ export default function SignupScreen() {
       email: email.trim(),
       password,
       options: {
-        data: { full_name: fullName.trim(), role },
+        // Passed into raw_user_meta_data — the handle_new_user DB trigger
+        // reads these and writes them to the profiles row at account creation
+        // time, so they are set even before email confirmation.
+        data: { full_name: fullName.trim(), role, preferred_currency: currency },
       },
     });
-    // Save currency preference to profile immediately after signup
-    if (!authError && data.user) {
-      await supabase
-        .from('profiles' as any)
-        .update({ preferred_currency: currency })
-        .eq('id', data.user.id);
-    }
     setLoading(false);
     if (authError) {
       setError(authError.message);
@@ -238,7 +278,7 @@ export default function SignupScreen() {
         {/* Social auth buttons */}
         <View style={{ gap: 12, marginBottom: 24 }}>
           <Pressable
-            onPress={() => handleOAuth('google', setError)}
+            onPress={() => handleGoogleSignIn(setError)}
             style={({ pressed }) => ({
               height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: brand.separator,
               backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center',
@@ -251,7 +291,7 @@ export default function SignupScreen() {
           </Pressable>
 
           <Pressable
-            onPress={() => handleOAuth('apple', setError)}
+            onPress={() => handleAppleSignIn(setError)}
             style={({ pressed }) => ({
               height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: brand.separator,
               backgroundColor: '#000000', flexDirection: 'row', alignItems: 'center',
