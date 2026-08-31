@@ -83,6 +83,89 @@ function SettingsRow({ label, subtitle, value, icon, iconColor, showChevron = fa
   );
 }
 
+function ReferralCodeModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
+  const [code, setCode] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<'ok' | 'error' | null>(null);
+  const [message, setMessage] = useState('');
+
+  useEffect(() => { if (!visible) { setCode(''); setResult(null); setMessage(''); } }, [visible]);
+
+  const handleSubmit = useCallback(async () => {
+    if (!code.trim()) return;
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setResult('error'); setMessage('Sign in required.'); return; }
+      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
+      const res = await fetch(`${apiBase}/api/referral-capture`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ code: code.trim().toUpperCase() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setResult('ok');
+        setMessage('Code applied — thank you!');
+      } else {
+        setResult('error');
+        setMessage(data.error ?? 'Could not apply code.');
+      }
+    } catch {
+      setResult('error');
+      setMessage('Something went wrong. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  }, [code]);
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
+          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Referral Code</Text>
+          <Pressable onPress={handleSubmit} disabled={saving || !code.trim() || result === 'ok'}>
+            <Text style={{ color: saving || !code.trim() || result === 'ok' ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>
+              {saving ? 'Applying…' : 'Apply'}
+            </Text>
+          </Pressable>
+        </View>
+        <View style={{ padding: 20, gap: 16 }}>
+          <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
+            Enter a referral code from a partner or friend. Codes can be entered within 7 days of creating your account.
+          </Text>
+          <TextInput
+            style={{
+              backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5,
+              borderColor: result === 'ok' ? '#22C55E' : result === 'error' ? brand.error : colors.separator,
+              padding: 16, fontSize: 18, color: colors.label, borderCurve: 'continuous',
+              letterSpacing: 3, fontWeight: '600', textAlign: 'center',
+            }}
+            placeholder="LIESEL42"
+            placeholderTextColor={colors.secondaryLabel}
+            value={code}
+            onChangeText={v => { setCode(v.toUpperCase().replace(/\s/g, '')); setResult(null); }}
+            autoCapitalize="characters"
+            autoCorrect={false}
+            maxLength={12}
+            returnKeyType="done"
+            onSubmitEditing={handleSubmit}
+            autoFocus
+            editable={result !== 'ok'}
+          />
+          {message ? (
+            <Text style={{ fontSize: 13, color: result === 'ok' ? '#22C55E' : brand.error, textAlign: 'center', fontWeight: '600' }}>
+              {message}
+            </Text>
+          ) : null}
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 function ChangePasswordModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const [newPassword, setNewPassword] = useState('');
@@ -206,6 +289,7 @@ export default function SettingsScreen() {
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showReferralCode, setShowReferralCode] = useState(false);
   const { currency, setCurrency } = useCurrency();
 
   useEffect(() => {
@@ -379,6 +463,7 @@ export default function SettingsScreen() {
         </SettingsGroup>
 
         <SettingsGroup label="Support">
+          <SettingsRow label="Enter Referral Code" icon="gift-outline" iconColor={brand.teal} showChevron onPress={() => setShowReferralCode(true)} />
           <SettingsRow label="Help Center" icon="help-circle-outline" iconColor={brand.blue} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global?subject=SupportCard%20Help')} />
           <SettingsRow label="Contact Support" icon="mail-outline" iconColor={brand.teal} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global')} />
           <SettingsRow label="App Version" icon="information-circle-outline" iconColor={brand.body} value="1.0.0" isLast />
@@ -435,6 +520,10 @@ export default function SettingsScreen() {
       <ChangePasswordModal
         visible={showChangePassword}
         onClose={() => setShowChangePassword(false)}
+      />
+      <ReferralCodeModal
+        visible={showReferralCode}
+        onClose={() => setShowReferralCode(false)}
       />
     </>
   );
