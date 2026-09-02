@@ -26,12 +26,12 @@ function cleanText(text: string): string {
 }
 
 const SUGGESTIONS: Array<{ icon: keyof typeof Ionicons.glyphMap; text: string; color: string }> = [
-  { icon: 'calendar-outline',    text: 'Schedule a pickup',    color: brand.blue },
-  { icon: 'cash-outline',        text: 'Request funds',        color: '#22C55E' },
-  { icon: 'school-outline',      text: 'Add school event',     color: '#8B5CF6' },
-  { icon: 'camera-outline',      text: 'Upload a receipt',     color: '#F59E0B' },
-  { icon: 'stats-chart-outline', text: 'Generate a report',    color: brand.teal },
-  { icon: 'location-outline',    text: 'Log a check-in',       color: '#EF4444' },
+  { icon: 'calendar-outline',    text: 'Schedule a pickup',       color: brand.blue },
+  { icon: 'cash-outline',        text: 'Request funds',           color: '#22C55E' },
+  { icon: 'school-outline',      text: 'Add school event',        color: '#8B5CF6' },
+  { icon: 'medical-outline',     text: 'Add a doctor visit',      color: '#F59E0B' },
+  { icon: 'swap-horizontal-outline', text: 'Log a drop-off',      color: brand.teal },
+  { icon: 'location-outline',    text: 'Log a check-in',          color: '#EF4444' },
 ];
 
 function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) {
