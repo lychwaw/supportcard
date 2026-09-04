@@ -284,7 +284,9 @@ function EditProfileModal({ visible, currentName, onClose, onSaved }: { visible:
   );
 }
 
-type ProfessionalLink = { id: string; invited_email: string; status: string; token: string; notes?: string | null };
+// No `notes` field: professional notes are private to the professional who
+// wrote them and are never returned to the parent.
+type ProfessionalLink = { id: string; invited_email: string; status: string; token: string };
 
 function InviteProfessionalModal({ visible, onClose, onInvited }: { visible: boolean; onClose: () => void; onInvited: () => void }) {
   const insets = useSafeAreaInsets();
@@ -597,7 +599,7 @@ export default function SettingsScreen() {
               label={link.invited_email}
               subtitle={
                 link.status === 'active'
-                  ? (link.notes ? `Linked · ${link.notes}` : 'Linked')
+                  ? 'Linked'
                   : link.status === 'pending'
                     ? `Pending — code: ${link.token}`
                     : 'Revoked'

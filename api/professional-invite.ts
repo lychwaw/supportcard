@@ -131,9 +131,11 @@ async function handleClaim(req: any, res: any, supabase: any, userId: string) {
 }
 
 async function handleList(req: any, res: any, supabase: any, userId: string) {
+  // Deliberately does NOT return notes — those are private to the professional
+  // who wrote them and live in the professional_notes table.
   const { data } = await supabase
     .from('professional_links')
-    .select('id, invited_email, status, token, notes, created_at, accepted_at')
+    .select('id, invited_email, status, token, created_at, accepted_at')
     .eq('parent_id', userId)
     .order('created_at', { ascending: false });
 
@@ -145,22 +147,34 @@ async function handleUpdateNotes(req: any, res: any, supabase: any, userId: stri
   if (!link_id) return res.status(400).json({ error: 'link_id required' });
   if (typeof notes !== 'string') return res.status(400).json({ error: 'notes must be a string' });
 
-  // Only the professional on this link can write notes.
-  // .select() matters: without it a filter that matches zero rows still returns
-  // error: null, so an unauthorised or inactive link would report success and
-  // silently save nothing.
-  const { data, error } = await supabase
+  // Confirm this professional owns an active link before writing anything.
+  // .select() matters: a filter matching zero rows still returns error: null,
+  // so without checking the result an unauthorised caller would get a 200.
+  const { data: link, error: linkErr } = await supabase
     .from('professional_links')
-    .update({ notes: notes.trim().slice(0, 2000) || null })
+    .select('id')
     .eq('id', link_id)
     .eq('professional_id', userId)
     .eq('status', 'active')
-    .select('id');
+    .maybeSingle();
 
-  if (error) return res.status(500).json({ error: 'Could not save notes' });
-  if (!data || data.length === 0) {
+  if (linkErr) return res.status(500).json({ error: 'Could not save notes' });
+  if (!link) {
     return res.status(404).json({ error: 'This link is no longer active, or you do not have access to it.' });
   }
+
+  // professional_notes is scoped to the professional by RLS. The parent has no
+  // policy on that table, so they can neither read nor overwrite what goes here.
+  const { error } = await supabase
+    .from('professional_notes')
+    .upsert({
+      link_id,
+      professional_id: userId,
+      body: notes.trim().slice(0, 2000) || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'link_id' });
+
+  if (error) return res.status(500).json({ error: 'Could not save notes' });
   return res.status(200).json({ success: true });
 }
 

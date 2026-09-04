@@ -57,7 +57,18 @@ export default function ProfessionalPortalScreen() {
         profileMap[p.id] = { full_name: p.full_name, email: p.email };
       }
     }
-    const enriched = links.map((l: any) => ({ ...l, parent: profileMap[l.parent_id] ?? null }));
+    // Notes live in their own table so the parent cannot read them. RLS scopes
+    // it to the professional, so this only ever returns our own rows.
+    let noteMap: Record<string, string> = {};
+    if (links.length > 0) {
+      const { data: noteRows } = await supabase
+        .from('professional_notes' as any)
+        .select('link_id, body')
+        .in('link_id', links.map((l: any) => l.id));
+      for (const n of (noteRows as any[]) ?? []) noteMap[n.link_id] = n.body ?? '';
+    }
+
+    const enriched = links.map((l: any) => ({ ...l, notes: noteMap[l.id] ?? null, parent: profileMap[l.parent_id] ?? null }));
     setLinks(enriched);
     setNotesDraft(prev => {
       const next: Record<string, string> = { ...prev };
