@@ -81,7 +81,7 @@ export default async function handler(req: any, res: any) {
     const productId = PRODUCT_IDS[tier];
 
     if (!productId) {
-      res.status(400).json({ error: `Unknown or unconfigured tier: ${productKey}` });
+      res.status(400).json({ error: `Unknown or unconfigured tier: ${tier}` });
       return;
     }
 
