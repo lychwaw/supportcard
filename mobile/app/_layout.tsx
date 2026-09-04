@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router/stack';
 import { ThemeProvider, DefaultTheme, DarkTheme, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -65,33 +65,51 @@ function ErrorFallback({ error, reset }: { error: Error; reset: () => void }) {
 
 // ─── Auth guard ───────────────────────────────────────────────────────────────
 
-function AuthGate({ session }: { session: Session | null | undefined }) {
+function AuthGate({
+  session,
+  needsOnboarding,
+}: {
+  session: Session | null | undefined;
+  needsOnboarding: boolean | null;
+}) {
   const router = useRouter();
   const segments = useSegments();
+  // Fire the onboarding redirect at most once per app launch. If the user quits
+  // mid-tour, onboarded_at is still NULL so they get it again next cold start.
+  const sentToOnboarding = useRef(false);
 
   useEffect(() => {
     if (session === undefined) return;
     const inAuthGroup = segments[0] === '(auth)';
-    if (!session && !inAuthGroup) router.replace('/(auth)/');
-    else if (session && inAuthGroup) router.replace('/(tabs)/');
-  }, [session, segments]);
+
+    if (!session && !inAuthGroup) { router.replace('/(auth)/'); return; }
+
+    if (session && needsOnboarding && !sentToOnboarding.current) {
+      sentToOnboarding.current = true;
+      router.replace('/onboarding');
+      return;
+    }
+
+    if (session && inAuthGroup && !needsOnboarding) router.replace('/(tabs)/');
+  }, [session, segments, needsOnboarding]);
 
   return null;
 }
 
 // ─── App shell ────────────────────────────────────────────────────────────────
 
-function AppShell({ session }: { session: Session | null }) {
+function AppShell({ session, needsOnboarding }: { session: Session | null; needsOnboarding: boolean | null }) {
   const colorScheme = useColorScheme();
   usePushNotifications(); // register for push notifications once authenticated
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : theme}>
       <CurrencyProvider>
-      <AuthGate session={session} />
+      <AuthGate session={session} needsOnboarding={needsOnboarding} />
       <Stack screenOptions={{ headerShown: false, headerBackTitle: '' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="pricing" options={{ headerShown: false }} />
         <Stack.Screen name="contacts" options={{ headerShown: true }} />
         <Stack.Screen name="transactions" options={{ headerShown: true }} />
@@ -118,8 +136,26 @@ function AppShell({ session }: { session: Session | null }) {
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ioniconsFontUrl = require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf');
 
+// Has this user completed the intro tour? Fails safe: if the onboarded_at column
+// isn't there yet (migration not run), we treat them as onboarded so nobody gets
+// stuck behind a tour the backend can't record.
+async function loadOnboardingState(userId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('onboarded_at')
+      .eq('id', userId)
+      .maybeSingle();
+    if (error) return false;
+    return !data?.onboarded_at;
+  } catch {
+    return false;
+  }
+}
+
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
+  const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Load Ionicons from unpkg to bypass Vercel CDN cache corruption
@@ -130,7 +166,7 @@ export default function RootLayout() {
     }
     checkForUpdates();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       if (session?.user?.id) {
         initRevenueCat(session.user.id);
@@ -140,19 +176,27 @@ export default function RootLayout() {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({ action: 'check' }),
         }).catch(() => {});
+        setNeedsOnboarding(await loadOnboardingState(session.user.id));
+      } else {
+        setNeedsOnboarding(false);
       }
       SplashScreen.hideAsync();
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
-      if (session?.user?.id) initRevenueCat(session.user.id);
+      if (session?.user?.id) {
+        initRevenueCat(session.user.id);
+        setNeedsOnboarding(await loadOnboardingState(session.user.id));
+      } else {
+        setNeedsOnboarding(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined) return null;
+  if (session === undefined || needsOnboarding === null) return null;
 
-  return <AppShell session={session} />;
+  return <AppShell session={session} needsOnboarding={needsOnboarding} />;
 }
