@@ -1,15 +1,18 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Pressable, Alert } from 'react-native';
+import { View, Pressable, Alert, type ColorValue } from 'react-native';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brand, colors } from '@/theme/colors';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
+// React Navigation hands the icon a ColorValue, which on iOS can be an
+// OpaqueColorValue rather than a string. Ionicons only accepts a string, so
+// narrow it here instead of widening the prop type.
 function tabIcon(inactive: IoniconName, active: IoniconName) {
-  return ({ color, focused }: { color: string; focused: boolean }) => (
-    <Ionicons name={focused ? active : inactive} size={24} color={color} />
+  return ({ color, focused }: { color: ColorValue; focused: boolean }) => (
+    <Ionicons name={focused ? active : inactive} size={24} color={color as string} />
   );
 }
 

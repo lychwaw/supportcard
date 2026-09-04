@@ -88,7 +88,7 @@ export default function MoreScreen() {
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign Out', style: 'destructive', onPress: async () => {
         await supabase.auth.signOut();
-        router.replace('/(auth)/' as any);
+        router.replace('/(auth)' as any);
       }},
     ]);
   }

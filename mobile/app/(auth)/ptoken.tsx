@@ -17,7 +17,7 @@ export default function PTokenScreen() {
   const { ptoken } = useLocalSearchParams<{ ptoken: string }>();
 
   useEffect(() => {
-    if (!ptoken) { router.replace('/(auth)/'); return; }
+    if (!ptoken) { router.replace('/(auth)'); return; }
 
     const verify = async () => {
       // Check if the token exists and is pending
@@ -30,7 +30,7 @@ export default function PTokenScreen() {
 
       if (error || !link) {
         // Invalid or already used — send to login with a message
-        router.replace('/(auth)/');
+        router.replace('/(auth)');
         return;
       }
 

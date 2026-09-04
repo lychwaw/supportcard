@@ -154,7 +154,7 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
     }
   }, [childId, scheme, memberNum, bloodType, allergies, medications, doctorName, doctorPhone, dentistName, dentistPhone, medNotes, emergencyNotes, onSaved]);
 
-  const inputStyle = { backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label };
+  const inputStyle = { backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous' as const, borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label };
   const sectionLabelStyle = { fontSize: 12, fontWeight: '600' as const, color: colors.secondaryLabel };
 
   return (

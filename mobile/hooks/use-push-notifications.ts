@@ -72,8 +72,8 @@ async function saveDeviceToken(token: string) {
 }
 
 export function usePushNotifications() {
-  const notificationListener = useRef<Notifications.EventSubscription>();
-  const responseListener = useRef<Notifications.EventSubscription>();
+  const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
+  const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
   useEffect(() => {
     registerForPushNotifications().then(token => {
@@ -102,7 +102,7 @@ export function usePushNotifications() {
       } else if (type === 'emergency') {
         router.push('/emergency-child-profile');
       } else {
-        router.push('/(tabs)/');
+        router.push('/(tabs)');
       }
     });
 

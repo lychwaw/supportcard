@@ -56,14 +56,14 @@ export default function PricingScreen() {
   };
 
   const handleCTA = async (tier: string, free?: boolean) => {
-    if (free) { router.replace('/(tabs)/'); return; }
+    if (free) { router.replace('/(tabs)'); return; }
 
     setCheckoutLoading(tier);
     try {
       if (Platform.OS === 'ios') {
         await purchaseWithRevenueCat(tier);
         await syncTier();
-        router.replace('/(tabs)/');
+        router.replace('/(tabs)');
       } else {
         // Web — use Dodo checkout
         const { data: { session } } = await supabase.auth.getSession();
@@ -114,7 +114,7 @@ export default function PricingScreen() {
       <View style={{ paddingTop: insets.top + 8, paddingBottom: 20, paddingHorizontal: 16, backgroundColor: '#1C3252', borderBottomWidth: 0.5, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 18 }}>
           <Pressable
-            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/')}
+            onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)')}
             hitSlop={12}
             style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1, padding: 6, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.1)' })}
           >

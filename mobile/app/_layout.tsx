@@ -82,7 +82,7 @@ function AuthGate({
     if (session === undefined) return;
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (!session && !inAuthGroup) { router.replace('/(auth)/'); return; }
+    if (!session && !inAuthGroup) { router.replace('/(auth)'); return; }
 
     if (session && needsOnboarding && !sentToOnboarding.current) {
       sentToOnboarding.current = true;
@@ -90,7 +90,7 @@ function AuthGate({
       return;
     }
 
-    if (session && inAuthGroup && !needsOnboarding) router.replace('/(tabs)/');
+    if (session && inAuthGroup && !needsOnboarding) router.replace('/(tabs)');
   }, [session, segments, needsOnboarding]);
 
   return null;

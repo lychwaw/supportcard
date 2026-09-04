@@ -242,7 +242,7 @@ export default function SignupScreen() {
           <Text style={{ fontWeight: '600', color: colors.label }}>{email}</Text>
         </Text>
         <Pressable
-          onPress={() => router.replace('/(auth)/')}
+          onPress={() => router.replace('/(auth)')}
           style={({ pressed }) => ({
             height: 52,
             borderRadius: 14,
@@ -740,7 +740,7 @@ export default function SignupScreen() {
           <Text style={{ fontSize: 14, color: colors.secondaryLabel }}>
             Already have an account?{' '}
           </Text>
-          <Pressable onPress={() => router.replace('/(auth)/')} hitSlop={8}>
+          <Pressable onPress={() => router.replace('/(auth)')} hitSlop={8}>
             <Text style={{ fontSize: 14, fontWeight: '700', color: brand.blue }}>
               Sign in
             </Text>

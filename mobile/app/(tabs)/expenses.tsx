@@ -376,7 +376,7 @@ export default function ExpensesScreen() {
                       });
                       loadRequests();
                     }}>
-                      <View style={{ backgroundColor: tpl.active ? '#22C55E18' : colors.separator + '40', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 }}>
+                      <View style={{ backgroundColor: tpl.active ? '#22C55E18' : brand.separator + '40', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 }}>
                         <Text style={{ fontSize: 11, fontWeight: '700', color: tpl.active ? '#22C55E' : colors.secondaryLabel }}>
                           {tpl.active ? 'Active' : 'Paused'}
                         </Text>

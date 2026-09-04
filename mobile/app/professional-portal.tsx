@@ -137,10 +137,16 @@ export default function ProfessionalPortalScreen() {
     setRecordsLoading(true);
     try {
       const parentId = link.parent_id ?? (link as any).id;
+
+      // These tables aren't in the generated Database types, so every column
+      // needed an `as any` and TypeScript recursed through the fallback generics
+      // until it gave up (TS2589). Casting the client once is cheaper and
+      // removes the per-argument casts; results are cast on assignment below.
+      const db = supabase as any;
       const [expRes, evRes, docRes] = await Promise.all([
-        supabase.from('expense_requests' as any).select('id,category,amount,currency,status,created_at').eq('requester_id', parentId).order('created_at', { ascending: false }).limit(20),
-        supabase.from('calendar_events' as any).select('id,event_type,event_date,notes').eq('user_id' as any, parentId).order('event_date' as any, { ascending: false }).limit(20),
-        supabase.from('legal_documents' as any).select('id,document_type,file_name,created_at').eq('user_id' as any, parentId).order('created_at', { ascending: false }).limit(20),
+        db.from('expense_requests').select('id,category,amount,currency,status,created_at').eq('requester_id', parentId).order('created_at', { ascending: false }).limit(20),
+        db.from('calendar_events').select('id,event_type,event_date,notes').eq('user_id', parentId).order('event_date', { ascending: false }).limit(20),
+        db.from('legal_documents').select('id,document_type,file_name,created_at').eq('user_id', parentId).order('created_at', { ascending: false }).limit(20),
       ]);
       setRecordsData({ expenses: (expRes.data as any[]) ?? [], events: (evRes.data as any[]) ?? [], docs: (docRes.data as any[]) ?? [] });
     } catch {
@@ -156,8 +162,10 @@ export default function ProfessionalPortalScreen() {
       lines.push(`Family: ${link.parent?.full_name ?? 'Parent'} (${link.parent?.email ?? ''})`, '');
     }
     const parentIds = links.map(l => l.parent_id).filter(Boolean);
-    const { data: expenses } = await supabase.from('expense_requests' as any).select('category,amount,currency,status,created_at').in('requester_id' as any, parentIds).order('created_at', { ascending: false }).limit(50);
-    const { data: events } = await supabase.from('calendar_events' as any).select('event_type,event_date').in('user_id' as any, parentIds).order('event_date' as any, { ascending: false }).limit(50);
+    // Cast once — see the note in openRecords about TS2589 on these tables.
+    const db = supabase as any;
+    const { data: expenses } = await db.from('expense_requests').select('category,amount,currency,status,created_at').in('requester_id', parentIds).order('created_at', { ascending: false }).limit(50);
+    const { data: events } = await db.from('calendar_events').select('event_type,event_date').in('user_id', parentIds).order('event_date', { ascending: false }).limit(50);
     if (expenses?.length) {
       lines.push('--- EXPENSE RECORDS ---');
       for (const e of expenses as any[]) {

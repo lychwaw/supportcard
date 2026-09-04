@@ -221,7 +221,7 @@ function AddNoticeModal({ visible, onClose, onSaved, children }: { visible: bool
 
   const pillItems = [{ id: '__all__', label: 'All' }, ...children.map(c => ({ id: c.id, label: c.name }))];
 
-  const inputStyle = { backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label };
+  const inputStyle = { backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous' as const, borderWidth: 0.5, borderColor: colors.separator, padding: 14, fontSize: 15, color: colors.label };
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>

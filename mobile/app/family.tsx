@@ -275,7 +275,7 @@ export default function FamilyScreen() {
                                     <Ionicons name="shield-checkmark" size={10} color={brand.teal} />
                                     <Text style={{ fontSize: 10, fontWeight: '600', color: brand.teal }}>Verified</Text>
                                   </View>
-                                : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: colors.separator + '40', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 }}>
+                                : <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: brand.separator + '40', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 }}>
                                     <Ionicons name="shield-outline" size={10} color={colors.secondaryLabel} />
                                     <Text style={{ fontSize: 10, fontWeight: '600', color: colors.secondaryLabel }}>Unverified</Text>
                                   </View>
@@ -306,7 +306,7 @@ export default function FamilyScreen() {
                           <Text style={{ fontSize: 12, fontWeight: '700', color: brand.blue }}>You {myPct}%</Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.secondaryLabel + '60' }} />
+                          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: brand.body + '60' }} />
                           <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel }}>
                             {coParent?.full_name?.split(' ')[0] ?? 'Co-parent'} {theirPct}%
                           </Text>

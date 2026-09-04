@@ -451,7 +451,7 @@ export default function SettingsScreen() {
         style: 'destructive',
         onPress: async () => {
           await supabase.auth.signOut();
-          router.replace('/(auth)/' as any);
+          router.replace('/(auth)' as any);
         },
       },
     ]);
