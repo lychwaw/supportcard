@@ -136,18 +136,18 @@ function AppShell({ session, needsOnboarding }: { session: Session | null; needs
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ioniconsFontUrl = require('@expo/vector-icons/build/vendor/react-native-vector-icons/Fonts/Ionicons.ttf');
 
-// Has this user completed the intro tour? Fails safe: if the onboarded_at column
-// isn't there yet (migration not run), we treat them as onboarded so nobody gets
-// stuck behind a tour the backend can't record.
+// Has this user completed the intro tour? Fails safe in every direction: if the
+// column is missing (migration not run), the request errors, or the network is
+// slow, we treat them as onboarded. Skipping the tour is a far better outcome
+// than holding up the app, and they get another chance on the next cold start.
 async function loadOnboardingState(userId: string): Promise<boolean> {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('onboarded_at')
-      .eq('id', userId)
-      .maybeSingle();
-    if (error) return false;
-    return !data?.onboarded_at;
+    const result = await Promise.race([
+      supabase.from('profiles').select('onboarded_at').eq('id', userId).maybeSingle(),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
+    ]);
+    if (!result || result.error) return false;
+    return !result.data?.onboarded_at;
   } catch {
     return false;
   }
@@ -166,7 +166,7 @@ export default function RootLayout() {
     }
     checkForUpdates();
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user?.id) {
         initRevenueCat(session.user.id);
@@ -176,7 +176,9 @@ export default function RootLayout() {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({ action: 'check' }),
         }).catch(() => {});
-        setNeedsOnboarding(await loadOnboardingState(session.user.id));
+        // Resolved in the background — awaiting this held the splash screen up
+        // for as long as the profile query took.
+        loadOnboardingState(session.user.id).then(setNeedsOnboarding);
       } else {
         setNeedsOnboarding(false);
       }
@@ -196,7 +198,10 @@ export default function RootLayout() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (session === undefined || needsOnboarding === null) return null;
+  // Only the session gates the first render. needsOnboarding may still be null
+  // here; AuthGate treats that as "not yet known" and simply doesn't redirect
+  // to the tour until it resolves, rather than holding the whole app back.
+  if (session === undefined) return null;
 
   return <AppShell session={session} needsOnboarding={needsOnboarding} />;
 }
