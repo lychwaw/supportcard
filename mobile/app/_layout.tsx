@@ -132,7 +132,15 @@ export default function RootLayout() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
-      if (session?.user?.id) initRevenueCat(session.user.id);
+      if (session?.user?.id) {
+        initRevenueCat(session.user.id);
+        // Fire-and-forget: create any recurring expense requests that are due
+        fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/recurring-expenses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'check' }),
+        }).catch(() => {});
+      }
       SplashScreen.hideAsync();
     });
 

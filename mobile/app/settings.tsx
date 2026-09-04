@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, ScrollView, Pressable, Switch, Alert,
-  Modal, TextInput, KeyboardAvoidingView, Platform, Linking, ActivityIndicator,
+  Modal, TextInput, KeyboardAvoidingView, Platform, Linking, ActivityIndicator, Share,
 } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -280,6 +280,107 @@ function EditProfileModal({ visible, currentName, onClose, onSaved }: { visible:
   );
 }
 
+type ProfessionalLink = { id: string; invited_email: string; status: string; token: string; notes?: string | null };
+
+function InviteProfessionalModal({ visible, onClose, onInvited }: { visible: boolean; onClose: () => void; onInvited: () => void }) {
+  const insets = useSafeAreaInsets();
+  const [email, setEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [token, setToken] = useState<string | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => { if (!visible) { setEmail(''); setToken(null); setError(''); } }, [visible]);
+
+  const handleInvite = useCallback(async () => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !trimmed.includes('@')) { setError('Enter a valid email address.'); return; }
+    setSaving(true); setError('');
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setError('Sign in required.'); return; }
+      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
+      const res = await fetch(`${apiBase}/api/professional-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'create', professional_email: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Could not create invite.'); return; }
+      setToken(data.token);
+      onInvited();
+    } catch { setError('Something went wrong. Please try again.'); }
+    finally { setSaving(false); }
+  }, [email, onInvited]);
+
+  const handleShare = useCallback(() => {
+    if (!token) return;
+    Share.share({ message: `Join me on SupportCard! Use invite code ${token} in the Professional Portal to access my family records.` });
+  }, [token]);
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
+          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Close</Text></Pressable>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Invite Professional</Text>
+          <View style={{ width: 48 }} />
+        </View>
+        <ScrollView contentContainerStyle={{ padding: 20, gap: 20 }} keyboardShouldPersistTaps="handled">
+          {!token ? (
+            <>
+              <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
+                Enter your professional's email. They'll receive an invite code to enter in their SupportCard app to access your family records.
+              </Text>
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Professional's Email</Text>
+                <TextInput
+                  style={{ backgroundColor: colors.surface, borderRadius: 14, borderWidth: 0.5, borderColor: error ? brand.error : colors.separator, padding: 16, fontSize: 16, color: colors.label, borderCurve: 'continuous' }}
+                  placeholder="attorney@example.com"
+                  placeholderTextColor={colors.secondaryLabel}
+                  value={email}
+                  onChangeText={v => { setEmail(v); setError(''); }}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="send"
+                  onSubmitEditing={handleInvite}
+                  autoFocus
+                />
+                {!!error && <Text style={{ fontSize: 13, color: brand.error }}>{error}</Text>}
+              </View>
+              <Pressable onPress={handleInvite} disabled={saving || !email.trim()}
+                style={({ pressed }) => ({ backgroundColor: saving || !email.trim() ? colors.separator : brand.blue, borderRadius: 14, paddingVertical: 15, alignItems: 'center', transform: [{ scale: pressed ? 0.97 : 1 }] })}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{saving ? 'Creating invite…' : 'Generate Invite Code'}</Text>
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <View style={{ alignItems: 'center', gap: 12, paddingVertical: 8 }}>
+                <View style={{ width: 60, height: 60, borderRadius: 18, backgroundColor: brand.teal + '20', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+                  <Ionicons name="checkmark-circle" size={32} color={brand.teal} />
+                </View>
+                <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, textAlign: 'center' }}>Invite created</Text>
+                <Text style={{ fontSize: 13, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 19 }}>
+                  Share this code with {email}. They enter it in their Professional Portal to link to your family.
+                </Text>
+              </View>
+              <View style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 24, alignItems: 'center', gap: 8, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
+                <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel, letterSpacing: 1 }}>INVITE CODE</Text>
+                <Text selectable style={{ fontSize: 36, fontWeight: '700', color: colors.label, letterSpacing: 6 }}>{token}</Text>
+              </View>
+              <Pressable onPress={handleShare}
+                style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, paddingVertical: 15, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8, transform: [{ scale: pressed ? 0.97 : 1 }] })}>
+                <Ionicons name="share-outline" size={18} color="#fff" />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Share Code</Text>
+              </Pressable>
+            </>
+          )}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [userInfo, setUserInfo] = useState<UserInfo>({ email: '', displayName: 'Your Account', initials: '?', plan: 'Preview', idVerified: false });
@@ -290,7 +391,26 @@ export default function SettingsScreen() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showReferralCode, setShowReferralCode] = useState(false);
+  const [showInviteProfessional, setShowInviteProfessional] = useState(false);
+  const [professionalLinks, setProfessionalLinks] = useState<ProfessionalLink[]>([]);
   const { currency, setCurrency } = useCurrency();
+
+  const loadProfessionalLinks = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
+      const res = await fetch(`${apiBase}/api/professional-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'list' }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfessionalLinks(data.links ?? []);
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -310,7 +430,8 @@ export default function SettingsScreen() {
         setLoading(false);
       }
     })();
-  }, []);
+    loadProfessionalLinks();
+  }, [loadProfessionalLinks]);
 
   function handleChangePassword() {
     setShowChangePassword(true);
@@ -456,6 +577,29 @@ export default function SettingsScreen() {
           />
         </SettingsGroup>
 
+        <SettingsGroup label="Professionals">
+          <SettingsRow
+            label="Invite a Professional"
+            subtitle="Give a coach, mediator, or attorney access to your records"
+            icon="briefcase-outline"
+            iconColor="#8B5CF6"
+            showChevron
+            onPress={() => setShowInviteProfessional(true)}
+            isLast={professionalLinks.length === 0}
+          />
+          {professionalLinks.map((link, i) => (
+            <SettingsRow
+              key={link.id}
+              subtitle={link.notes ? `Notes: ${link.notes}` : undefined}
+              label={link.invited_email}
+              subtitle={link.status === 'active' ? 'Linked' : link.status === 'pending' ? `Pending — code: ${link.token}` : 'Revoked'}
+              icon={link.status === 'active' ? 'checkmark-circle-outline' : 'time-outline'}
+              iconColor={link.status === 'active' ? brand.teal : colors.secondaryLabel as string}
+              isLast={i === professionalLinks.length - 1}
+            />
+          ))}
+        </SettingsGroup>
+
         <SettingsGroup label="Privacy & Security">
           <SettingsRow label="Privacy Policy" icon="shield-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/privacy')} />
           <SettingsRow label="Terms of Service" icon="document-text-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/terms')} />
@@ -524,6 +668,11 @@ export default function SettingsScreen() {
       <ReferralCodeModal
         visible={showReferralCode}
         onClose={() => setShowReferralCode(false)}
+      />
+      <InviteProfessionalModal
+        visible={showInviteProfessional}
+        onClose={() => setShowInviteProfessional(false)}
+        onInvited={loadProfessionalLinks}
       />
     </>
   );

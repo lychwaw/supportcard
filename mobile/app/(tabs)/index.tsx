@@ -8,6 +8,7 @@ import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useCurrency } from '@/hooks/use-currency';
+import { formatAmount, type Currency } from '@/lib/currency';
 
 const MSGS_LAST_READ_PATH = (FileSystem.documentDirectory ?? '') + 'msgs_last_read.json';
 async function getMsgsLastRead(): Promise<string> {
@@ -26,6 +27,7 @@ interface FeedItem {
   subtitle: string;
   time: string;
   amount?: number;
+  storedCurrency?: Currency;
   badge?: string;
   badgeColor?: string;
   section: 'today' | 'earlier';
@@ -95,7 +97,7 @@ export default function HomeScreen() {
         supabase.from('profiles' as any).select('full_name, id_verified').eq('id', user.id).single(),
         supabase.from('children' as any).select('id', { count: 'exact' }).or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`),
         permissions.isParent
-          ? supabase.from('expense_requests' as any).select('id,amount,category,status,created_at,description').eq('requester_id', user.id).order('created_at', { ascending: false }).limit(10)
+          ? supabase.from('expense_requests' as any).select('id,amount,currency,category,status,created_at,description').eq('requester_id', user.id).order('created_at', { ascending: false }).limit(10)
           : { data: [] },
         supabase.from('calendar_events' as any).select('id,event_type,event_date,notes,created_at').order('created_at', { ascending: false }).limit(10),
         supabase.from('custody_checkins' as any).select('id,event_type,notes,created_at').order('created_at', { ascending: false }).limit(5),
@@ -124,7 +126,7 @@ export default function HomeScreen() {
         feed.push({
           id: `exp-${e.id}`, type: 'expense',
           title: e.category, subtitle: e.description ?? e.category,
-          amount: Number(e.amount), time: formatTime(e.created_at),
+          amount: Number(e.amount), storedCurrency: (e.currency as Currency) ?? 'ZAR', time: formatTime(e.created_at),
           badge: e.status.charAt(0).toUpperCase() + e.status.slice(1),
           badgeColor: STATUS_COLORS[e.status] || brand.body,
           section: isToday(e.created_at) ? 'today' : 'earlier',
@@ -464,7 +466,6 @@ export default function HomeScreen() {
 
 function FeedCard({ item }: { item: FeedItem }) {
   const { currency } = useCurrency();
-  const sym = currency === 'USD' ? '$' : 'R';
   const { bg, icon } = ICON_MAP[item.type];
   const dest = item.type === 'expense' ? '/(tabs)/expenses'
     : item.type === 'event' ? '/(tabs)/calendar'
@@ -488,7 +489,7 @@ function FeedCard({ item }: { item: FeedItem }) {
         <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 3 }} numberOfLines={1}>{item.subtitle}</Text>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 6 }}>
-        {item.amount != null && <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{sym}{item.amount.toFixed(2)}</Text>}
+        {item.amount != null && <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{formatAmount(item.amount, item.storedCurrency ?? 'ZAR', currency, 2)}</Text>}
         {!item.amount && <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>{item.time}</Text>}
         {item.badge && item.badgeColor && (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

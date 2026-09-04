@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
 import { useCurrency } from '@/hooks/use-currency';
+import { formatAmount, type Currency } from '@/lib/currency';
 
 type Child = { id: string; name: string };
 type TimelineItemKind = 'expense' | 'event' | 'checkin' | 'document';
@@ -45,7 +46,6 @@ function groupByMonth(items: TimelineItem[]): { month: string; items: TimelineIt
 export default function ChildTimelineScreen() {
   const insets = useSafeAreaInsets();
   const { currency } = useCurrency();
-  const sym = currency === 'USD' ? '$' : 'R';
   const [children, setChildren] = useState<Child[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
@@ -66,7 +66,7 @@ export default function ChildTimelineScreen() {
     setLoadingFeed(true);
     setTimeline([]);
 
-    let expensesQ = supabase.from('expense_requests' as any).select('id, amount, category, status, created_at, description, created_via').order('created_at', { ascending: false }).limit(30);
+    let expensesQ = supabase.from('expense_requests' as any).select('id, amount, currency, category, status, created_at, description, created_via').order('created_at', { ascending: false }).limit(30);
     let eventsQ = supabase.from('calendar_events' as any).select('id, event_type, event_date, notes, created_at, created_via').order('created_at', { ascending: false }).limit(30);
     let checkinsQ = supabase.from('custody_checkins' as any).select('id, event_type, notes, created_at, created_via').order('created_at', { ascending: false }).limit(20);
     let docsQ = supabase.from('legal_documents' as any).select('id, document_type, description, file_name, created_at').order('created_at', { ascending: false }).limit(20);
@@ -80,7 +80,7 @@ export default function ChildTimelineScreen() {
     const [{ data: expenses }, { data: events }, { data: checkins }, { data: docs }] = await Promise.all([expensesQ, eventsQ, checkinsQ, docsQ]);
 
     const items: TimelineItem[] = [
-      ...((expenses as any[]) || []).map((e: any): TimelineItem => ({ id: `expense-${e.id}`, kind: 'expense', title: e.description || e.category || 'Expense', subtitle: `${sym}${Number(e.amount ?? 0).toFixed(2)} · ${(e.status || 'pending').toUpperCase()}`, createdAt: e.created_at, createdVia: e.created_via })),
+      ...((expenses as any[]) || []).map((e: any): TimelineItem => ({ id: `expense-${e.id}`, kind: 'expense', title: e.description || e.category || 'Expense', subtitle: `${formatAmount(Number(e.amount ?? 0), (e.currency as Currency) ?? 'ZAR', currency, 2)} · ${(e.status || 'pending').toUpperCase()}`, createdAt: e.created_at, createdVia: e.created_via })),
       ...((events as any[]) || []).map((e: any): TimelineItem => ({ id: `event-${e.id}`, kind: 'event', title: e.event_type || 'Calendar Event', subtitle: e.notes || e.event_date || '', createdAt: e.created_at, createdVia: e.created_via })),
       ...((checkins as any[]) || []).map((c: any): TimelineItem => ({ id: `checkin-${c.id}`, kind: 'checkin', title: c.event_type || 'Custody Check-in', subtitle: c.notes || '', createdAt: c.created_at, createdVia: c.created_via })),
       ...((docs as any[]) || []).map((d: any): TimelineItem => ({ id: `doc-${d.id}`, kind: 'document', title: d.document_type || d.file_name || 'Document', subtitle: d.description || d.file_name || '', createdAt: d.created_at, createdVia: null })),

@@ -28,3 +28,20 @@ export const CURRENCY_OPTIONS: { value: Currency; flag: string; label: string; s
   { value: 'ZAR', flag: '🇿🇦', label: 'South African Rand', sublabel: 'ZAR (R)' },
   { value: 'USD', flag: '🇺🇸', label: 'US Dollar',          sublabel: 'USD ($)' },
 ];
+
+export const CURRENCY_SYMBOL: Record<Currency, string> = { ZAR: 'R', USD: '$' };
+
+/** Convert an expense amount between currencies using the current fixed rate. */
+export function convertAmount(amount: number, from: Currency, to: Currency): number {
+  if (from === to) return amount;
+  if (from === 'ZAR' && to === 'USD') return amount / USD_TO_ZAR;
+  if (from === 'USD' && to === 'ZAR') return amount * USD_TO_ZAR;
+  return amount;
+}
+
+/** Format an expense amount stored in `storedCurrency` for display in `displayCurrency`. */
+export function formatAmount(amount: number, storedCurrency: Currency, displayCurrency: Currency, decimals = 0): string {
+  const converted = convertAmount(amount, storedCurrency, displayCurrency);
+  const sym = CURRENCY_SYMBOL[displayCurrency];
+  return `${sym}${converted.toLocaleString('en-ZA', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}`;
+}

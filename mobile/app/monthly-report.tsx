@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
 import { useCurrency } from '@/hooks/use-currency';
+import { convertAmount, CURRENCY_SYMBOL, type Currency } from '@/lib/currency';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -37,7 +38,7 @@ function formatCurrency(val: number, sym: string): string {
 export default function MonthlyReportScreen() {
   const insets = useSafeAreaInsets();
   const { currency } = useCurrency();
-  const sym = currency === 'USD' ? '$' : 'R';
+  const sym = CURRENCY_SYMBOL[currency];
   const monthOptions = buildMonthOptions();
 
   const [selectedIdx, setSelectedIdx] = useState(0);
@@ -59,15 +60,15 @@ export default function MonthlyReportScreen() {
       const monthName = MONTH_NAMES[month];
 
       const [expensesRes, eventsRes, checkinsRes] = await Promise.all([
-        supabase.from('expense_requests').select('amount, category, status').gte('created_at', start).lte('created_at', end),
+        supabase.from('expense_requests').select('amount, currency, category, status').gte('created_at', start).lte('created_at', end),
         supabase.from('calendar_events' as any).select('event_type, event_date').gte('created_at' as any, start).lte('created_at' as any, end),
         supabase.from('custody_checkins').select('event_type, notes').gte('created_at', start).lte('created_at', end),
       ]);
 
-      const expenses = (expensesRes.data as Array<{ amount: number; category: string; status: string }>) ?? [];
+      const expenses = (expensesRes.data as Array<{ amount: number; currency: Currency; category: string; status: string }>) ?? [];
       const events = eventsRes.data ?? [];
       const checkins = checkinsRes.data ?? [];
-      const totalAmount = expenses.reduce((s, e) => s + (Number(e.amount) || 0), 0);
+      const totalAmount = expenses.reduce((s, e) => s + convertAmount(Number(e.amount) || 0, e.currency ?? 'ZAR', currency), 0);
 
       setStats({ totalAmount, eventsCount: events.length, checkinsCount: checkins.length });
 

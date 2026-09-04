@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Alert } from 'react-native';
+import { ScrollView, View, Text, Pressable, TextInput, Modal, KeyboardAvoidingView, Platform, ActivityIndicator, Image, Alert, Switch } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
+import { formatAmount, convertAmount, CURRENCY_SYMBOL, type Currency } from '@/lib/currency';
 import { scanReceiptFromCamera, scanReceiptFromLibrary } from '@/lib/receipt-scanner';
 
 const CATEGORIES = ['School', 'Food', 'Clothing', 'Activities', 'Healthcare', 'Transportation', 'Other'];
@@ -24,7 +25,7 @@ type MainTab = 'Pending' | 'Categories';
 type Direction = 'To Approve' | 'My Requests';
 
 type ExpenseRequest = {
-  id: string; amount: number; category: string; description: string | null;
+  id: string; amount: number; currency: Currency; category: string; description: string | null;
   status: string; created_at: string; created_via?: string; requester_id: string;
   child?: { name: string } | null;
 };
@@ -36,7 +37,7 @@ function formatDate(dateStr: string) {
 export default function ExpensesScreen() {
   const insets = useSafeAreaInsets();
   const { currency } = useCurrency();
-  const sym = currency === 'USD' ? '$' : 'R';
+  const fmt = (amount: number, storedCurrency: Currency) => formatAmount(amount, storedCurrency, currency);
   const [requests, setRequests] = useState<ExpenseRequest[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,6 +49,9 @@ export default function ExpensesScreen() {
   const [scannedImageUri, setScannedImageUri] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringFrequency, setRecurringFrequency] = useState<'weekly' | 'monthly'>('monthly');
+  const [recurringTemplates, setRecurringTemplates] = useState<any[]>([]);
   const [mainTab, setMainTab] = useState<MainTab>('Pending');
   const [direction, setDirection] = useState<Direction>('To Approve');
   const [myChildren, setMyChildren] = useState<{ id: string; name: string }[]>([]);
@@ -71,10 +75,27 @@ export default function ExpensesScreen() {
     }
     const { data } = await supabase
       .from('expense_requests' as any)
-      .select('*, child:child_id(name)')
+      .select('*, currency, child:child_id(name)')
       .order('created_at', { ascending: false })
       .limit(50);
     setRequests((data as any) || []);
+
+    // Load recurring templates (best-effort)
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const tplRes = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/recurring-expenses`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ action: 'list' }),
+        });
+        if (tplRes.ok) {
+          const tplData = await tplRes.json();
+          setRecurringTemplates(tplData.templates ?? []);
+        }
+      }
+    } catch {}
+
     setLoading(false);
   }, []);
 
@@ -95,7 +116,7 @@ export default function ExpensesScreen() {
     return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
   };
 
-  const totalApproved = requests.filter(r => r.status === 'approved').reduce((s, r) => s + Number(r.amount), 0);
+  const totalApproved = requests.filter(r => r.status === 'approved').reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
   const totalPending  = requests.filter(r => r.status === 'pending').length;
   const toApproveCount = requests.filter(r => r.status === 'pending' && r.requester_id !== userId).length;
 
@@ -172,15 +193,31 @@ export default function ExpensesScreen() {
     }
     const childId = selectedChildId ?? myChildren[0]?.id ?? null;
     setSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setSubmitting(false); setSubmitError('Not signed in'); return; }
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setSubmitting(false); setSubmitError('Not signed in'); return; }
+
+    if (isRecurring) {
+      // Create a recurring template — first request fires next app launch
+      const today = new Date().toISOString().slice(0, 10);
+      const tplRes = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/recurring-expenses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: 'create', amount: n, currency, category, description: description || null, frequency: recurringFrequency, next_due_date: today, child_id: childId }),
+      });
+      setSubmitting(false);
+      if (!tplRes.ok) { const d = await tplRes.json(); setSubmitError(d.error ?? 'Could not create recurring expense'); return; }
+      setShowAdd(false); setAmount(''); setDescription(''); setScannedImageUri(null); setSubmitError(null); setIsRecurring(false); setRecurringFrequency('monthly');
+      loadRequests();
+      return;
+    }
+
     const { error } = await supabase.from('expense_requests' as any).insert({
-      requester_id: user.id, amount: n, category, description: description || null,
+      requester_id: session.user.id, amount: n, currency, category, description: description || null,
       status: 'pending', child_id: childId,
     });
     setSubmitting(false);
     if (error) { setSubmitError(error.message); return; }
-    setShowAdd(false); setAmount(''); setDescription(''); setScannedImageUri(null); setSubmitError(null);
+    setShowAdd(false); setAmount(''); setDescription(''); setScannedImageUri(null); setSubmitError(null); setIsRecurring(false); setRecurringFrequency('monthly');
     loadRequests();
   };
 
@@ -209,7 +246,7 @@ export default function ExpensesScreen() {
         <View style={{ borderRadius: 20, padding: 22, backgroundColor: brand.teal, borderCurve: 'continuous' }}>
           <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600' }}>Total Approved</Text>
           <Text style={{ color: '#fff', fontSize: 44, fontWeight: '700', letterSpacing: -1.5, lineHeight: 52, marginTop: 4, fontVariant: ['tabular-nums'] }}>
-            {sym}{totalApproved.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+            {CURRENCY_SYMBOL[currency]}{totalApproved.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </Text>
           <View style={{ flexDirection: 'row', gap: 16, marginTop: 12 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -274,8 +311,8 @@ export default function ExpensesScreen() {
           <View style={{ gap: 10 }}>
             {categoryGroups.length === 0 ? <EmptyState /> : categoryGroups.map(([cat, items]) => {
               const col = CATEGORY_COLOR[cat] ?? brand.blue;
-              const total = items.reduce((s, r) => s + Number(r.amount), 0);
-              const pct = totalApproved > 0 ? Math.round((total / totalApproved) * 100) : 0;
+              const displayTotal = items.reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
+              const pct = totalApproved > 0 ? Math.round((displayTotal / totalApproved) * 100) : 0;
               return (
                 <View key={cat} style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous', gap: 14 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
@@ -286,7 +323,7 @@ export default function ExpensesScreen() {
                       <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>{cat}</Text>
                       <Text style={{ fontSize: 13, color: colors.secondaryLabel }}>{items.length} request{items.length !== 1 ? 's' : ''}</Text>
                     </View>
-                    <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>{sym}{total.toFixed(0)}</Text>
+                    <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>{CURRENCY_SYMBOL[currency]}{displayTotal.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
                   </View>
                   <View style={{ height: 4, backgroundColor: colors.separator, borderRadius: 2 }}>
                     <View style={{ height: 4, borderRadius: 2, backgroundColor: col, width: `${pct}%` }} />
@@ -305,6 +342,42 @@ export default function ExpensesScreen() {
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.secondaryLabel} style={{ opacity: 0.4 }} />
             </Pressable>
+
+            {/* Recurring templates */}
+            {recurringTemplates.length > 0 && (
+              <View style={{ gap: 8 }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: colors.label, paddingHorizontal: 4 }}>Recurring</Text>
+                {recurringTemplates.map(tpl => (
+                  <View key={tpl.id} style={{ backgroundColor: colors.surface, borderRadius: 16, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
+                    <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: brand.teal + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+                      <Ionicons name="repeat-outline" size={20} color={brand.teal} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: colors.label }}>{tpl.description || tpl.category}</Text>
+                      <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 2 }}>
+                        {fmt(tpl.amount, tpl.currency)} · {tpl.frequency} · next {tpl.next_due_date}
+                      </Text>
+                    </View>
+                    <Pressable onPress={async () => {
+                      const { data: { session } } = await supabase.auth.getSession();
+                      if (!session) return;
+                      await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/recurring-expenses`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+                        body: JSON.stringify({ action: 'toggle', template_id: tpl.id, active: !tpl.active }),
+                      });
+                      loadRequests();
+                    }}>
+                      <View style={{ backgroundColor: tpl.active ? '#22C55E18' : colors.separator + '40', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: tpl.active ? '#22C55E' : colors.secondaryLabel }}>
+                          {tpl.active ? 'Active' : 'Paused'}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  </View>
+                ))}
+              </View>
+            )}
           </View>
         ) : (
           <View style={{ gap: 10 }}>
@@ -324,7 +397,7 @@ export default function ExpensesScreen() {
                       <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>{formatDate(req.created_at)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>{sym}{Number(req.amount).toFixed(0)}</Text>
+                      <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>{fmt(Number(req.amount), req.currency ?? 'ZAR')}</Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#F59E0B' }} />
                         <Text style={{ fontSize: 11, fontWeight: '700', color: '#F59E0B' }}>Pending</Text>
@@ -399,7 +472,7 @@ export default function ExpensesScreen() {
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>New Expense</Text>
             <Pressable onPress={submit} disabled={submitting}>
               <Text style={{ color: submitting ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>
-                {submitting ? 'Saving…' : 'Add'}
+                {submitting ? 'Saving…' : isRecurring ? 'Set Recurring' : 'Add'}
               </Text>
             </Pressable>
           </View>
@@ -453,7 +526,7 @@ export default function ExpensesScreen() {
               </View>
             )}
             <View>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>Amount (Rand)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 10 }}>Amount ({currency === 'USD' ? 'US Dollars' : 'South African Rand'})</Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 18, fontSize: 36, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center', letterSpacing: -1, borderCurve: 'continuous' }}
                 keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={colors.separator}
@@ -487,6 +560,32 @@ export default function ExpensesScreen() {
                 placeholder="What was this expense for?" placeholderTextColor={colors.secondaryLabel}
                 multiline value={description} onChangeText={setDescription}
               />
+            </View>
+
+            {/* Recurring toggle */}
+            <View style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 16, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous', gap: 14 }}>
+              <Pressable onPress={() => setIsRecurring(r => !r)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '600', color: colors.label }}>Repeat automatically</Text>
+                  <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 2 }}>Creates a new request each period on app open</Text>
+                </View>
+                <Switch value={isRecurring} onValueChange={setIsRecurring} trackColor={{ true: brand.teal }} />
+              </Pressable>
+              {isRecurring && (
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {(['weekly', 'monthly'] as const).map(f => (
+                    <Pressable key={f} onPress={() => setRecurringFrequency(f)}
+                      style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, alignItems: 'center',
+                        borderColor: recurringFrequency === f ? brand.teal : colors.separator,
+                        backgroundColor: recurringFrequency === f ? brand.teal + '12' : colors.background }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: recurringFrequency === f ? brand.teal : colors.secondaryLabel }}>
+                        {f === 'weekly' ? 'Weekly' : 'Monthly'}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
             </View>
           </ScrollView>
         </KeyboardAvoidingView>

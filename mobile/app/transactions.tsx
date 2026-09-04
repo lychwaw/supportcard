@@ -5,6 +5,7 @@ import { Stack } from 'expo-router/stack';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
+import { convertAmount, CURRENCY_SYMBOL, type Currency } from '@/lib/currency';
 
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
   School: 'school-outline', Food: 'restaurant-outline', Clothing: 'shirt-outline',
@@ -21,7 +22,7 @@ const STATUS_META: Record<string, { bg: string; text: string }> = {
 type FilterKey = 'all' | 'pending' | 'approved' | 'rejected';
 
 type ExpenseRequest = {
-  id: string; amount: number; category: string; description: string | null;
+  id: string; amount: number; currency: Currency; category: string; description: string | null;
   status: string; created_at: string; created_via?: string | null;
   child?: { name: string } | null; requester?: { full_name: string } | null;
 };
@@ -63,7 +64,7 @@ const FILTERS: { key: FilterKey; label: string }[] = [
 
 export default function TransactionsScreen() {
   const { currency } = useCurrency();
-  const sym = currency === 'USD' ? '$' : 'R';
+  const sym = CURRENCY_SYMBOL[currency];
   const [requests, setRequests] = useState<ExpenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterKey>('all');
@@ -72,7 +73,7 @@ export default function TransactionsScreen() {
     setLoading(true);
     const { data } = await supabase
       .from('expense_requests' as any)
-      .select('*, child:child_id(name), requester:requester_id(full_name)')
+      .select('*, currency, child:child_id(name), requester:requester_id(full_name)')
       .order('created_at', { ascending: false })
       .limit(100);
     setRequests((data as any) || []);
@@ -84,7 +85,7 @@ export default function TransactionsScreen() {
   const filtered = filter === 'all' ? requests : requests.filter(r => r.status === filter);
   const thisMonthKey = currentMonthKey();
   const thisMonth = requests.filter(r => toMonthKey(r.created_at) === thisMonthKey);
-  const totalRequested = thisMonth.reduce((s, r) => s + Number(r.amount), 0);
+  const totalRequested = thisMonth.reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
   const pendingCount = thisMonth.filter(r => r.status === 'pending').length;
   const approvedCount = thisMonth.filter(r => r.status === 'approved').length;
 
@@ -149,8 +150,8 @@ export default function TransactionsScreen() {
         ) : (
           <View style={{ gap: 28 }}>
             {groups.map(group => {
-              const groupTotal = group.items.reduce((s, r) => s + Number(r.amount), 0);
-              const groupApproved = group.items.filter(r => r.status === 'approved').reduce((s, r) => s + Number(r.amount), 0);
+              const groupTotal = group.items.reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
+              const groupApproved = group.items.filter(r => r.status === 'approved').reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
               const hasApproved = group.items.some(r => r.status === 'approved');
               return (
                 <View key={group.key}>
@@ -169,7 +170,7 @@ export default function TransactionsScreen() {
                             <Ionicons name={CATEGORY_ICON[item.category] ?? 'cube-outline'} size={20} color={brand.blue} />
                           </View>
                           <View style={{ width: 70, flexShrink: 0 }}>
-                            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.blue, fontVariant: ['tabular-nums'] }}>{sym}{Number(item.amount).toFixed(0)}</Text>
+                            <Text style={{ fontSize: 15, fontWeight: '700', color: brand.blue, fontVariant: ['tabular-nums'] }}>{sym}{convertAmount(Number(item.amount), item.currency ?? 'ZAR', currency).toFixed(0)}</Text>
                             <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 1 }}>{item.category}</Text>
                           </View>
                           <View style={{ flex: 1, minWidth: 0 }}>

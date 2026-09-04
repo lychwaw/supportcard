@@ -5,12 +5,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
+import { CURRENCY_SYMBOL } from '@/lib/currency';
 
 type Goal = { id: string; title: string; target_amount: number; child_id: string | null; child?: { name: string } | null };
 
 export default function GoalsScreen() {
   const { currency } = useCurrency();
-  const sym = currency === 'USD' ? '$' : 'R';
+  const sym = CURRENCY_SYMBOL[currency];
   const [goals, setGoals] = useState<Goal[]>([]);
   const [contributions, setContributions] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);

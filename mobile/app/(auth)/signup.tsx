@@ -7,6 +7,7 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  useColorScheme,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/lib/supabase';
-import { brand } from '@/theme/colors';
+import { brand, colors } from '@/theme/colors';
 import { type Currency, CURRENCY_OPTIONS } from '@/lib/currency';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -112,6 +113,8 @@ const STRENGTH_LABELS: Record<number, string> = {
 };
 
 export default function SignupScreen() {
+  const scheme = useColorScheme();
+  const isDark = scheme === 'dark';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -219,7 +222,7 @@ export default function SignupScreen() {
           style={{
             fontSize: 24,
             fontWeight: '700',
-            color: brand.dark,
+            color: colors.label,
             textAlign: 'center',
             marginBottom: 12,
           }}
@@ -229,14 +232,14 @@ export default function SignupScreen() {
         <Text
           style={{
             fontSize: 15,
-            color: brand.body,
+            color: colors.secondaryLabel,
             textAlign: 'center',
             lineHeight: 22,
             marginBottom: 32,
           }}
         >
           We sent a confirmation link to{'\n'}
-          <Text style={{ fontWeight: '600', color: brand.dark }}>{email}</Text>
+          <Text style={{ fontWeight: '600', color: colors.label }}>{email}</Text>
         </Text>
         <Pressable
           onPress={() => router.replace('/(auth)/')}
@@ -261,7 +264,11 @@ export default function SignupScreen() {
   }
 
   return (
-    <LinearGradient colors={['#CEDFFF', '#FFFFFF']} locations={[0, 0.55]} style={{ flex: 1 }}>
+    <LinearGradient
+      colors={isDark ? ['#0d1a2e', '#070d16'] : ['#CEDFFF', '#FFFFFF']}
+      locations={[0, 0.55]}
+      style={{ flex: 1 }}
+    >
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -284,10 +291,10 @@ export default function SignupScreen() {
         </View>
 
         {/* Title + subtitle */}
-        <Text style={{ fontSize: 28, fontWeight: '700', color: brand.dark, letterSpacing: -0.5, marginBottom: 6 }}>
+        <Text style={{ fontSize: 28, fontWeight: '700', color: colors.label, letterSpacing: -0.5, marginBottom: 6 }}>
           Create account
         </Text>
-        <Text style={{ fontSize: 15, color: brand.body, marginBottom: 32, lineHeight: 22 }}>
+        <Text style={{ fontSize: 15, color: colors.secondaryLabel, marginBottom: 32, lineHeight: 22 }}>
           Co-parenting, made simple.
         </Text>
 
@@ -297,13 +304,13 @@ export default function SignupScreen() {
             onPress={() => handleGoogleSignIn(setError)}
             style={({ pressed }) => ({
               height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: brand.separator,
-              backgroundColor: '#FFFFFF', flexDirection: 'row', alignItems: 'center',
+              backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center',
               justifyContent: 'center', gap: 10, opacity: pressed ? 0.7 : 1,
               boxShadow: '0 1px 4px rgba(0,0,0,0.06)', borderCurve: 'continuous',
             })}
           >
             <Text style={{ fontSize: 20, fontWeight: '700', color: '#4285F4' }}>G</Text>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: brand.dark }}>Sign up with Google</Text>
+            <Text style={{ fontSize: 15, fontWeight: '600', color: colors.label }}>Sign up with Google</Text>
           </Pressable>
 
           <Pressable
@@ -323,7 +330,8 @@ export default function SignupScreen() {
         {/* Divider */}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <View style={{ flex: 1, height: 1, backgroundColor: brand.separator }} />
-          <Text style={{ fontSize: 12, color: brand.body, fontWeight: '500' }}>or sign up with email</Text>
+          <Text style={{ fontSize: 12, color: colors.secondaryLabel, fontWeight: '500' }}>or sign up with email</Text>
+
           <View style={{ flex: 1, height: 1, backgroundColor: brand.separator }} />
         </View>
 
@@ -333,7 +341,7 @@ export default function SignupScreen() {
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: brand.dark,
+              color: colors.label,
               marginBottom: 8,
               letterSpacing: 0.1,
             }}
@@ -346,18 +354,18 @@ export default function SignupScreen() {
             onFocus={() => setNameFocused(true)}
             onBlur={() => setNameFocused(false)}
             placeholder="Jane Smith"
-            placeholderTextColor={brand.body}
+            placeholderTextColor={colors.secondaryLabel}
             autoCapitalize="words"
             autoCorrect={false}
             style={{
               height: 52,
               borderRadius: 12,
               borderWidth: 1.5,
-              borderColor: nameFocused ? brand.blue : brand.separator,
-              backgroundColor: '#FFFFFF',
+              borderColor: nameFocused ? brand.blue : colors.separator,
+              backgroundColor: colors.surface,
               paddingHorizontal: 16,
               fontSize: 15,
-              color: brand.dark,
+              color: colors.label,
               borderCurve: 'continuous',
             }}
           />
@@ -369,7 +377,7 @@ export default function SignupScreen() {
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: brand.dark,
+              color: colors.label,
               marginBottom: 8,
               letterSpacing: 0.1,
             }}
@@ -382,7 +390,7 @@ export default function SignupScreen() {
             onFocus={() => setEmailFocused(true)}
             onBlur={() => setEmailFocused(false)}
             placeholder="you@example.com"
-            placeholderTextColor={brand.body}
+            placeholderTextColor={colors.secondaryLabel}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -390,11 +398,11 @@ export default function SignupScreen() {
               height: 52,
               borderRadius: 12,
               borderWidth: 1.5,
-              borderColor: emailFocused ? brand.blue : brand.separator,
-              backgroundColor: '#FFFFFF',
+              borderColor: emailFocused ? brand.blue : colors.separator,
+              backgroundColor: colors.surface,
               paddingHorizontal: 16,
               fontSize: 15,
-              color: brand.dark,
+              color: colors.label,
               borderCurve: 'continuous',
             }}
           />
@@ -406,7 +414,7 @@ export default function SignupScreen() {
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: brand.dark,
+              color: colors.label,
               marginBottom: 8,
               letterSpacing: 0.1,
             }}
@@ -420,7 +428,7 @@ export default function SignupScreen() {
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
               placeholder="••••••••"
-              placeholderTextColor={brand.body}
+              placeholderTextColor={colors.secondaryLabel}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               autoCorrect={false}
@@ -428,12 +436,12 @@ export default function SignupScreen() {
                 height: 52,
                 borderRadius: 12,
                 borderWidth: 1.5,
-                borderColor: passwordFocused ? brand.blue : brand.separator,
-                backgroundColor: '#FFFFFF',
+                borderColor: passwordFocused ? brand.blue : colors.separator,
+                backgroundColor: colors.surface,
                 paddingHorizontal: 16,
                 paddingRight: 52,
                 fontSize: 15,
-                color: brand.dark,
+                color: colors.label,
                 borderCurve: 'continuous',
               }}
             />
@@ -449,7 +457,7 @@ export default function SignupScreen() {
               }}
               hitSlop={8}
             >
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={brand.body} />
+              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.secondaryLabel} />
             </Pressable>
           </View>
 
@@ -470,7 +478,7 @@ export default function SignupScreen() {
                     flex: 1,
                     height: 4,
                     borderRadius: 4,
-                    backgroundColor: strength >= level ? strengthColor : brand.separator,
+                    backgroundColor: strength >= level ? strengthColor : colors.separator,
                   }}
                 />
               ))}
@@ -497,7 +505,7 @@ export default function SignupScreen() {
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: brand.dark,
+              color: colors.label,
               marginBottom: 8,
               letterSpacing: 0.1,
             }}
@@ -511,7 +519,7 @@ export default function SignupScreen() {
               onFocus={() => setConfirmFocused(true)}
               onBlur={() => setConfirmFocused(false)}
               placeholder="••••••••"
-              placeholderTextColor={brand.body}
+              placeholderTextColor={colors.secondaryLabel}
               secureTextEntry={!showConfirm}
               autoCapitalize="none"
               autoCorrect={false}
@@ -524,12 +532,12 @@ export default function SignupScreen() {
                     ? brand.blue
                     : confirmPassword.length > 0 && confirmPassword !== password
                     ? brand.error
-                    : brand.separator,
-                backgroundColor: '#FFFFFF',
+                    : colors.separator,
+                backgroundColor: colors.surface,
                 paddingHorizontal: 16,
                 paddingRight: 52,
                 fontSize: 15,
-                color: brand.dark,
+                color: colors.label,
                 borderCurve: 'continuous',
               }}
             />
@@ -545,7 +553,7 @@ export default function SignupScreen() {
               }}
               hitSlop={8}
             >
-              <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={brand.body} />
+              <Ionicons name={showConfirm ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.secondaryLabel} />
             </Pressable>
           </View>
         </View>
@@ -556,7 +564,7 @@ export default function SignupScreen() {
             style={{
               fontSize: 13,
               fontWeight: '600',
-              color: brand.dark,
+              color: colors.label,
               marginBottom: 12,
               letterSpacing: 0.1,
             }}
@@ -580,7 +588,7 @@ export default function SignupScreen() {
                     borderRadius: 16,
                     borderWidth: 1.5,
                     borderColor: selected ? brand.blue : brand.separator,
-                    backgroundColor: selected ? '#EBF4FF' : '#FFFFFF',
+                    backgroundColor: selected ? brand.blue + '18' : colors.surface,
                     paddingVertical: 16,
                     alignItems: 'center',
                     gap: 6,
@@ -591,14 +599,14 @@ export default function SignupScreen() {
                     borderCurve: 'continuous',
                   })}
                 >
-                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: selected ? brand.blue + '20' : brand.lightBg, alignItems: 'center', justifyContent: 'center' }}>
-                    <Ionicons name={icon} size={24} color={selected ? brand.blue : brand.body} />
+                  <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: selected ? brand.blue + '20' : colors.background, alignItems: 'center', justifyContent: 'center' }}>
+                    <Ionicons name={icon} size={24} color={selected ? brand.blue : colors.secondaryLabel} />
                   </View>
                   <Text
                     style={{
                       fontSize: 13,
                       fontWeight: '600',
-                      color: selected ? brand.blue : brand.body,
+                      color: selected ? brand.blue : colors.secondaryLabel,
                     }}
                   >
                     {label}
@@ -611,10 +619,10 @@ export default function SignupScreen() {
 
         {/* Currency selector */}
         <View style={{ marginBottom: 32 }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: brand.dark, marginBottom: 4, letterSpacing: 0.1 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.label, marginBottom: 4, letterSpacing: 0.1 }}>
             Currency
           </Text>
-          <Text style={{ fontSize: 12, color: brand.body, marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginBottom: 12 }}>
             Subscription prices will display in your chosen currency
           </Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
@@ -625,17 +633,17 @@ export default function SignupScreen() {
                   style={({ pressed }) => ({
                     flex: 1, borderRadius: 16, borderWidth: 1.5,
                     borderColor: selected ? brand.blue : brand.separator,
-                    backgroundColor: selected ? '#EBF4FF' : '#FFFFFF',
+                    backgroundColor: selected ? brand.blue + '18' : colors.surface,
                     paddingVertical: 14, alignItems: 'center', gap: 4,
                     opacity: pressed ? 0.8 : 1,
                     boxShadow: selected ? '0 2px 12px rgba(43,116,214,0.12)' : undefined,
                     borderCurve: 'continuous',
                   })}>
                   <Text style={{ fontSize: 24 }}>{opt.flag}</Text>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: selected ? brand.blue : brand.dark }}>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: selected ? brand.blue : colors.label }}>
                     {opt.value}
                   </Text>
-                  <Text style={{ fontSize: 11, color: selected ? brand.blue : brand.body }}>
+                  <Text style={{ fontSize: 11, color: selected ? brand.blue : colors.secondaryLabel }}>
                     {opt.label}
                   </Text>
                 </Pressable>
@@ -646,10 +654,10 @@ export default function SignupScreen() {
 
         {/* Referral code — optional */}
         <View style={{ marginBottom: 32 }}>
-          <Text style={{ fontSize: 13, fontWeight: '600', color: brand.dark, marginBottom: 4, letterSpacing: 0.1 }}>
+          <Text style={{ fontSize: 13, fontWeight: '600', color: colors.label, marginBottom: 4, letterSpacing: 0.1 }}>
             Referral code
           </Text>
-          <Text style={{ fontSize: 12, color: brand.body, marginBottom: 12 }}>
+          <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginBottom: 12 }}>
             Optional — enter a code if someone referred you
           </Text>
           <TextInput
@@ -658,7 +666,7 @@ export default function SignupScreen() {
             onFocus={() => setReferralFocused(true)}
             onBlur={() => setReferralFocused(false)}
             placeholder="e.g. LIESEL42"
-            placeholderTextColor={brand.body}
+            placeholderTextColor={colors.secondaryLabel}
             autoCapitalize="characters"
             autoCorrect={false}
             maxLength={12}
@@ -666,11 +674,11 @@ export default function SignupScreen() {
               height: 52,
               borderRadius: 12,
               borderWidth: 1.5,
-              borderColor: referralFocused ? brand.blue : brand.separator,
-              backgroundColor: '#FFFFFF',
+              borderColor: referralFocused ? brand.blue : colors.separator,
+              backgroundColor: colors.surface,
               paddingHorizontal: 16,
               fontSize: 15,
-              color: brand.dark,
+              color: colors.label,
               letterSpacing: 2,
               borderCurve: 'continuous',
             }}
@@ -729,7 +737,7 @@ export default function SignupScreen() {
             marginTop: 32,
           }}
         >
-          <Text style={{ fontSize: 14, color: brand.body }}>
+          <Text style={{ fontSize: 14, color: colors.secondaryLabel }}>
             Already have an account?{' '}
           </Text>
           <Pressable onPress={() => router.replace('/(auth)/')} hitSlop={8}>
