@@ -73,7 +73,9 @@ function SettingsRow({ label, subtitle, value, icon, iconColor, showChevron = fa
       )}
       <View style={{ flex: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '500', color: destructive ? brand.error : colors.label }}>{label}</Text>
-        {subtitle && <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 2 }}>{subtitle}</Text>}
+        {/* Capped: professional notes can be up to 2000 chars and would
+            otherwise render as a wall of text inside the row. */}
+        {subtitle && <Text numberOfLines={2} ellipsizeMode="tail" style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 2 }}>{subtitle}</Text>}
       </View>
       {rightElement ?? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
