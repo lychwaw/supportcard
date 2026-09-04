@@ -4,7 +4,7 @@ import { ThemeProvider, DefaultTheme, DarkTheme, useRouter, useSegments } from '
 import * as SplashScreen from 'expo-splash-screen';
 import * as Updates from 'expo-updates';
 import { Session } from '@supabase/supabase-js';
-import { View, Text, Pressable, useColorScheme } from 'react-native';
+import { View, Text, Pressable, useColorScheme, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { brand } from '@/theme/colors';
@@ -166,6 +166,13 @@ export default function RootLayout() {
     }
     checkForUpdates();
 
+    // Hard ceiling on the splash screen. getSession() reads from SecureStore and,
+    // when the stored token has expired, refreshes it over the network — so it can
+    // be slow on a cold start regardless of anything else we do. A frozen splash
+    // is the worst possible first impression, so drop it after 2.5s no matter
+    // what; AuthGate routes correctly once the session does arrive.
+    const splashTimer = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, 2500);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session?.user?.id) {
@@ -182,6 +189,7 @@ export default function RootLayout() {
       } else {
         setNeedsOnboarding(false);
       }
+      clearTimeout(splashTimer);
       SplashScreen.hideAsync();
     });
 
@@ -195,13 +203,26 @@ export default function RootLayout() {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(splashTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Only the session gates the first render. needsOnboarding may still be null
   // here; AuthGate treats that as "not yet known" and simply doesn't redirect
   // to the tour until it resolves, rather than holding the whole app back.
-  if (session === undefined) return null;
+  //
+  // If the splash timer fired before the session arrived, showing null here
+  // would leave a blank screen — so render the brand ground with a spinner
+  // instead. In practice this is visible only on a slow cold start.
+  if (session === undefined) {
+    return (
+      <View style={{ flex: 1, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color={brand.blue} />
+      </View>
+    );
+  }
 
   return <AppShell session={session} needsOnboarding={needsOnboarding} />;
 }
