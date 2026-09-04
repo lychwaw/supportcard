@@ -35,6 +35,7 @@ export default function ProfessionalPortalScreen() {
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [notesDraft, setNotesDraft] = useState<Record<string, string>>({});
   const [savingNotesId, setSavingNotesId] = useState<string | null>(null);
+  const [savedNotesId, setSavedNotesId] = useState<string | null>(null);
 
   const loadLinks = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -89,16 +90,34 @@ export default function ProfessionalPortalScreen() {
 
   const saveNotes = useCallback(async (linkId: string) => {
     setSavingNotesId(linkId);
+    setSavedNotesId(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Your session expired. Please sign in again.');
+
       const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
-      await fetch(`${apiBase}/api/professional-invite`, {
+      const res = await fetch(`${apiBase}/api/professional-invite`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({ action: 'update_notes', link_id: linkId, notes: notesDraft[linkId] ?? '' }),
       });
-    } catch {}
-    setSavingNotesId(null);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({} as any));
+        throw new Error(body?.error ?? 'Could not save notes. Please try again.');
+      }
+
+      // Keep the loaded list in sync, otherwise navigating away and back shows
+      // the previous value even though the save succeeded.
+      const saved = (notesDraft[linkId] ?? '').trim();
+      setLinks(prev => prev.map(l => (l.id === linkId ? { ...l, notes: saved || null } : l)));
+
+      setSavedNotesId(linkId);
+      setTimeout(() => setSavedNotesId(curr => (curr === linkId ? null : curr)), 2000);
+    } catch (e: any) {
+      Alert.alert('Could not save notes', e?.message ?? 'Please try again.');
+    } finally {
+      setSavingNotesId(null);
+    }
   }, [notesDraft]);
 
   const openRecords = useCallback(async (link: ProfessionalLink) => {
@@ -284,8 +303,12 @@ export default function ProfessionalPortalScreen() {
                       onChangeText={v => setNotesDraft(prev => ({ ...prev, [link.id]: v }))}
                     />
                     <Pressable onPress={() => saveNotes(link.id)} disabled={savingNotesId === link.id}
-                      style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 10, paddingVertical: 10, alignItems: 'center', opacity: pressed || savingNotesId === link.id ? 0.7 : 1 })}>
-                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{savingNotesId === link.id ? 'Saving…' : 'Save Notes'}</Text>
+                      style={({ pressed }) => ({ backgroundColor: savedNotesId === link.id ? brand.teal : brand.blue, borderRadius: 10, paddingVertical: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, opacity: pressed || savingNotesId === link.id ? 0.7 : 1 })}>
+                      {savingNotesId === link.id && <ActivityIndicator size="small" color="#fff" />}
+                      {savedNotesId === link.id && <Ionicons name="checkmark-circle" size={16} color="#fff" />}
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                        {savingNotesId === link.id ? 'Saving…' : savedNotesId === link.id ? 'Saved' : 'Save Notes'}
+                      </Text>
                     </Pressable>
                   </View>
                 </View>

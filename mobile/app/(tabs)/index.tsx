@@ -189,16 +189,27 @@ export default function HomeScreen() {
               {getGreeting()},{'\n'}
               <Text style={{ color: brand.blue }}>{userName || 'Co-Parent'}</Text>
             </Text>
-            <Pressable hitSlop={12} onPress={() => setShowNotifications(true)} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4, marginTop: 4 })}>
-              <View>
-                <Ionicons name="notifications-outline" size={24} color={colors.label} />
-                {pendingCount > 0 && (
-                  <View style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: brand.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 }}>
-                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{pendingCount > 9 ? '9+' : pendingCount}</Text>
-                  </View>
-                )}
-              </View>
-            </Pressable>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 4 }}>
+              <Pressable hitSlop={12} onPress={() => setShowNotifications(true)} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}>
+                <View>
+                  <Ionicons name="notifications-outline" size={24} color={colors.label} />
+                  {pendingCount > 0 && (
+                    <View style={{ position: 'absolute', top: -2, right: -2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: brand.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 }}>
+                      <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>{pendingCount > 9 ? '9+' : pendingCount}</Text>
+                    </View>
+                  )}
+                </View>
+              </Pressable>
+              <Pressable
+                hitSlop={12}
+                accessibilityLabel="Settings"
+                accessibilityRole="button"
+                onPress={() => router.push('/settings')}
+                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, padding: 4 })}
+              >
+                <Ionicons name="settings-outline" size={24} color={colors.label} />
+              </Pressable>
+            </View>
           </View>
         </View>
 

@@ -145,15 +145,22 @@ async function handleUpdateNotes(req: any, res: any, supabase: any, userId: stri
   if (!link_id) return res.status(400).json({ error: 'link_id required' });
   if (typeof notes !== 'string') return res.status(400).json({ error: 'notes must be a string' });
 
-  // Only the professional on this link can write notes
-  const { error } = await supabase
+  // Only the professional on this link can write notes.
+  // .select() matters: without it a filter that matches zero rows still returns
+  // error: null, so an unauthorised or inactive link would report success and
+  // silently save nothing.
+  const { data, error } = await supabase
     .from('professional_links')
     .update({ notes: notes.trim().slice(0, 2000) || null })
     .eq('id', link_id)
     .eq('professional_id', userId)
-    .eq('status', 'active');
+    .eq('status', 'active')
+    .select('id');
 
   if (error) return res.status(500).json({ error: 'Could not save notes' });
+  if (!data || data.length === 0) {
+    return res.status(404).json({ error: 'This link is no longer active, or you do not have access to it.' });
+  }
   return res.status(200).json({ success: true });
 }
 
