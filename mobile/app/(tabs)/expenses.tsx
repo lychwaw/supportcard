@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
 import { formatAmount, convertAmount, CURRENCY_SYMBOL, type Currency } from '@/lib/currency';
 import { scanReceiptFromCamera, scanReceiptFromLibrary } from '@/lib/receipt-scanner';
+import { logPositiveAction, maybeAskForReview } from '@/lib/review';
 
 const CATEGORIES = ['School', 'Food', 'Clothing', 'Activities', 'Healthcare', 'Transportation', 'Other'];
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -171,6 +172,13 @@ export default function ExpensesScreen() {
     }
 
     loadRequests();
+
+    // Approving a request is a positive resolution — a good moment to ask for a
+    // rating. Delayed so the list finishes refreshing before iOS draws over it.
+    if (action === 'approved') {
+      logPositiveAction();
+      setTimeout(() => { maybeAskForReview(); }, 800);
+    }
   };
 
   const handleDelete = (id: string) => {

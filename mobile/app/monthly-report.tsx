@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
 import { useCurrency } from '@/hooks/use-currency';
 import { convertAmount, CURRENCY_SYMBOL, type Currency } from '@/lib/currency';
+import { logPositiveAction, maybeAskForReview } from '@/lib/review';
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -91,6 +92,7 @@ export default function MonthlyReportScreen() {
         } else {
           const json = await response.json();
           setReportText(json?.reply ?? json?.content ?? json?.choices?.[0]?.message?.content ?? '');
+          logPositiveAction(); // got a real report out — counts toward a rating ask
         }
       } catch {
         setReportText('__error__');
@@ -202,7 +204,12 @@ export default function MonthlyReportScreen() {
 
               <View style={{ gap: 10 }}>
                 {reportText && reportText !== '__upgrade__' && reportText !== '__error__' && (
-                  <Pressable onPress={() => Share.share({ message: reportText, title: `SupportCard Report — ${monthOptions[selectedIdx].label}` })}
+                  <Pressable onPress={async () => {
+                    await Share.share({ message: reportText, title: `SupportCard Report — ${monthOptions[selectedIdx].label}` });
+                    // Sharing a report is the strongest "this was useful" signal we get.
+                    await logPositiveAction();
+                    setTimeout(() => { maybeAskForReview(); }, 800);
+                  }}
                     style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, borderCurve: 'continuous', padding: 16, alignItems: 'center', transform: [{ scale: pressed ? 0.97 : 1 }] })}>
                     <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Share Report</Text>
                   </Pressable>

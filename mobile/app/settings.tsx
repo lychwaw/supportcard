@@ -11,6 +11,8 @@ import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
+import Constants from 'expo-constants';
+import { openStoreListing } from '@/lib/review';
 
 interface UserInfo {
   email: string;
@@ -590,9 +592,14 @@ export default function SettingsScreen() {
           {professionalLinks.map((link, i) => (
             <SettingsRow
               key={link.id}
-              subtitle={link.notes ? `Notes: ${link.notes}` : undefined}
               label={link.invited_email}
-              subtitle={link.status === 'active' ? 'Linked' : link.status === 'pending' ? `Pending — code: ${link.token}` : 'Revoked'}
+              subtitle={
+                link.status === 'active'
+                  ? (link.notes ? `Linked · ${link.notes}` : 'Linked')
+                  : link.status === 'pending'
+                    ? `Pending — code: ${link.token}`
+                    : 'Revoked'
+              }
               icon={link.status === 'active' ? 'checkmark-circle-outline' : 'time-outline'}
               iconColor={link.status === 'active' ? brand.teal : colors.secondaryLabel as string}
               isLast={i === professionalLinks.length - 1}
@@ -610,7 +617,10 @@ export default function SettingsScreen() {
           <SettingsRow label="Enter Referral Code" icon="gift-outline" iconColor={brand.teal} showChevron onPress={() => setShowReferralCode(true)} />
           <SettingsRow label="Help Center" icon="help-circle-outline" iconColor={brand.blue} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global?subject=SupportCard%20Help')} />
           <SettingsRow label="Contact Support" icon="mail-outline" iconColor={brand.teal} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global')} />
-          <SettingsRow label="App Version" icon="information-circle-outline" iconColor={brand.body} value="1.0.0" isLast />
+          {/* Opens the App Store review composer. Apple's HIG says the native
+              in-app prompt must not be wired to an explicit "Rate" button. */}
+          <SettingsRow label="Rate SupportCard" icon="star-outline" iconColor={brand.warning} showChevron onPress={openStoreListing} />
+          <SettingsRow label="App Version" icon="information-circle-outline" iconColor={brand.body} value={Constants.expoConfig?.version ?? '1.0.1'} isLast />
         </SettingsGroup>
 
         <SettingsGroup label="Danger Zone">
