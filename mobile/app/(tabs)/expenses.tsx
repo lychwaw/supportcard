@@ -118,6 +118,10 @@ export default function ExpensesScreen() {
   };
 
   const totalApproved = requests.filter(r => r.status === 'approved').reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
+  // Denominator for the category bars. It has to cover the same requests the
+  // categories are built from — every status, not just approved — otherwise a
+  // category containing pending items exceeds 100% and overflows its card.
+  const totalAllRequests = requests.reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
   const totalPending  = requests.filter(r => r.status === 'pending').length;
   const toApproveCount = requests.filter(r => r.status === 'pending' && r.requester_id !== userId).length;
 
@@ -320,7 +324,12 @@ export default function ExpensesScreen() {
             {categoryGroups.length === 0 ? <EmptyState /> : categoryGroups.map(([cat, items]) => {
               const col = CATEGORY_COLOR[cat] ?? brand.blue;
               const displayTotal = items.reduce((s, r) => s + convertAmount(Number(r.amount), r.currency ?? 'ZAR', currency), 0);
-              const pct = totalApproved > 0 ? Math.round((displayTotal / totalApproved) * 100) : 0;
+              // Share of all logged spend. Clamped as a belt-and-braces guard so
+              // no future change to the denominator can push the fill outside
+              // the track again.
+              const pct = totalAllRequests > 0
+                ? Math.min(100, Math.max(0, Math.round((displayTotal / totalAllRequests) * 100)))
+                : 0;
               return (
                 <View key={cat} style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 18, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous', gap: 14 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
@@ -333,7 +342,7 @@ export default function ExpensesScreen() {
                     </View>
                     <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, letterSpacing: -0.5 }}>{CURRENCY_SYMBOL[currency]}{displayTotal.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</Text>
                   </View>
-                  <View style={{ height: 4, backgroundColor: colors.separator, borderRadius: 2 }}>
+                  <View style={{ height: 4, backgroundColor: colors.separator, borderRadius: 2, overflow: 'hidden' }}>
                     <View style={{ height: 4, borderRadius: 2, backgroundColor: col, width: `${pct}%` }} />
                   </View>
                 </View>
