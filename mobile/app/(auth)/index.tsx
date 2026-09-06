@@ -241,7 +241,16 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        <View style={{ marginBottom: 32 }} />
+        {/* Forgot password */}
+        <Pressable
+          onPress={() => router.push('/(auth)/reset-password')}
+          hitSlop={8}
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignSelf: 'flex-end', paddingVertical: 10 })}
+        >
+          <Text style={{ fontSize: 14, color: brand.blue, fontWeight: '600' }}>Forgot password?</Text>
+        </Pressable>
+
+        <View style={{ marginBottom: 22 }} />
 
         {/* Sign in button */}
         <Pressable

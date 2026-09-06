@@ -117,6 +117,7 @@ export default function SignupScreen() {
   const isDark = scheme === 'dark';
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<Role>('parent');
@@ -131,8 +132,16 @@ export default function SignupScreen() {
 
   const [nameFocused, setNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
+  const [confirmEmailFocused, setConfirmEmailFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmFocused, setConfirmFocused] = useState(false);
+
+  // Only judge the match once there is something to judge, so the field doesn't
+  // flash red while the user is still typing the first character.
+  const emailsMatch =
+    confirmEmail.trim().length > 0 &&
+    email.trim().toLowerCase() === confirmEmail.trim().toLowerCase();
+  const emailsMismatch = confirmEmail.trim().length > 0 && !emailsMatch;
 
   const strength = passwordStrength(password);
   const strengthColor = STRENGTH_COLORS[strength];
@@ -149,6 +158,13 @@ export default function SignupScreen() {
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError('Please enter a valid email address.');
+      return;
+    }
+    // A typo here locks the account out permanently — there is no way to reach
+    // the owner of an address that does not exist. Compared case-insensitively
+    // because email local parts are effectively case-insensitive in practice.
+    if (email.trim().toLowerCase() !== confirmEmail.trim().toLowerCase()) {
+      setError('Email addresses do not match.');
       return;
     }
     if (password.length < 6) {
@@ -406,6 +422,63 @@ export default function SignupScreen() {
               borderCurve: 'continuous',
             }}
           />
+        </View>
+
+        {/* Confirm email — guards against a typo that would otherwise make the
+            account unrecoverable, since no reset mail can reach a wrong address */}
+        <View style={{ marginBottom: 20 }}>
+          <Text
+            style={{
+              fontSize: 13,
+              fontWeight: '600',
+              color: colors.label,
+              marginBottom: 8,
+              letterSpacing: 0.1,
+            }}
+          >
+            Confirm email address
+          </Text>
+          <TextInput
+            value={confirmEmail}
+            onChangeText={setConfirmEmail}
+            onFocus={() => setConfirmEmailFocused(true)}
+            onBlur={() => setConfirmEmailFocused(false)}
+            placeholder="you@example.com"
+            placeholderTextColor={colors.secondaryLabel}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            autoComplete="off"
+            textContentType="none"
+            style={{
+              height: 52,
+              borderRadius: 12,
+              borderWidth: 1.5,
+              borderColor: emailsMismatch
+                ? brand.error
+                : emailsMatch
+                  ? brand.teal
+                  : confirmEmailFocused
+                    ? brand.blue
+                    : colors.separator,
+              backgroundColor: colors.surface,
+              paddingHorizontal: 16,
+              fontSize: 15,
+              color: colors.label,
+              borderCurve: 'continuous',
+            }}
+          />
+          {emailsMismatch && (
+            <Text style={{ fontSize: 12, color: brand.error, marginTop: 6 }}>
+              Email addresses do not match
+            </Text>
+          )}
+          {emailsMatch && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+              <Ionicons name="checkmark-circle" size={13} color={brand.teal} />
+              <Text style={{ fontSize: 12, color: brand.teal }}>Emails match</Text>
+            </View>
+          )}
         </View>
 
         {/* Password with strength indicator */}
