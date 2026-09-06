@@ -85,7 +85,17 @@ export default function ResetPasswordScreen() {
     // Deliberately not distinguishing "no such account" from success: telling a
     // stranger which addresses are registered leaks your user list.
     if (err && !/not found|no user/i.test(err.message)) {
-      setError(err.message);
+      // A 5xx here is nearly always the mail server refusing the send, which is
+      // a server-side misconfiguration the user can do nothing about. Raw
+      // Supabase errors are JSON blobs, so never show them verbatim.
+      const status = (err as any)?.status;
+      setError(
+        status && status >= 500
+          ? 'We could not send the email just now. Please try again in a few minutes.'
+          : /rate|limit|too many/i.test(err.message)
+            ? 'Too many attempts. Please wait a few minutes and try again.'
+            : 'Something went wrong sending your code. Please try again.',
+      );
       return;
     }
     setNotice(`If an account exists for ${addr}, a six-digit code is on its way.`);
