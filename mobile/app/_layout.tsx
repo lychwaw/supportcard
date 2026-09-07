@@ -166,12 +166,29 @@ export default function RootLayout() {
     }
     checkForUpdates();
 
-    // Hard ceiling on the splash screen. getSession() reads from SecureStore and,
-    // when the stored token has expired, refreshes it over the network — so it can
-    // be slow on a cold start regardless of anything else we do. A frozen splash
-    // is the worst possible first impression, so drop it after 2.5s no matter
-    // what; AuthGate routes correctly once the session does arrive.
-    const splashTimer = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, 2500);
+    // The splash gets a floor and a ceiling.
+    //
+    // Ceiling: getSession() reads from SecureStore and, when the stored token has
+    // expired, refreshes it over the network, so it can be slow on a cold start.
+    // A frozen splash is the worst possible first impression — drop it after
+    // MAX no matter what, and AuthGate routes correctly once the session lands.
+    //
+    // Floor: when the session resolves from cache it comes back in a few dozen
+    // milliseconds, and the splash vanishing that fast reads as a glitch while
+    // the first screen is still fetching. Holding it briefly also buys those
+    // queries a head start.
+    const MIN_SPLASH_MS = 900;
+    const MAX_SPLASH_MS = 2500;
+    const launchedAt = Date.now();
+    let floorTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const ceilingTimer = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, MAX_SPLASH_MS);
+
+    const hideSplash = () => {
+      clearTimeout(ceilingTimer);
+      const remaining = Math.max(0, MIN_SPLASH_MS - (Date.now() - launchedAt));
+      floorTimer = setTimeout(() => { SplashScreen.hideAsync().catch(() => {}); }, remaining);
+    };
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -189,8 +206,7 @@ export default function RootLayout() {
       } else {
         setNeedsOnboarding(false);
       }
-      clearTimeout(splashTimer);
-      SplashScreen.hideAsync();
+      hideSplash();
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -204,7 +220,8 @@ export default function RootLayout() {
     });
 
     return () => {
-      clearTimeout(splashTimer);
+      clearTimeout(ceilingTimer);
+      if (floorTimer) clearTimeout(floorTimer);
       subscription.unsubscribe();
     };
   }, []);
