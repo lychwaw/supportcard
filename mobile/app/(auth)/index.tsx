@@ -241,16 +241,13 @@ export default function LoginScreen() {
           </View>
         </View>
 
-        {/* Forgot password */}
-        <Pressable
-          onPress={() => router.push('/(auth)/reset-password')}
-          hitSlop={8}
-          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignSelf: 'flex-end', paddingVertical: 10 })}
-        >
-          <Text style={{ fontSize: 14, color: brand.blue, fontWeight: '600' }}>Forgot password?</Text>
-        </Pressable>
+        {/* Forgot password — hidden until email delivery is sorted. The screen
+            at (auth)/reset-password is complete and still routable; it just has
+            no entry point, because Resend's domain verification is stuck and a
+            reset link that never arrives is worse than no link at all.
+            Restore this Pressable once reset emails are landing reliably. */}
 
-        <View style={{ marginBottom: 22 }} />
+        <View style={{ marginBottom: 32 }} />
 
         {/* Sign in button */}
         <Pressable
