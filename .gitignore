@@ -41,3 +41,7 @@ skills-lock.json
 *.sw?
 .vercel
 .env*
+
+# Stray build archive, committed by accident in Oct 2025
+new-archive.zip
+*.zip
