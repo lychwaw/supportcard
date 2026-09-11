@@ -296,6 +296,27 @@ export default function PricingScreen() {
           </Pressable>
         </View>
 
+        {/*
+          Signing up with Apple or Google skips the signup form entirely, so
+          those users never see the referral field. The code is still valid for
+          seven days, and this is the one screen every new account passes
+          through, so it is where the second chance belongs.
+        */}
+        <Pressable
+          onPress={() => router.push('/settings?referral=1')}
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.6 : 1,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            gap: 7, paddingVertical: 14,
+          })}
+        >
+          <Ionicons name="gift-outline" size={16} color={brand.teal} />
+          <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>
+            Been referred?{' '}
+            <Text style={{ color: brand.teal, fontWeight: '700' }}>Enter your code</Text>
+          </Text>
+        </Pressable>
+
         {/* Restore Purchases — required by Apple */}
         {Platform.OS === 'ios' && (
           <Pressable onPress={handleRestore} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignItems: 'center', paddingVertical: 8 })}>

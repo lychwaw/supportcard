@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, Pressable, Switch, Alert,
   Modal, TextInput, KeyboardAvoidingView, Platform, Linking, ActivityIndicator, Share,
 } from 'react-native';
-import { Stack, router } from 'expo-router';
+import { Stack, router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -404,6 +404,11 @@ export default function SettingsScreen() {
   const [showInviteProfessional, setShowInviteProfessional] = useState(false);
   const [professionalLinks, setProfessionalLinks] = useState<ProfessionalLink[]>([]);
   const { currency, setCurrency } = useCurrency();
+
+  // Pricing links straight here with ?referral=1, so the code entry opens
+  // without the user having to find it in the list.
+  const params = useLocalSearchParams<{ referral?: string }>();
+  useEffect(() => { if (params.referral === '1') setShowReferralCode(true); }, [params.referral]);
 
   useEffect(() => { isSyncEnabled().then(setCalendarSync); }, []);
 
