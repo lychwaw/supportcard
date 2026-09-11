@@ -95,9 +95,16 @@ async function handleToneCheck(req: any, res: any, supabase: any, authUser: any)
     p_action: 'tone-check',
     p_max_per_day: 200,
   });
+  // Fail closed. If the limiter is unreachable we cannot know how much this
+  // user has already spent, and an uncapped Anthropic bill is far worse than a
+  // temporary feature outage. The distinct message separates "you hit your
+  // limit" from "our limiter is down" in logs and in support requests.
   if (rateErr) {
-    console.warn('Tone-check rate-limit RPC error:', rateErr.message);
-  } else if (allowed === false) {
+    console.error('Tone-check rate-limit RPC failed — refusing request:', rateErr.message);
+    res.status(503).json({ error: 'AI features are briefly unavailable. Please try again shortly.' });
+    return;
+  }
+  if (allowed === false) {
     res.status(429).json({ error: 'Daily AI usage limit reached. Try again tomorrow.' });
     return;
   }
@@ -186,7 +193,11 @@ async function handleToneCheck(req: any, res: any, supabase: any, authUser: any)
 // ─── My SCAI ─────────────────────────────────────────────────────────────────
 
 const SCAI_MODEL = process.env.ANTHROPIC_SCAI_MODEL || 'claude-haiku-4-5-20251001';
-const MAX_SCAI_HISTORY   = 12;
+// Every turn resends the whole window, so this is the single biggest driver of
+// SCAI cost — at 12 x 2000 chars the history was ~6,500 of the ~7,800 input
+// tokens per call. Six turns is ample for a task-oriented assistant that mostly
+// answers one-shot requests, and roughly halves the per-call input spend.
+const MAX_SCAI_HISTORY   = 6;
 const MAX_TOOL_ITERATIONS = 4;
 const MAX_EXPENSE_AMOUNT  = 50_000; // Rand — guards against accidental/malicious huge requests
 
@@ -474,9 +485,14 @@ async function handleScaiChat(req: any, res: any, supabase: any, authUser: any, 
     p_action: 'scai-chat',
     p_max_per_day: 150,
   });
+  // Fail closed — see the note in handleToneCheck. SCAI is the most expensive
+  // of the three endpoints, so this is the one that matters most.
   if (rateErr) {
-    console.warn('SCAI rate-limit RPC error:', rateErr.message);
-  } else if (allowed === false) {
+    console.error('SCAI rate-limit RPC failed — refusing request:', rateErr.message);
+    res.status(503).json({ error: 'My SCAI is briefly unavailable. Please try again shortly.' });
+    return;
+  }
+  if (allowed === false) {
     res.status(429).json({ error: 'Daily AI usage limit reached. Try again tomorrow.' });
     return;
   }
@@ -590,9 +606,13 @@ async function handleScanReceipt(req: any, res: any, supabase: any, authUser: an
     p_action: 'scan-receipt',
     p_max_per_day: 30,
   });
+  // Fail closed — see the note in handleToneCheck.
   if (rateErr) {
-    console.warn('Scan-receipt rate-limit RPC error:', rateErr.message);
-  } else if (allowed === false) {
+    console.error('Scan-receipt rate-limit RPC failed — refusing request:', rateErr.message);
+    res.status(503).json({ error: 'Receipt scanning is briefly unavailable. Please try again shortly.' });
+    return;
+  }
+  if (allowed === false) {
     res.status(429).json({ error: 'Daily receipt scan limit reached. Try again tomorrow.' });
     return;
   }
