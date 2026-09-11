@@ -152,6 +152,29 @@ export default function PricingScreen() {
         contentContainerStyle={{ padding: 16, gap: 16, paddingBottom: 48 }}
         showsVerticalScrollIndicator={false}
       >
+        {/*
+          Signing up with Apple or Google skips the signup form entirely, so
+          those users never see the referral field. It stays valid for seven
+          days, and this is the one screen every new account passes through,
+          so it sits above the plans rather than below all four of them.
+        */}
+        <Pressable
+          onPress={() => router.push('/settings?referral=1')}
+          style={({ pressed }) => ({
+            opacity: pressed ? 0.6 : 1,
+            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            gap: 8, paddingVertical: 12, paddingHorizontal: 14,
+            backgroundColor: brand.teal + '10', borderRadius: 14,
+            borderCurve: 'continuous', borderWidth: 1, borderColor: brand.teal + '28',
+          })}
+        >
+          <Ionicons name="gift-outline" size={16} color={brand.teal} />
+          <Text style={{ color: colors.label, fontSize: 14 }}>
+            Been referred?{' '}
+            <Text style={{ color: brand.teal, fontWeight: '700' }}>Enter your code</Text>
+          </Text>
+        </Pressable>
+
         {/* ── Preview ── */}
         <View style={{ backgroundColor: colors.surface, borderRadius: 22, borderCurve: 'continuous', padding: 24, borderWidth: 0.5, borderColor: colors.separator, boxShadow: '0 2px 16px rgba(0,0,0,0.06)' }}>
           <View style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: brand.blue + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
@@ -295,27 +318,6 @@ export default function PricingScreen() {
               : <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 15 }}>Protect Records</Text>}
           </Pressable>
         </View>
-
-        {/*
-          Signing up with Apple or Google skips the signup form entirely, so
-          those users never see the referral field. The code is still valid for
-          seven days, and this is the one screen every new account passes
-          through, so it is where the second chance belongs.
-        */}
-        <Pressable
-          onPress={() => router.push('/settings?referral=1')}
-          style={({ pressed }) => ({
-            opacity: pressed ? 0.6 : 1,
-            flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-            gap: 7, paddingVertical: 14,
-          })}
-        >
-          <Ionicons name="gift-outline" size={16} color={brand.teal} />
-          <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>
-            Been referred?{' '}
-            <Text style={{ color: brand.teal, fontWeight: '700' }}>Enter your code</Text>
-          </Text>
-        </Pressable>
 
         {/* Restore Purchases — required by Apple */}
         {Platform.OS === 'ios' && (
