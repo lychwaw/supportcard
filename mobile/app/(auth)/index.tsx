@@ -163,18 +163,25 @@ export default function LoginScreen() {
             <Text style={{ fontSize: 15, fontWeight: '600', color: colors.label }}>Continue with Google</Text>
           </Pressable>
 
-          <Pressable
-            onPress={() => handleAppleSignIn(setError)}
-            style={({ pressed }) => ({
-              height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: brand.separator,
-              backgroundColor: '#000000', flexDirection: 'row', alignItems: 'center',
-              justifyContent: 'center', gap: 10, opacity: pressed ? 0.7 : 1,
-              boxShadow: '0 1px 4px rgba(0,0,0,0.10)', borderCurve: 'continuous',
-            })}
-          >
-            <Text style={{ fontSize: 20, color: '#FFFFFF' }}></Text>
-            <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF' }}>Continue with Apple</Text>
-          </Pressable>
+          {/* iOS and web only. expo-apple-authentication has no Android
+              implementation, so on Android this button rendered fine and then
+              threw the moment it was tapped — on the first screen every new
+              user sees. Apple requires this option on iOS when other social
+              logins are offered; Google has no equivalent requirement. */}
+          {Platform.OS !== 'android' && (
+            <Pressable
+              onPress={() => handleAppleSignIn(setError)}
+              style={({ pressed }) => ({
+                height: 52, borderRadius: 14, borderWidth: 1.5, borderColor: brand.separator,
+                backgroundColor: '#000000', flexDirection: 'row', alignItems: 'center',
+                justifyContent: 'center', gap: 10, opacity: pressed ? 0.7 : 1,
+                boxShadow: '0 1px 4px rgba(0,0,0,0.10)', borderCurve: 'continuous',
+              })}
+            >
+              <Text style={{ fontSize: 20, color: '#FFFFFF' }}></Text>
+              <Text style={{ fontSize: 15, fontWeight: '600', color: '#FFFFFF' }}>Continue with Apple</Text>
+            </Pressable>
+          )}
         </View>
 
         {/* Divider */}
