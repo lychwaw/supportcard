@@ -110,7 +110,13 @@ function AppShell({ session, needsOnboarding }: { session: Session | null; needs
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : theme}>
       <CurrencyProvider>
       <AuthGate session={session} needsOnboarding={needsOnboarding} />
-      <Stack screenOptions={{ headerShown: false, headerBackTitle: '' }}>
+      {/*
+        headerBackTitle: '' does not suppress the label in React Navigation 7;
+        it falls back to the parent route's name, which is how every pushed
+        screen ended up with a back button reading "(tabs)".
+        'minimal' shows the chevron alone, which is the iOS convention anyway.
+      */}
+      <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
