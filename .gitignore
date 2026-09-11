@@ -45,3 +45,10 @@ skills-lock.json
 # Stray build archive, committed by accident in Oct 2025
 new-archive.zip
 *.zip
+
+# App Store screenshot outputs and raw captures. The generator is tracked; the
+# rendered PNGs are large and reproducible from it.
+app-store-screenshots/appstore-*/
+app-store-screenshots/slides/
+app-store-screenshots/.render/
+app-store-screenshots/*.jpeg
