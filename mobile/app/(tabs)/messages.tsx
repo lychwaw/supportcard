@@ -325,7 +325,7 @@ export default function MessagesTabScreen() {
               <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: '#F59E0B18', alignItems: 'center', justifyContent: 'center' }}>
                 <Ionicons name="warning-outline" size={15} color="#F59E0B" />
               </View>
-              <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B' }}>Tone Check — This seems heated</Text>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: '#F59E0B' }}>Tone Check: this seems heated</Text>
             </View>
             <Text style={{ fontSize: 14, color: colors.secondaryLabel, fontStyle: 'italic', lineHeight: 21, paddingLeft: 4 }}>
               "{toneWarning.rewrite}"

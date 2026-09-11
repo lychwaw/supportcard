@@ -145,7 +145,7 @@ export default function IdVerificationScreen() {
           </View>
 
           <View style={{ gap: 8 }}>
-            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>First Name (optional — improves accuracy)</Text>
+            <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>First Name (optional, improves accuracy)</Text>
             <TextInput
               style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', borderWidth: 0.5, borderColor: colors.separator, padding: 16, fontSize: 16, color: colors.label }}
               placeholder="As it appears on your ID"

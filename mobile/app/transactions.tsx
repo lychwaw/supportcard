@@ -102,7 +102,7 @@ export default function TransactionsScreen() {
         {/* Disclaimer */}
         <View style={{ backgroundColor: brand.blue + '10', borderRadius: 14, borderCurve: 'continuous', borderLeftWidth: 3, borderLeftColor: brand.blue, padding: 14, marginBottom: 16 }}>
           <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
-            No money moves through SupportCard — this shows expense request activity only.
+            No money moves through SupportCard. This shows expense request activity only.
           </Text>
         </View>
 
@@ -196,7 +196,7 @@ export default function TransactionsScreen() {
                   {hasApproved && (
                     <View style={{ backgroundColor: '#22C55E10', borderRadius: 12, borderCurve: 'continuous', padding: 12, marginTop: 10, borderLeftWidth: 3, borderLeftColor: '#22C55E' }}>
                       <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>
-                        Settlement of {sym}{groupApproved.toFixed(0)} due — arrange via EFT/bank transfer
+                        Settlement of {sym}{groupApproved.toFixed(0)} due. Arrange via EFT or bank transfer
                       </Text>
                     </View>
                   )}

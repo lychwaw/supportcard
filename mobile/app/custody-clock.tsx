@@ -54,7 +54,7 @@ function CheckInCard({ item, onDelete }: { item: CheckIn; onDelete?: () => void 
         </View>
         <View style={{ flex: 1, gap: 3 }}>
           <Text style={{ fontWeight: '700', fontSize: 15, color: colors.label }}>
-            {meta.label}{item.child ? ` — ${item.child.name}` : ''}
+            {meta.label}{item.child ? ` · ${item.child.name}` : ''}
           </Text>
           {item.notes ? <Text style={{ color: colors.secondaryLabel, fontSize: 13, lineHeight: 18 }} numberOfLines={2}>{item.notes}</Text> : null}
           {item.created_via === 'scai' && (
@@ -234,7 +234,7 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
               </View>
             )}
             {useGps && locationState === 'failed' && (
-              <Text style={{ color: brand.error, fontSize: 13 }}>Location unavailable — permission denied or GPS off.</Text>
+              <Text style={{ color: brand.error, fontSize: 13 }}>Location unavailable. Permission denied or GPS is off.</Text>
             )}
           </View>
         </ScrollView>
@@ -339,7 +339,7 @@ function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose
               </View>
             )}
             {useGps && locationState === 'failed' && (
-              <Text style={{ color: brand.error, fontSize: 13 }}>Location unavailable — permission denied or GPS off.</Text>
+              <Text style={{ color: brand.error, fontSize: 13 }}>Location unavailable. Permission denied or GPS is off.</Text>
             )}
           </View>
         </ScrollView>

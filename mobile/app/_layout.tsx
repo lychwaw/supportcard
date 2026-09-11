@@ -114,6 +114,7 @@ function AppShell({ session, needsOnboarding }: { session: Session | null; needs
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="invite-coparent" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="pricing" options={{ headerShown: false }} />
         <Stack.Screen name="contacts" options={{ headerShown: true }} />
         <Stack.Screen name="transactions" options={{ headerShown: true }} />

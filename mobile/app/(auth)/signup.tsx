@@ -52,7 +52,7 @@ async function handleGoogleSignIn(setError: (e: string) => void) {
       const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       if (sessionError) setError(sessionError.message);
     } else {
-      setError('Sign-in failed — please try again.');
+      setError('Sign-in failed. Please try again.');
     }
   }
 }
@@ -74,7 +74,7 @@ async function handleAppleSignIn(setError: (e: string) => void) {
         AppleAuthentication.AppleAuthenticationScope.EMAIL,
       ],
     });
-    if (!credential.identityToken) { setError('Apple Sign In failed — no identity token received.'); return; }
+    if (!credential.identityToken) { setError('Apple Sign In failed. No identity token received.'); return; }
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: credential.identityToken,
@@ -735,7 +735,7 @@ export default function SignupScreen() {
             Referral code
           </Text>
           <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginBottom: 12 }}>
-            Optional — enter a code if someone referred you
+            Optional. Enter a code if someone referred you
           </Text>
           <TextInput
             value={referralCode}

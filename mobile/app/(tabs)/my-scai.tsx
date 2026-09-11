@@ -49,7 +49,7 @@ function EmptyState({ onSuggestion }: { onSuggestion: (text: string) => void }) 
         <View style={{ alignItems: 'center', gap: 6 }}>
           <Text style={{ fontWeight: '700', fontSize: 26, color: colors.label, letterSpacing: -0.5 }}>My SCAI</Text>
           <Text style={{ color: colors.secondaryLabel, fontSize: 15, textAlign: 'center', lineHeight: 22 }}>
-            Your AI co-parenting assistant.{'\n'}Schedule, request, log — just ask.
+            Your AI co-parenting assistant.{'\n'}Schedule, request, log. Just ask.
           </Text>
         </View>
       </View>

@@ -162,7 +162,7 @@ function EditProfileModal({ visible, onClose, onSaved, childId, childName, initi
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
           <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
-          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{initial ? 'Edit' : 'Create'} — {childName}</Text>
+          <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{initial ? 'Edit' : 'Create'} {childName}</Text>
           <Pressable onPress={handleSave} disabled={saving}>
             {saving ? <ActivityIndicator color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
           </Pressable>

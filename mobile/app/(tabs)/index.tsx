@@ -460,7 +460,7 @@ export default function HomeScreen() {
         </View>
         <View style={{ flex: 1 }}>
           <Text style={{ fontSize: 14, fontWeight: '700', color: '#fff' }}>Chat with My SCAI</Text>
-          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>Schedule, request, log — just ask</Text>
+          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.42)', marginTop: 1 }}>Schedule, request, log. Just ask</Text>
         </View>
         <Pressable onPress={() => router.push('/(tabs)/my-scai')}
           style={({ pressed }) => ({

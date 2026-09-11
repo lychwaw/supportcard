@@ -20,7 +20,7 @@ function thirtyDaysAgo() {
   const d = new Date(); d.setDate(d.getDate() - 30); d.setHours(0, 0, 0, 0); return d.toISOString();
 }
 function buildInsight(m: Metrics): string {
-  if (m.events >= 5) return "You've been consistent with calendar events this month — keep it up!";
+  if (m.events >= 5) return "You've been consistent with calendar events this month. Keep it up!";
   if (m.checkins >= 3) return 'Great work logging custody check-ins. A strong record helps everyone.';
   if (m.expenses === 0) return 'Tip: Log expense requests to keep finances transparent for both parents.';
   if (m.messages === 0) return 'Tip: Messaging through the app creates a neutral, timestamped record.';

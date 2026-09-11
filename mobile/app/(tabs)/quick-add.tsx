@@ -172,7 +172,7 @@ export default function QuickAddScreen() {
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label }}>Use My SCAI</Text>
             <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginTop: 2 }}>
-              Say it naturally — "log a pickup for Amara"
+              Say it naturally, like "log a pickup for Amara"
             </Text>
           </View>
           <Pressable onPress={() => router.push('/(tabs)/my-scai')}

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
+import { clearInvitedCoParent, getInvitedCoParent, type InvitedCoParent } from '@/lib/coparent-invite';
 
 type Child = {
   id: string;
@@ -33,8 +34,11 @@ export default function FamilyScreen() {
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [linking, setLinking] = useState(false);
+  // Who they said they were inviting during onboarding, if anyone.
+  const [invited, setInvited] = useState<InvitedCoParent | null>(null);
 
   useEffect(() => { load(); }, []);
+  useEffect(() => { getInvitedCoParent().then(setInvited); }, []);
 
   const load = async () => {
     setLoading(true);
@@ -104,7 +108,7 @@ export default function FamilyScreen() {
         'Not registered yet',
         `No SupportCard account found for ${email}.\n\nAsk them to sign up, then come back and link them here.`,
         [
-          { text: 'Share App Link', onPress: () => Share.share({ message: 'Join me on SupportCard — co-parenting made easier. Sign up at https://supportcard-prod.vercel.app' }) },
+          { text: 'Share App Link', onPress: () => Share.share({ message: 'Join me on SupportCard. Co-parenting made easier. Sign up at https://supportcard-prod.vercel.app' }) },
           { text: 'OK' },
         ]
       );
@@ -153,6 +157,8 @@ export default function FamilyScreen() {
 
     setShowInvite(false);
     setInviteEmail('');
+    clearInvitedCoParent().catch(() => {});
+    setInvited(null);
     Alert.alert('Co-parent linked!', `${cp.full_name || cp.email} is now linked. They can now see shared events and messages.`);
     load();
   };
@@ -213,13 +219,15 @@ export default function FamilyScreen() {
                 </View>
                 <Text style={{ fontSize: 15, fontWeight: '700', color: colors.label, marginBottom: 6 }}>No co-parent linked</Text>
                 <Text style={{ fontSize: 13, color: colors.secondaryLabel, marginBottom: 20, textAlign: 'center', lineHeight: 20 }}>
-                  Link your co-parent to start coordinating. They must have a SupportCard account first.
+                  {invited?.name
+                    ? `Once ${invited.name} has signed up, link them here and your calendar, expenses and messages stay in sync.`
+                    : 'Link your co-parent to start coordinating. They must have a SupportCard account first.'}
                 </Text>
                 <Pressable
-                  onPress={() => setShowInvite(true)}
+                  onPress={() => { if (invited?.email && !inviteEmail) setInviteEmail(invited.email); setShowInvite(true); }}
                   style={({ pressed }) => ({ backgroundColor: brand.blue, borderRadius: 14, paddingHorizontal: 24, paddingVertical: 13, transform: [{ scale: pressed ? 0.96 : 1 }], borderCurve: 'continuous' })}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Link Co-Parent</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>{invited?.name ? `Link ${invited.name}` : 'Link Co-Parent'}</Text>
                 </Pressable>
               </View>
             )}
@@ -401,7 +409,7 @@ export default function FamilyScreen() {
           <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
             <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 16, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
               <Text style={{ fontSize: 14, color: colors.label, lineHeight: 21 }}>
-                Enter the email your co-parent used to sign up for SupportCard. They must already have an account — share the app link below if they haven't registered yet.
+                Enter the email your co-parent used to sign up for SupportCard. They must already have an account. Share the app link below if they haven't registered yet.
               </Text>
             </View>
             <View style={{ gap: 8 }}>
@@ -419,7 +427,7 @@ export default function FamilyScreen() {
               />
             </View>
             <Pressable
-              onPress={() => Share.share({ message: 'Join me on SupportCard — co-parenting made easier. Sign up at https://supportcard-prod.vercel.app' })}
+              onPress={() => Share.share({ message: 'Join me on SupportCard. Co-parenting made easier. Sign up at https://supportcard-prod.vercel.app' })}
               style={({ pressed }) => ({
                 backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous',
                 padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12,

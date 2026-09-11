@@ -81,7 +81,7 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
       const childName = children.find(c => c.id === childId)?.name ?? '';
-      const fileName = `${term} ${year}${childName ? ` — ${childName}` : ''}`;
+      const fileName = `${term} ${year}${childName ? ` - ${childName}` : ''}`;
 
       let filePath: string | null = null;
       if (asset) {
@@ -315,7 +315,7 @@ export default function SchoolHubScreen() {
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: brand.blue + '10', borderRadius: 14, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: brand.blue + '25', opacity: pressed ? 0.7 : 1 })}>
           <Ionicons name="folder-outline" size={18} color={brand.blue} />
           <Text style={{ flex: 1, fontSize: 13, color: brand.blue, lineHeight: 18 }}>
-            Uploaded reports are saved in <Text style={{ fontWeight: '700' }}>Documents</Text> — tap to open or share them.
+            Uploaded reports are saved in <Text style={{ fontWeight: '700' }}>Documents</Text>. Tap to open or share them.
           </Text>
           <Ionicons name="chevron-forward" size={14} color={brand.blue} />
         </Pressable>
@@ -369,7 +369,7 @@ export default function SchoolHubScreen() {
             <Ionicons name="school-outline" size={28} color={brand.blue} />
           </View>
           <Text style={{ fontSize: 16, fontWeight: '700', color: colors.label }}>No school events yet</Text>
-          <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center' }}>School events are logged via the Calendar — tap below to add one</Text>
+          <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center' }}>School events are logged via the Calendar. Tap below to add one</Text>
         </View>
       ) : (
         schoolEvents.map(event => (

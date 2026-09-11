@@ -2,7 +2,7 @@
   "expo": {
     "name": "SupportCard",
     "slug": "supportcard",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "supportcard",
@@ -25,7 +25,9 @@
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "remote-notification"
-        ]
+        ],
+        "NSCalendarsUsageDescription": "SupportCard adds your custody days, pickups and school events to a calendar on this device so they show up in the Calendar app.",
+        "NSCalendarsFullAccessUsageDescription": "SupportCard adds your custody days, pickups and school events to a calendar on this device so they show up in the Calendar app."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -52,7 +54,7 @@
     },
     "android": {
       "package": "co.za.supportcard.app",
-      "versionCode": 1,
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#2B74D6",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -111,6 +113,12 @@
       ],
       "expo-status-bar",
       "expo-web-browser",
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "SupportCard adds your custody days, pickups and school events to a calendar on this device so they show up in the Calendar app."
+        }
+      ],
       "@sentry/react-native"
     ],
     "experiments": {

@@ -205,7 +205,7 @@ export default function MonthlyReportScreen() {
               <View style={{ gap: 10 }}>
                 {reportText && reportText !== '__upgrade__' && reportText !== '__error__' && (
                   <Pressable onPress={async () => {
-                    await Share.share({ message: reportText, title: `SupportCard Report — ${monthOptions[selectedIdx].label}` });
+                    await Share.share({ message: reportText, title: `SupportCard Report: ${monthOptions[selectedIdx].label}` });
                     // Sharing a report is the strongest "this was useful" signal we get.
                     await logPositiveAction();
                     setTimeout(() => { maybeAskForReview(); }, 800);
@@ -244,7 +244,7 @@ export default function MonthlyReportScreen() {
           <View style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 10, borderWidth: 0.5, borderColor: colors.separator }}>
             <Ionicons name="lock-closed-outline" size={16} color={colors.secondaryLabel} />
             <Text style={{ fontSize: 12, color: colors.secondaryLabel, flex: 1, lineHeight: 18 }}>
-              Reports use anonymised counts and totals only — no personal names, messages, or notes are sent to the AI.
+              Reports use anonymised counts and totals only. No personal names, messages, or notes are sent to the AI.
             </Text>
           </View>
         </View>

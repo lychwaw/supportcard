@@ -14,6 +14,7 @@ import { CURRENCY_OPTIONS } from '@/lib/currency';
 import Constants from 'expo-constants';
 import { openStoreListing } from '@/lib/review';
 import { pressFade, pressScale } from '@/lib/press';
+import { disableSync, enableSync, isSyncEnabled, syncWindow } from '@/lib/apple-calendar';
 
 interface UserInfo {
   email: string;
@@ -112,7 +113,7 @@ function ReferralCodeModal({ visible, onClose }: { visible: boolean; onClose: ()
       const data = await res.json();
       if (res.ok) {
         setResult('ok');
-        setMessage('Code applied — thank you!');
+        setMessage('Code applied. Thank you!');
       } else {
         setResult('error');
         setMessage(data.error ?? 'Could not apply code.');
@@ -392,6 +393,8 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [userInfo, setUserInfo] = useState<UserInfo>({ email: '', displayName: 'Your Account', initials: '?', plan: 'Preview', idVerified: false });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const [calendarSync, setCalendarSync] = useState(false);
+  const [calendarBusy, setCalendarBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [wiping, setWiping] = useState(false);
   const [showWipeConfirm, setShowWipeConfirm] = useState(false);
@@ -401,6 +404,47 @@ export default function SettingsScreen() {
   const [showInviteProfessional, setShowInviteProfessional] = useState(false);
   const [professionalLinks, setProfessionalLinks] = useState<ProfessionalLink[]>([]);
   const { currency, setCurrency } = useCurrency();
+
+  useEffect(() => { isSyncEnabled().then(setCalendarSync); }, []);
+
+  // Turning this on needs the user's permission, which they can refuse. Only
+  // move the switch once we know the write actually succeeded, so the UI never
+  // claims a sync that isn't happening.
+  const toggleCalendarSync = useCallback(async (on: boolean) => {
+    setCalendarBusy(true);
+    try {
+      if (on) {
+        const ok = await enableSync();
+        setCalendarSync(ok);
+        // Push the current month across straight away, so switching this on
+        // has a visible result instead of waiting for the Calendar tab.
+        if (ok) await backfillThisMonth();
+        if (!ok) {
+          Alert.alert(
+            'Calendar access needed',
+            'SupportCard needs permission to add events to your calendar. You can grant it in Settings > SupportCard > Calendars.',
+            [{ text: 'Not now' }, { text: 'Open Settings', onPress: () => Linking.openSettings() }],
+          );
+        }
+      } else {
+        await disableSync();
+        setCalendarSync(false);
+      }
+    } finally {
+      setCalendarBusy(false);
+    }
+  }, []);
+
+  const backfillThisMonth = async () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+    const { data } = await supabase.from('calendar_events' as any)
+      .select('id, event_date, event_type, notes')
+      .gte('event_date', iso(start)).lt('event_date', iso(end));
+    await syncWindow(start, end, (data as any) ?? []).catch(() => {});
+  };
 
   const loadProfessionalLinks = useCallback(async () => {
     try {
@@ -556,6 +600,15 @@ export default function SettingsScreen() {
             icon="bell-outline" iconColor={brand.blue}
             rightElement={<Switch value={notificationsEnabled} onValueChange={setNotificationsEnabled} trackColor={{ false: colors.separator, true: brand.blue }} thumbColor="#fff" />}
           />
+          {Platform.OS === 'ios' && (
+            <SettingsRow label="Show in Apple Calendar" subtitle="Adds your SupportCard events to a calendar on this iPhone"
+              icon="calendar-outline" iconColor={brand.blue}
+              rightElement={
+                <Switch value={calendarSync} onValueChange={toggleCalendarSync} disabled={calendarBusy}
+                  trackColor={{ false: colors.separator, true: brand.blue }} thumbColor="#fff" />
+              }
+            />
+          )}
           <SettingsRow label="Currency" icon="cash-outline" iconColor="#22C55E" rightElement={
             <View style={{ flexDirection: 'row', backgroundColor: colors.background, borderRadius: 10, padding: 3, gap: 3 }}>
               {CURRENCY_OPTIONS.map(opt => {
@@ -602,7 +655,7 @@ export default function SettingsScreen() {
                 link.status === 'active'
                   ? 'Linked'
                   : link.status === 'pending'
-                    ? `Pending — code: ${link.token}`
+                    ? `Pending, code ${link.token}`
                     : 'Revoked'
               }
               icon={link.status === 'active' ? 'checkmark-circle-outline' : 'time-outline'}

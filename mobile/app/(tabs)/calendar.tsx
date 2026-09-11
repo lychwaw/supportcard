@@ -6,6 +6,7 @@ import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
 import { pressFade, pressScale } from '@/lib/press';
+import { syncWindow } from '@/lib/apple-calendar';
 import { router } from 'expo-router';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -50,8 +51,13 @@ export default function CalendarScreen() {
     const end = toISO(year, month, getDaysInMonth(year, month));
     const { data } = await supabase.from('calendar_events' as any)
       .select('*').gte('event_date', start).lte('event_date', end).order('event_date');
-    setEvents((data as any) || []);
+    const rows = ((data as any) || []) as CalendarEvent[];
+    setEvents(rows);
     setLoading(false);
+
+    // Mirror the visible month into the iOS Calendar app, if the user turned
+    // that on. Fire and forget: a calendar write must never hold up the UI.
+    syncWindow(new Date(year, month, 1), new Date(year, month + 1, 1), rows).catch(() => {});
   }, [year, month]);
 
   useEffect(() => { loadEvents(); }, [loadEvents]);

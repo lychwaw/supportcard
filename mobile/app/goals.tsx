@@ -79,7 +79,7 @@ export default function GoalsScreen() {
         {/* Info card */}
         <View style={{ backgroundColor: brand.blue + '10', borderRadius: 16, borderCurve: 'continuous', borderLeftWidth: 3, borderLeftColor: brand.blue, padding: 16 }}>
           <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
-            Goals track savings contributions as an append-only ledger. No money moves through the app — contributions are logged for transparency only.
+            Goals track savings contributions as an append-only ledger. No money moves through the app. Contributions are logged for transparency only.
           </Text>
         </View>
 
@@ -173,7 +173,7 @@ export default function GoalsScreen() {
         </View>
         <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }} style={{ backgroundColor: colors.background }}>
           <View style={{ backgroundColor: brand.blue + '08', borderRadius: 12, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: brand.blue + '20' }}>
-            <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>Contributions are logged for transparency — money transfers happen off-platform via EFT.</Text>
+            <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>Contributions are logged for transparency. Money transfers happen off-platform via EFT.</Text>
           </View>
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Amount ({sym})</Text>

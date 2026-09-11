@@ -52,7 +52,7 @@ async function handleGoogleSignIn(setError: (e: string) => void) {
       const { error: sessionError } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
       if (sessionError) setError(sessionError.message);
     } else {
-      setError('Sign-in failed — please try again.');
+      setError('Sign-in failed. Please try again.');
     }
   }
 }
@@ -74,7 +74,7 @@ async function handleAppleSignIn(setError: (e: string) => void) {
         AppleAuthentication.AppleAuthenticationScope.EMAIL,
       ],
     });
-    if (!credential.identityToken) { setError('Apple Sign In failed — no identity token received.'); return; }
+    if (!credential.identityToken) { setError('Apple Sign In failed. No identity token received.'); return; }
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: credential.identityToken,

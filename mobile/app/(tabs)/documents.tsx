@@ -288,7 +288,7 @@ export default function DocumentsScreen() {
                 <>
                   <Ionicons name="image-outline" size={24} color="#fff" />
                   <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Choose Photo to Upload</Text>
-                  <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>Supports JPG, PNG — long-press any document to delete</Text>
+                  <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 12 }}>Supports JPG and PNG. Long-press any document to delete</Text>
                 </>
               )}
             </Pressable>

@@ -31,14 +31,14 @@ const SLIDES: Slide[] = [
     icon: 'calendar-outline',
     tint: brand.blue,
     title: 'One shared\nschedule',
-    body: 'Custody days, pickups, handovers and school events — visible to both parents and always up to date.',
+    body: 'Custody days, pickups, handovers and school events, visible to both parents and always up to date.',
   },
   {
     key: 'scai',
     icon: 'flash',
     tint: brand.teal,
     title: 'Just ask\nMy SCAI',
-    body: 'Your AI co-parenting assistant. Schedule a pickup, log a check-in or raise a request — it sets it up for you.',
+    body: 'Your AI co-parenting assistant. Schedule a pickup, log a check-in or raise a request. It sets it up for you.',
   },
   {
     key: 'reports',
@@ -73,7 +73,7 @@ export default function OnboardingScreen() {
     }
   }).current;
 
-  // Mark the tour complete, then hand off to plan selection.
+  // Mark the tour complete, then hand off to the co-parent invite.
   // The update is best-effort: if it fails the user still gets into the app,
   // they'd just see the tour once more on next launch.
   const finish = useCallback(async () => {
@@ -90,7 +90,7 @@ export default function OnboardingScreen() {
     } catch {
       // non-fatal — continue to pricing regardless
     }
-    router.replace('/pricing');
+    router.replace('/invite-coparent');
   }, [finishing]);
 
   const next = useCallback(() => {
@@ -191,7 +191,7 @@ export default function OnboardingScreen() {
           })}
         >
           <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
-            {isLast ? 'See plans' : 'Continue'}
+            {isLast ? 'Get started' : 'Continue'}
           </Text>
         </Pressable>
       </View>
