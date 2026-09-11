@@ -3,6 +3,7 @@ import {
   ScrollView,
   View,
   Text,
+  Image,
   TextInput,
   Pressable,
   KeyboardAvoidingView,
@@ -302,7 +303,12 @@ export default function SignupScreen() {
         {/* Logo */}
         <View style={{ alignItems: 'center', marginBottom: 40 }}>
           <View style={{ width: 76, height: 76, borderRadius: 24, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 28px rgba(43,116,214,0.32)', borderCurve: 'continuous' }}>
-            <Ionicons name="people" size={38} color="#fff" />
+            <Image
+              source={require('@/assets/images/splash-icon.png')}
+              style={{ width: 76, height: 76 }}
+              resizeMode="contain"
+              accessibilityIgnoresInvertColors
+            />
           </View>
         </View>
 
