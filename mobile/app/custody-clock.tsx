@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
+import { openExternalUrl } from '@/lib/open-link';
 import { pressCard, pressFade, pressScale } from '@/lib/press';
 
 interface Child { id: string; name: string }
@@ -64,7 +65,7 @@ function CheckInCard({ item, onDelete }: { item: CheckIn; onDelete?: () => void 
             </View>
           )}
           {item.lat != null && item.lng != null && (
-            <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${item.lat},${item.lng}`)} style={pressFade({ marginTop: 4 })}>
+            <Pressable onPress={() => openExternalUrl(`https://maps.google.com/?q=${item.lat},${item.lng}`, 'map')} style={pressFade({ marginTop: 4 })}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                 <Ionicons name="location-outline" size={12} color={brand.blue} />
                 <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>View location</Text>

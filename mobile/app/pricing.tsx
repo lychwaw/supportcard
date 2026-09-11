@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
 import { purchaseWithRevenueCat, restoreRevenueCatPurchases } from '@/lib/revenuecat';
+import { openExternalUrl } from '@/lib/open-link';
 
 function FeatureRow({ text, accent }: { text: string; accent?: boolean }) {
   return (
@@ -85,7 +86,7 @@ export default function PricingScreen() {
         if (typeof window !== 'undefined') {
           window.location.href = data.payment_link;
         } else {
-          await Linking.openURL(data.payment_link);
+          await openExternalUrl(data.payment_link, 'checkout page');
         }
       }
     } catch (e: any) {
@@ -328,11 +329,11 @@ export default function PricingScreen() {
 
         {/* Terms & Privacy — required by Apple for auto-renewable subscriptions */}
         <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, paddingVertical: 12 }}>
-          <Pressable onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/terms')} hitSlop={8}>
+          <Pressable onPress={() => openExternalUrl('https://supportcard-prod.vercel.app/terms', 'Terms of Use')} hitSlop={8}>
             <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>Terms of Use</Text>
           </Pressable>
           <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>·</Text>
-          <Pressable onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/privacy')} hitSlop={8}>
+          <Pressable onPress={() => openExternalUrl('https://supportcard-prod.vercel.app/privacy', 'Privacy Policy')} hitSlop={8}>
             <Text style={{ color: colors.secondaryLabel, fontSize: 13 }}>Privacy Policy</Text>
           </Pressable>
         </View>

@@ -8,6 +8,7 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import { brand, colors } from '@/theme/colors';
+import { openExternalUrl } from '@/lib/open-link';
 import { supabase } from '@/lib/supabase';
 
 type Message = {
@@ -276,7 +277,7 @@ export default function MessagesTabScreen() {
                 'Phone call',
                 `Open your Contacts or Phone app to call ${coParentName ?? 'your co-parent'} directly.`,
                 [
-                  { text: 'Open Phone', onPress: () => Linking.openURL('tel:') },
+                  { text: 'Open Phone', onPress: () => openExternalUrl('tel:', 'phone dialler') },
                   { text: 'Cancel', style: 'cancel' },
                 ],
               )}

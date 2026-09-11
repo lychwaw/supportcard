@@ -15,6 +15,7 @@ import Constants from 'expo-constants';
 import { openStoreListing } from '@/lib/review';
 import { pressFade, pressScale } from '@/lib/press';
 import { disableSync, enableSync, isSyncEnabled, syncWindow } from '@/lib/apple-calendar';
+import { openExternalUrl } from '@/lib/open-link';
 
 interface UserInfo {
   email: string;
@@ -634,7 +635,7 @@ export default function SettingsScreen() {
           <SettingsRow label="Current Plan" icon="star-outline" iconColor="#F59E0B" value={userInfo.plan} />
           <SettingsRow label="Upgrade Plan" icon="arrow-up-circle-outline" iconColor={brand.teal} showChevron onPress={() => router.push('/pricing' as any)} />
           <SettingsRow label="Manage Subscription" icon="settings-outline" iconColor={brand.blue} showChevron
-            onPress={() => Linking.openURL('https://apps.apple.com/account/subscriptions')}
+            onPress={() => openExternalUrl('https://apps.apple.com/account/subscriptions', 'subscription settings')}
           />
           <SettingsRow label="Billing History" icon="receipt-outline" iconColor={brand.body} showChevron
             onPress={() => Alert.alert('Billing History', userInfo.plan === 'Preview' ? 'You are on the free Preview plan. Upgrade to see billing history.' : `You are on the ${userInfo.plan} plan. Subscription receipts are available in the App Store under your Apple ID.`)}
@@ -671,15 +672,15 @@ export default function SettingsScreen() {
         </SettingsGroup>
 
         <SettingsGroup label="Privacy & Security">
-          <SettingsRow label="Privacy Policy" icon="shield-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/privacy')} />
-          <SettingsRow label="Terms of Service" icon="document-text-outline" iconColor={brand.body} showChevron onPress={() => Linking.openURL('https://supportcard-prod.vercel.app/terms')} />
+          <SettingsRow label="Privacy Policy" icon="shield-outline" iconColor={brand.body} showChevron onPress={() => openExternalUrl('https://supportcard-prod.vercel.app/privacy', 'Privacy Policy')} />
+          <SettingsRow label="Terms of Service" icon="document-text-outline" iconColor={brand.body} showChevron onPress={() => openExternalUrl('https://supportcard-prod.vercel.app/terms', 'Terms of Service')} />
           <SettingsRow label="Delete Account" icon="trash-outline" iconColor={brand.error} destructive onPress={handleDeleteAccount} isLast />
         </SettingsGroup>
 
         <SettingsGroup label="Support">
           <SettingsRow label="Enter Referral Code" icon="gift-outline" iconColor={brand.teal} showChevron onPress={() => setShowReferralCode(true)} />
-          <SettingsRow label="Help Center" icon="help-circle-outline" iconColor={brand.blue} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global?subject=SupportCard%20Help')} />
-          <SettingsRow label="Contact Support" icon="mail-outline" iconColor={brand.teal} showChevron onPress={() => Linking.openURL('mailto:info@southsphere.global')} />
+          <SettingsRow label="Help Center" icon="help-circle-outline" iconColor={brand.blue} showChevron onPress={() => openExternalUrl('mailto:info@southsphere.global?subject=SupportCard%20Help', 'Help Center')} />
+          <SettingsRow label="Contact Support" icon="mail-outline" iconColor={brand.teal} showChevron onPress={() => openExternalUrl('mailto:info@southsphere.global', 'support email')} />
           {/* Opens the App Store review composer. Apple's HIG says the native
               in-app prompt must not be wired to an explicit "Rate" button. */}
           <SettingsRow label="Rate SupportCard" icon="star-outline" iconColor={brand.warning} showChevron onPress={openStoreListing} />

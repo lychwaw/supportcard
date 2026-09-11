@@ -7,6 +7,7 @@ import { Stack } from 'expo-router/stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { brand, colors } from '@/theme/colors';
+import { openExternalUrl } from '@/lib/open-link';
 import { supabase } from '@/lib/supabase';
 
 type ContactType = 'Doctor' | 'School' | 'Family' | 'Other';
@@ -152,7 +153,7 @@ export default function ContactsScreen() {
                         <View style={{ alignItems: 'flex-end', gap: 8 }}>
                           <Text selectable style={{ fontSize: 14, color: colors.label, fontWeight: '500', fontVariant: ['tabular-nums'] }}>{contact.phone}</Text>
                           <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <Pressable onPress={() => Linking.openURL(`tel:${contact.phone}`)}
+                            <Pressable onPress={() => openExternalUrl(`tel:${contact.phone}`, 'phone dialler')}
                               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#22C55E18', borderRadius: 8, borderCurve: 'continuous', paddingHorizontal: 10, paddingVertical: 5 }}>
                               <Ionicons name="call-outline" size={12} color="#22C55E" />
                               <Text style={{ fontSize: 12, color: '#22C55E', fontWeight: '700' }}>Call</Text>
