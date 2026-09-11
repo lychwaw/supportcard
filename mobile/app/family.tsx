@@ -22,7 +22,10 @@ type CoParent = { id: string; full_name: string | null; email: string | null };
 export default function FamilyScreen() {
   const insets = useSafeAreaInsets();
   const [children, setChildren] = useState<Child[]>([]);
-  const [coParent, setCoParent] = useState<CoParent | null>(null);
+  // Keyed by profile id. A parent can have children from more than one
+  // relationship, and children.co_parent_id is per child, so there is no
+  // single "the co-parent" to store.
+  const [coParents, setCoParents] = useState<Record<string, CoParent>>({});
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -54,19 +57,25 @@ export default function FamilyScreen() {
     const kidList = ((kids as any) || []) as Child[];
     setChildren(kidList);
 
-    if (kidList.length > 0) {
-      const child = kidList[0];
-      const coParentId = child.parent_id === user.id ? child.co_parent_id : child.parent_id;
-      if (coParentId) {
-        const { data: cp } = await supabase
-          .from('profiles' as any)
-          .select('id, full_name, email, id_verified')
-          .eq('id', coParentId)
-          .maybeSingle();
-        setCoParent(cp as any);
-      } else {
-        setCoParent(null);
-      }
+    // Whoever is on the other side of each child, deduplicated. Resetting
+    // unconditionally matters: an empty child list used to leave the previous
+    // co-parent on screen.
+    const otherIds = Array.from(new Set(
+      kidList
+        .map(c => (c.parent_id === user.id ? c.co_parent_id : c.parent_id))
+        .filter((id): id is string => !!id && id !== user.id)
+    ));
+
+    if (otherIds.length === 0) {
+      setCoParents({});
+    } else {
+      const { data: profiles } = await supabase
+        .from('profiles' as any)
+        .select('id, full_name, email, id_verified')
+        .in('id', otherIds);
+      const byId: Record<string, CoParent> = {};
+      for (const p of ((profiles as any) ?? [])) byId[p.id] = p;
+      setCoParents(byId);
     }
 
     setLoading(false);
@@ -139,8 +148,8 @@ export default function FamilyScreen() {
     setLinking(false);
     if (linkError) { Alert.alert('Error', linkError); return; }
 
-    // Update UI immediately — don't wait for load() which requires a profiles RLS read
-    setCoParent(cp);
+    // Update UI immediately, rather than waiting on load()'s profiles read.
+    setCoParents(prev => ({ ...prev, [cp.id]: cp }));
     setChildren(prev => prev.map(c => c.co_parent_id ? c : { ...c, co_parent_id: cp.id }));
 
     // Best-effort push notification
@@ -177,7 +186,15 @@ export default function FamilyScreen() {
     ]);
   };
 
-  const coInitial = ((coParent?.full_name || coParent?.email || '?')[0] || '?').toUpperCase();
+  const coParentList = Object.values(coParents);
+  // A child the user owns that still has nobody on the other side. This, not
+  // "has any co-parent", is what decides whether there is still someone to add.
+  const hasUnlinkedChild = children.some(c => c.parent_id === userId && !c.co_parent_id);
+  const coParentFor = (child: Child): CoParent | null => {
+    const otherId = child.parent_id === userId ? child.co_parent_id : child.parent_id;
+    return otherId ? (coParents[otherId] ?? null) : null;
+  };
+  const initialOf = (cp: CoParent) => ((cp.full_name || cp.email || '?')[0] || '?').toUpperCase();
 
   return (
     <ScrollView
@@ -198,19 +215,31 @@ export default function FamilyScreen() {
               Co-Parent
             </Text>
 
-            {coParent ? (
-              <View style={{ borderRadius: 18, borderCurve: 'continuous', padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#1C3252' }}>
-                <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)' }}>
-                  <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>{coInitial}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff' }}>{coParent.full_name || 'Co-Parent'}</Text>
-                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{coParent.email}</Text>
-                </View>
-                <View style={{ backgroundColor: 'rgba(74,222,128,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                  <Ionicons name="checkmark-circle" size={13} color="#4ADE80" />
-                  <Text style={{ fontSize: 12, color: '#4ADE80', fontWeight: '600' }}>Linked</Text>
-                </View>
+            {coParentList.length > 0 ? (
+              <View style={{ gap: 10 }}>
+                {coParentList.map(cp => (
+                  <View key={cp.id} style={{ borderRadius: 18, borderCurve: 'continuous', padding: 18, flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#1C3252' }}>
+                    <View style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)' }}>
+                      <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700' }}>{initialOf(cp)}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 17, fontWeight: '700', color: '#fff' }}>{cp.full_name || 'Co-Parent'}</Text>
+                      <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>{cp.email}</Text>
+                    </View>
+                    <View style={{ backgroundColor: 'rgba(74,222,128,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Ionicons name="checkmark-circle" size={13} color="#4ADE80" />
+                      <Text style={{ fontSize: 12, color: '#4ADE80', fontWeight: '600' }}>Linked</Text>
+                    </View>
+                  </View>
+                ))}
+                {hasUnlinkedChild && (
+                  <Pressable
+                    onPress={() => setShowInvite(true)}
+                    style={({ pressed }) => ({ alignSelf: 'flex-start', backgroundColor: brand.blue + '10', borderRadius: 12, borderCurve: 'continuous', paddingHorizontal: 16, paddingVertical: 10, borderWidth: 1, borderColor: brand.blue + '30', transform: [{ scale: pressed ? 0.96 : 1 }] })}
+                  >
+                    <Text style={{ fontSize: 13, color: brand.blue, fontWeight: '700' }}>+ Link another co-parent</Text>
+                  </Pressable>
+                )}
               </View>
             ) : (
               <View style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 24, alignItems: 'center', borderWidth: 0.5, borderColor: colors.separator }}>
@@ -265,6 +294,7 @@ export default function FamilyScreen() {
                 {children.map(child => {
                   const myPct = child.custody_split_pct;
                   const theirPct = 100 - myPct;
+                  const childCo = coParentFor(child);
                   return (
                     <View key={child.id} style={{ backgroundColor: colors.surface, borderRadius: 20, borderCurve: 'continuous', padding: 18, borderWidth: 0.5, borderColor: colors.separator }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, gap: 12 }}>
@@ -275,10 +305,10 @@ export default function FamilyScreen() {
                           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{child.name}</Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                             <Text style={{ fontSize: 12, color: colors.secondaryLabel }}>
-                              {coParent ? `With ${coParent.full_name?.split(' ')[0] ?? 'Co-parent'}` : 'No co-parent linked'}
+                              {childCo ? `With ${childCo.full_name?.split(' ')[0] ?? 'Co-parent'}` : 'No co-parent linked'}
                             </Text>
-                            {coParent && (
-                              (coParent as any).id_verified
+                            {childCo && (
+                              (childCo as any).id_verified
                                 ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: brand.teal + '15', borderRadius: 5, paddingHorizontal: 6, paddingVertical: 1 }}>
                                     <Ionicons name="shield-checkmark" size={10} color={brand.teal} />
                                     <Text style={{ fontSize: 10, fontWeight: '600', color: brand.teal }}>Verified</Text>
@@ -316,7 +346,7 @@ export default function FamilyScreen() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: brand.body + '60' }} />
                           <Text style={{ fontSize: 12, fontWeight: '700', color: colors.secondaryLabel }}>
-                            {coParent?.full_name?.split(' ')[0] ?? 'Co-parent'} {theirPct}%
+                            {childCo?.full_name?.split(' ')[0] ?? 'Co-parent'} {theirPct}%
                           </Text>
                         </View>
                       </View>

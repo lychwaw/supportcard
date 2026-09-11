@@ -73,12 +73,39 @@ export default function OnboardingScreen() {
     }
   }).current;
 
+  // Is there still a co-parent worth inviting? Only children the user owns
+  // count: a child shared with them already has its other parent. Sending a
+  // fully linked account to the invite step is a dead end, because Family has
+  // nothing left to offer them either.
+  const needsCoParent = useCallback(async (userId: string) => {
+    try {
+      // Every child on either side of the relationship. Matching the query
+      // Family uses, so the two screens can never disagree about who is linked.
+      const { data } = await supabase
+        .from('children' as any)
+        .select('parent_id, co_parent_id')
+        .or(`parent_id.eq.${userId},co_parent_id.eq.${userId}`);
+      const kids = ((data as any) ?? []) as { parent_id: string; co_parent_id: string | null }[];
+      // No children on either side means a genuinely fresh account, which is
+      // exactly who this step exists for.
+      if (kids.length === 0) return true;
+      // Otherwise only a child this user owns and has not linked leaves anyone
+      // to invite. Someone who was invited into another parent's family
+      // already has their co-parent.
+      return kids.some(k => k.parent_id === userId && !k.co_parent_id);
+    } catch {
+      // Can't tell, so show it. A redundant prompt beats a missing one.
+      return true;
+    }
+  }, []);
+
   // Mark the tour complete, then hand off to the co-parent invite.
   // The update is best-effort: if it fails the user still gets into the app,
   // they'd just see the tour once more on next launch.
   const finish = useCallback(async () => {
     if (finishing) return;
     setFinishing(true);
+    let wantsInvite = true;
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user?.id) {
@@ -86,12 +113,13 @@ export default function OnboardingScreen() {
           .from('profiles')
           .update({ onboarded_at: new Date().toISOString() })
           .eq('id', session.user.id);
+        wantsInvite = await needsCoParent(session.user.id);
       }
     } catch {
-      // non-fatal — continue to pricing regardless
+      // non-fatal, continue regardless
     }
-    router.replace('/invite-coparent');
-  }, [finishing]);
+    router.replace(wantsInvite ? '/invite-coparent' : '/pricing');
+  }, [finishing, needsCoParent]);
 
   const next = useCallback(() => {
     if (isLast) { finish(); return; }
