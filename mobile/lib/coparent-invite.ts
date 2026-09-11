@@ -66,7 +66,13 @@ export async function clearInvitedCoParent(): Promise<void> {
   await set(KEY_EMAIL, '');
 }
 
-const SIGNUP_URL = 'https://supportcard.co.za';
+// The App Store listing, not the marketing site. An invite has one job, which
+// is getting the other parent installed, and every extra hop loses people.
+// No country code, so Apple sends each person to their own storefront.
+//
+// This becomes wrong the day Android ships, because it is a dead end on a
+// Pixel. Add the Play link here as a second line when that happens.
+const SIGNUP_URL = 'https://apps.apple.com/app/id6801612058';
 
 /** The message that goes into the share sheet. Functional, not salesy. */
 export function inviteMessage(coParentName: string): string {

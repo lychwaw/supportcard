@@ -117,7 +117,7 @@ export default function FamilyScreen() {
         'Not registered yet',
         `No SupportCard account found for ${email}.\n\nAsk them to sign up, then come back and link them here.`,
         [
-          { text: 'Share App Link', onPress: () => Share.share({ message: 'Join me on SupportCard. Co-parenting made easier. Sign up at https://supportcard.co.za' }) },
+          { text: 'Share App Link', onPress: () => Share.share({ message: 'Join me on SupportCard. Co-parenting made easier. Get it here: https://apps.apple.com/app/id6801612058' }) },
           { text: 'OK' },
         ]
       );
@@ -457,7 +457,7 @@ export default function FamilyScreen() {
               />
             </View>
             <Pressable
-              onPress={() => Share.share({ message: 'Join me on SupportCard. Co-parenting made easier. Sign up at https://supportcard.co.za' })}
+              onPress={() => Share.share({ message: 'Join me on SupportCard. Co-parenting made easier. Get it here: https://apps.apple.com/app/id6801612058' })}
               style={({ pressed }) => ({
                 backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous',
                 padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12,
