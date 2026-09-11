@@ -9,6 +9,7 @@ import { useCurrency } from '@/hooks/use-currency';
 import { formatAmount, convertAmount, CURRENCY_SYMBOL, type Currency } from '@/lib/currency';
 import { scanReceiptFromCamera, scanReceiptFromLibrary } from '@/lib/receipt-scanner';
 import { logPositiveAction, maybeAskForReview } from '@/lib/review';
+import { pressFade, pressScale } from '@/lib/press';
 
 const CATEGORIES = ['School', 'Food', 'Clothing', 'Activities', 'Healthcare', 'Transportation', 'Other'];
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -281,12 +282,12 @@ export default function ExpensesScreen() {
       <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 12 }}>
         {(['Pending', 'Categories'] as MainTab[]).map(tab => (
           <Pressable key={tab} onPress={() => setMainTab(tab)}
-            style={{
+            style={pressScale({
               paddingHorizontal: 20, paddingVertical: 9, borderRadius: 22,
               backgroundColor: mainTab === tab ? brand.blue : colors.surface,
               borderWidth: mainTab === tab ? 0 : 0.5, borderColor: colors.separator,
               flexDirection: 'row', alignItems: 'center', gap: 6,
-            }}>
+            })}>
             <Text style={{ fontSize: 14, fontWeight: '600', color: mainTab === tab ? '#fff' : colors.secondaryLabel }}>{tab}</Text>
             {tab === 'Pending' && toApproveCount > 0 && (
               <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: mainTab === tab ? 'rgba(255,255,255,0.25)' : brand.error, alignItems: 'center', justifyContent: 'center' }}>
@@ -302,11 +303,11 @@ export default function ExpensesScreen() {
         <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 8 }}>
           {(['To Approve', 'My Requests'] as Direction[]).map(dir => (
             <Pressable key={dir} onPress={() => setDirection(dir)}
-              style={{
+              style={pressScale({
                 paddingHorizontal: 16, paddingVertical: 7, borderRadius: 18,
                 backgroundColor: direction === dir ? colors.label : 'transparent',
                 borderWidth: direction === dir ? 0 : 0.5, borderColor: colors.separator,
-              }}>
+              })}>
               <Text style={{ fontSize: 13, fontWeight: '600', color: direction === dir ? colors.background : colors.secondaryLabel }}>{dir}</Text>
             </Pressable>
           ))}
@@ -384,7 +385,7 @@ export default function ExpensesScreen() {
                         body: JSON.stringify({ action: 'toggle', template_id: tpl.id, active: !tpl.active }),
                       });
                       loadRequests();
-                    }}>
+                    }} style={pressScale()}>
                       <View style={{ backgroundColor: tpl.active ? '#22C55E18' : brand.separator + '40', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 4 }}>
                         <Text style={{ fontSize: 11, fontWeight: '700', color: tpl.active ? '#22C55E' : colors.secondaryLabel }}>
                           {tpl.active ? 'Active' : 'Paused'}
@@ -445,7 +446,7 @@ export default function ExpensesScreen() {
 
                   {!isToApprove && (
                     <Pressable onPress={() => handleDelete(req.id)}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      style={pressFade({ flexDirection: 'row', alignItems: 'center', gap: 6 })}>
                       <Ionicons name="trash-outline" size={14} color={brand.error} />
                       <Text style={{ fontSize: 13, color: brand.error, fontWeight: '600' }}>Withdraw request</Text>
                     </Pressable>
@@ -483,11 +484,11 @@ export default function ExpensesScreen() {
         onRequestClose={() => { setShowAdd(false); setSubmitError(null); }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, borderBottomWidth: 0.5, borderBottomColor: colors.separator, backgroundColor: colors.surface }}>
-            <Pressable onPress={() => { setShowAdd(false); setSubmitError(null); }}>
+            <Pressable onPress={() => { setShowAdd(false); setSubmitError(null); }} style={pressFade()}>
               <Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text>
             </Pressable>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>New Expense</Text>
-            <Pressable onPress={submit} disabled={submitting}>
+            <Pressable onPress={submit} disabled={submitting} style={pressFade()}>
               <Text style={{ color: submitting ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>
                 {submitting ? 'Saving…' : isRecurring ? 'Set Recurring' : 'Add'}
               </Text>
@@ -508,7 +509,7 @@ export default function ExpensesScreen() {
             {scannedImageUri && (
               <View>
                 <Image source={{ uri: scannedImageUri }} style={{ width: '100%', height: 140, borderRadius: 14, resizeMode: 'cover' }} />
-                <Pressable onPress={() => setScannedImageUri(null)} style={{ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 }}>
+                <Pressable onPress={() => setScannedImageUri(null)} style={pressFade({ position: 'absolute', top: 8, left: 8, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, paddingHorizontal: 8, paddingVertical: 4 })}>
                   <Text style={{ color: '#fff', fontSize: 11 }}>Remove</Text>
                 </Pressable>
               </View>
@@ -527,7 +528,7 @@ export default function ExpensesScreen() {
                       const active = selectedChildId === kid.id;
                       return (
                         <Pressable key={kid.id} onPress={() => setSelectedChildId(kid.id)}
-                          style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: active ? brand.blue : colors.separator, backgroundColor: active ? brand.blue + '18' : colors.surface }}>
+                          style={pressScale({ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: active ? brand.blue : colors.separator, backgroundColor: active ? brand.blue + '18' : colors.surface })}>
                           <Text style={{ fontSize: 13, fontWeight: '600', color: active ? brand.blue : colors.secondaryLabel }}>{kid.name}</Text>
                         </Pressable>
                       );
@@ -559,7 +560,7 @@ export default function ExpensesScreen() {
                     const col = CATEGORY_COLOR[cat] ?? brand.blue;
                     return (
                       <Pressable key={cat} onPress={() => setCategory(cat)}
-                        style={{ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: active ? col : colors.separator, backgroundColor: active ? col + '18' : colors.surface }}>
+                        style={pressScale({ paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: active ? col : colors.separator, backgroundColor: active ? col + '18' : colors.surface })}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Ionicons name={CATEGORY_ICON[cat] ?? 'cube-outline'} size={14} color={active ? col : colors.secondaryLabel} />
                           <Text style={{ fontSize: 13, fontWeight: '600', color: active ? col : colors.secondaryLabel }}>{cat}</Text>
@@ -582,7 +583,7 @@ export default function ExpensesScreen() {
             {/* Recurring toggle */}
             <View style={{ backgroundColor: colors.surface, borderRadius: 14, padding: 16, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous', gap: 14 }}>
               <Pressable onPress={() => setIsRecurring(r => !r)}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                style={pressFade({ flexDirection: 'row', alignItems: 'center', gap: 12 })}>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 15, fontWeight: '600', color: colors.label }}>Repeat automatically</Text>
                   <Text style={{ fontSize: 12, color: colors.secondaryLabel, marginTop: 2 }}>Creates a new request each period on app open</Text>
@@ -593,9 +594,9 @@ export default function ExpensesScreen() {
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {(['weekly', 'monthly'] as const).map(f => (
                     <Pressable key={f} onPress={() => setRecurringFrequency(f)}
-                      style={{ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, alignItems: 'center',
+                      style={pressScale({ flex: 1, paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, alignItems: 'center',
                         borderColor: recurringFrequency === f ? brand.teal : colors.separator,
-                        backgroundColor: recurringFrequency === f ? brand.teal + '12' : colors.background }}>
+                        backgroundColor: recurringFrequency === f ? brand.teal + '12' : colors.background })}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: recurringFrequency === f ? brand.teal : colors.secondaryLabel }}>
                         {f === 'weekly' ? 'Weekly' : 'Monthly'}
                       </Text>

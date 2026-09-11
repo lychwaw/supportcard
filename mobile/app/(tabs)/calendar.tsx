@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
+import { pressFade, pressScale } from '@/lib/press';
 import { router } from 'expo-router';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -165,16 +166,16 @@ export default function CalendarScreen() {
         <View style={{ paddingTop: insets.top + 14, paddingHorizontal: 20 }}>
           {/* Header — hamburger | Calendar (center) | filter */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-            <Pressable onPress={() => router.push('/(tabs)/more')} hitSlop={10} style={{ padding: 4 }}>
+            <Pressable onPress={() => router.push('/(tabs)/more')} hitSlop={10} style={pressFade({ padding: 4 })}>
               <Ionicons name="menu-outline" size={26} color={colors.label} />
             </Pressable>
             <Text style={{ flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: colors.label }}>Calendar</Text>
             {permissions.canManageCalendar ? (
-              <Pressable onPress={openAdd} hitSlop={10} style={{ padding: 4 }}>
+              <Pressable onPress={openAdd} hitSlop={10} style={pressFade({ padding: 4 })}>
                 <Ionicons name="options-outline" size={22} color={brand.blue} />
               </Pressable>
             ) : (
-              <Pressable onPress={() => router.push('/pricing')} hitSlop={10} style={{ padding: 4 }}>
+              <Pressable onPress={() => router.push('/pricing')} hitSlop={10} style={pressFade({ padding: 4 })}>
                 <Ionicons name="options-outline" size={22} color={colors.secondaryLabel} />
               </Pressable>
             )}
@@ -183,11 +184,11 @@ export default function CalendarScreen() {
           {/* Calendar card */}
           <View style={{ backgroundColor: colors.surface, borderRadius: 20, padding: 20, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <Pressable onPress={prevMonth} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+              <Pressable onPress={prevMonth} hitSlop={12} style={pressFade({ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' })}>
                 <Ionicons name="chevron-back" size={20} color={brand.blue} />
               </Pressable>
               <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>{MONTHS[month]} {year}</Text>
-              <Pressable onPress={nextMonth} hitSlop={12} style={{ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' }}>
+              <Pressable onPress={nextMonth} hitSlop={12} style={pressFade({ width: 36, height: 36, alignItems: 'center', justifyContent: 'center' })}>
                 <Ionicons name="chevron-forward" size={20} color={brand.blue} />
               </Pressable>
             </View>
@@ -209,7 +210,7 @@ export default function CalendarScreen() {
                 const hasEvent = eventDayMap.has(iso);
                 return (
                   <Pressable key={day} onPress={() => setSelected(day)}
-                    style={{ width: `${100/7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' }}>
+                    style={pressFade({ width: `${100/7}%`, aspectRatio: 1, alignItems: 'center', justifyContent: 'center' })}>
                     <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center',
                       backgroundColor: isSel ? brand.blue : isToday ? brand.blue + '14' : 'transparent' }}>
                       <Text style={{ fontSize: 15, fontWeight: isToday || isSel ? '700' : '400',
@@ -229,7 +230,7 @@ export default function CalendarScreen() {
               {selectedISO === toISO(today.getFullYear(), today.getMonth(), today.getDate()) ? 'Today' : new Date(selectedISO + 'T00:00:00').toLocaleDateString('en-ZA', { weekday: 'long' })} • {selected} {SHORT_MONTHS[month]}
             </Text>
             {permissions.canManageCalendar && (
-              <Pressable onPress={openAdd} hitSlop={12}>
+              <Pressable onPress={openAdd} hitSlop={12} style={pressFade()}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: brand.blue }}>+ Add</Text>
               </Pressable>
             )}
@@ -242,7 +243,7 @@ export default function CalendarScreen() {
               </View>
               <Text style={{ color: colors.secondaryLabel, fontSize: 15 }}>No events on this day</Text>
               {permissions.canManageCalendar && (
-                <Pressable onPress={openAdd} style={{ marginTop: 12 }}>
+                <Pressable onPress={openAdd} style={pressFade({ marginTop: 12 })}>
                   <Text style={{ color: brand.blue, fontSize: 14, fontWeight: '600' }}>+ Add an event</Text>
                 </Pressable>
               )}
@@ -286,7 +287,7 @@ export default function CalendarScreen() {
                       )}
                     </View>
                     {/* Delete */}
-                    <Pressable onPress={() => deleteEvent(event.id)} hitSlop={8} style={{ padding: 14 }}>
+                    <Pressable onPress={() => deleteEvent(event.id)} hitSlop={8} style={pressFade({ padding: 14 })}>
                       <View style={{ width: 28, height: 28, borderRadius: 14, borderWidth: 1.5, borderColor: brand.error + '60', alignItems: 'center', justifyContent: 'center', backgroundColor: brand.error + '08' }}>
                         <Ionicons name="trash-outline" size={13} color={brand.error} />
                       </View>
@@ -304,9 +305,9 @@ export default function CalendarScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20,
             borderBottomWidth: 0.5, borderBottomColor: colors.separator, backgroundColor: colors.surface }}>
-            <Pressable onPress={() => setShowAdd(false)}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+            <Pressable onPress={() => setShowAdd(false)} style={pressFade()}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Add Event</Text>
-            <Pressable onPress={saveEvent} disabled={saving}>
+            <Pressable onPress={saveEvent} disabled={saving} style={pressFade()}>
               <Text style={{ color: saving ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>
                 {saving ? 'Saving...' : recurrence !== 'none' ? `Save (${occurrences}×)` : 'Save'}
               </Text>
@@ -329,9 +330,9 @@ export default function CalendarScreen() {
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {EVENT_TYPES.map(type => (
                     <Pressable key={type} onPress={() => setEventType(type)}
-                      style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5,
+                      style={pressScale({ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5,
                         borderColor: eventType === type ? brand.blue : colors.separator,
-                        backgroundColor: eventType === type ? brand.blue + '12' : colors.surface }}>
+                        backgroundColor: eventType === type ? brand.blue + '12' : colors.surface })}>
                       <Text style={{ fontSize: 13, fontWeight: '600', color: eventType === type ? brand.blue : colors.secondaryLabel }}>{type}</Text>
                     </Pressable>
                   ))}
@@ -347,9 +348,9 @@ export default function CalendarScreen() {
                     const label = r === 'none' ? 'No repeat' : r === 'weekly' ? 'Weekly' : r === 'biweekly' ? 'Every 2 weeks' : 'Monthly';
                     return (
                       <Pressable key={r} onPress={() => setRecurrence(r)}
-                        style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5,
+                        style={pressScale({ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 1.5,
                           borderColor: recurrence === r ? brand.blue : colors.separator,
-                          backgroundColor: recurrence === r ? brand.blue + '12' : colors.surface }}>
+                          backgroundColor: recurrence === r ? brand.blue + '12' : colors.surface })}>
                         <Text style={{ fontSize: 13, fontWeight: '600', color: recurrence === r ? brand.blue : colors.secondaryLabel }}>{label}</Text>
                       </Pressable>
                     );
@@ -364,9 +365,9 @@ export default function CalendarScreen() {
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {[4, 8, 13, 26].map(n => (
                     <Pressable key={n} onPress={() => setOccurrences(n)}
-                      style={{ flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, alignItems: 'center',
+                      style={pressScale({ flex: 1, paddingVertical: 10, borderRadius: 12, borderWidth: 1.5, alignItems: 'center',
                         borderColor: occurrences === n ? brand.blue : colors.separator,
-                        backgroundColor: occurrences === n ? brand.blue + '12' : colors.surface }}>
+                        backgroundColor: occurrences === n ? brand.blue + '12' : colors.surface })}>
                       <Text style={{ fontSize: 13, fontWeight: '600', color: occurrences === n ? brand.blue : colors.secondaryLabel }}>
                         {recurrence === 'monthly' ? `${n} mo` : `${n}×`}
                       </Text>

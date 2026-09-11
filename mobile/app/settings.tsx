@@ -13,6 +13,7 @@ import { useCurrency } from '@/hooks/use-currency';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
 import Constants from 'expo-constants';
 import { openStoreListing } from '@/lib/review';
+import { pressFade, pressScale } from '@/lib/press';
 
 interface UserInfo {
   email: string;
@@ -128,9 +129,9 @@ function ReferralCodeModal({ visible, onClose }: { visible: boolean; onClose: ()
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Pressable onPress={onClose} style={pressFade()}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Referral Code</Text>
-          <Pressable onPress={handleSubmit} disabled={saving || !code.trim() || result === 'ok'}>
+          <Pressable onPress={handleSubmit} disabled={saving || !code.trim() || result === 'ok'} style={pressFade()}>
             <Text style={{ color: saving || !code.trim() || result === 'ok' ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>
               {saving ? 'Applying…' : 'Apply'}
             </Text>
@@ -199,9 +200,9 @@ function ChangePasswordModal({ visible, onClose }: { visible: boolean; onClose: 
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Pressable onPress={onClose} style={pressFade()}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Change Password</Text>
-          <Pressable onPress={handleSave} disabled={saving}>
+          <Pressable onPress={handleSave} disabled={saving} style={pressFade()}>
             <Text style={{ color: saving ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>{saving ? 'Saving…' : 'Save'}</Text>
           </Pressable>
         </View>
@@ -255,9 +256,9 @@ function EditProfileModal({ visible, currentName, onClose, onSaved }: { visible:
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Pressable onPress={onClose} style={pressFade()}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Edit Profile</Text>
-          <Pressable onPress={handleSave} disabled={saving}>
+          <Pressable onPress={handleSave} disabled={saving} style={pressFade()}>
             <Text style={{ color: saving ? colors.secondaryLabel : brand.blue, fontSize: 16, fontWeight: '600' }}>{saving ? 'Saving…' : 'Save'}</Text>
           </Pressable>
         </View>
@@ -327,7 +328,7 @@ function InviteProfessionalModal({ visible, onClose, onInvited }: { visible: boo
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Close</Text></Pressable>
+          <Pressable onPress={onClose} style={pressFade()}><Text style={{ color: brand.blue, fontSize: 16 }}>Close</Text></Pressable>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Invite Professional</Text>
           <View style={{ width: 48 }} />
         </View>
@@ -561,7 +562,7 @@ export default function SettingsScreen() {
                 const active = currency === opt.value;
                 return (
                   <Pressable key={opt.value} onPress={() => setCurrency(opt.value)}
-                    style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: active ? brand.blue : 'transparent' }}>
+                    style={pressScale({ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, backgroundColor: active ? brand.blue : 'transparent' })}>
                     <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : colors.secondaryLabel }}>{opt.value}</Text>
                   </Pressable>
                 );

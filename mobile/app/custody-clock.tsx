@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
+import { pressCard, pressFade, pressScale } from '@/lib/press';
 
 interface Child { id: string; name: string }
 
@@ -45,7 +46,7 @@ function CheckInCard({ item, onDelete }: { item: CheckIn; onDelete?: () => void 
   return (
     <Pressable
       onLongPress={onDelete}
-      style={{ backgroundColor: colors.surface, borderRadius: 18, padding: 18, marginHorizontal: 16, marginBottom: 10, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}
+      style={pressCard({ backgroundColor: colors.surface, borderRadius: 18, padding: 18, marginHorizontal: 16, marginBottom: 10, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' })}
     >
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 14 }}>
         <View style={{ width: 44, height: 44, borderRadius: 13, backgroundColor: meta.color + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
@@ -63,7 +64,7 @@ function CheckInCard({ item, onDelete }: { item: CheckIn; onDelete?: () => void 
             </View>
           )}
           {item.lat != null && item.lng != null && (
-            <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${item.lat},${item.lng}`)} style={{ marginTop: 4 }}>
+            <Pressable onPress={() => Linking.openURL(`https://maps.google.com/?q=${item.lat},${item.lng}`)} style={pressFade({ marginTop: 4 })}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                 <Ionicons name="location-outline" size={12} color={brand.blue} />
                 <Text style={{ fontSize: 12, color: brand.blue, fontWeight: '600' }}>View location</Text>
@@ -74,7 +75,7 @@ function CheckInCard({ item, onDelete }: { item: CheckIn; onDelete?: () => void 
         <View style={{ alignItems: 'flex-end', gap: 6 }}>
           <Text style={{ color: colors.secondaryLabel, fontSize: 12 }}>{formatTime(item.created_at)}</Text>
           {onDelete && (
-            <Pressable onPress={onDelete} hitSlop={10}>
+            <Pressable onPress={onDelete} hitSlop={10} style={pressFade()}>
               <Ionicons name="trash-outline" size={14} color={colors.secondaryLabel} style={{ opacity: 0.4 }} />
             </Pressable>
           )}
@@ -99,7 +100,7 @@ function ZoneCard({ zone, onDelete }: { zone: Zone; onDelete?: () => void }) {
           )}
         </View>
         {onDelete && (
-          <Pressable onPress={onDelete} hitSlop={10}>
+          <Pressable onPress={onDelete} hitSlop={10} style={pressFade()}>
             <Ionicons name="trash-outline" size={16} color={colors.secondaryLabel} style={{ opacity: 0.4 }} />
           </Pressable>
         )}
@@ -158,9 +159,9 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Pressable onPress={onClose} style={pressFade()}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Log Check-in</Text>
-          <Pressable onPress={handleSave} disabled={saving}>
+          <Pressable onPress={handleSave} disabled={saving} style={pressFade()}>
             {saving ? <ActivityIndicator size="small" color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
           </Pressable>
         </View>
@@ -173,7 +174,7 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
                 const meta = EVENT_META[et.key];
                 return (
                   <Pressable key={et.key} onPress={() => setEventType(et.key)}
-                    style={{ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: eventType === et.key ? meta.color + '18' : colors.surface, borderWidth: 1, borderColor: eventType === et.key ? meta.color + '40' : colors.separator, alignItems: 'center', gap: 6, borderCurve: 'continuous' }}>
+                    style={pressScale({ flex: 1, paddingVertical: 14, borderRadius: 14, backgroundColor: eventType === et.key ? meta.color + '18' : colors.surface, borderWidth: 1, borderColor: eventType === et.key ? meta.color + '40' : colors.separator, alignItems: 'center', gap: 6, borderCurve: 'continuous' })}>
                     <Ionicons name={meta.icon} size={20} color={eventType === et.key ? meta.color : colors.secondaryLabel} />
                     <Text style={{ color: eventType === et.key ? meta.color : colors.secondaryLabel, fontWeight: '700', fontSize: 12 }}>{et.label}</Text>
                   </Pressable>
@@ -190,7 +191,7 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
                 <View style={{ flexDirection: 'row', gap: 8 }}>
                   {[{ id: null, name: 'General' }, ...childList].map((c: any) => (
                     <Pressable key={c.id ?? 'general'} onPress={() => setSelectedChildId(c.id)}
-                      style={{ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22, backgroundColor: selectedChildId === c.id ? brand.blue : colors.surface, borderWidth: 1, borderColor: selectedChildId === c.id ? brand.blue : colors.separator }}>
+                      style={pressScale({ paddingHorizontal: 16, paddingVertical: 9, borderRadius: 22, backgroundColor: selectedChildId === c.id ? brand.blue : colors.surface, borderWidth: 1, borderColor: selectedChildId === c.id ? brand.blue : colors.separator })}>
                       <Text style={{ color: selectedChildId === c.id ? '#fff' : colors.secondaryLabel, fontWeight: '600', fontSize: 14 }}>{c.name}</Text>
                     </Pressable>
                   ))}
@@ -284,9 +285,9 @@ function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose
     <Modal visible={visible} animationType="slide" presentationStyle="formSheet" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: colors.background }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-          <Pressable onPress={onClose}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
+          <Pressable onPress={onClose} style={pressFade()}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
           <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Add Zone</Text>
-          <Pressable onPress={handleSave} disabled={saving}>
+          <Pressable onPress={handleSave} disabled={saving} style={pressFade()}>
             {saving ? <ActivityIndicator size="small" color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
           </Pressable>
         </View>
@@ -304,7 +305,7 @@ function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose
             <View style={{ gap: 8 }}>
               {ZONE_TYPES.map(zt => (
                 <Pressable key={zt} onPress={() => setZoneType(zt)}
-                  style={{ padding: 16, borderRadius: 14, backgroundColor: zoneType === zt ? brand.teal + '12' : colors.surface, borderWidth: 1, borderColor: zoneType === zt ? brand.teal + '40' : colors.separator, flexDirection: 'row', alignItems: 'center', borderCurve: 'continuous' }}>
+                  style={pressScale({ padding: 16, borderRadius: 14, backgroundColor: zoneType === zt ? brand.teal + '12' : colors.surface, borderWidth: 1, borderColor: zoneType === zt ? brand.teal + '40' : colors.separator, flexDirection: 'row', alignItems: 'center', borderCurve: 'continuous' })}>
                   <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: zoneType === zt ? brand.teal : colors.separator, backgroundColor: zoneType === zt ? brand.teal : 'transparent', marginRight: 12, alignItems: 'center', justifyContent: 'center' }}>
                     {zoneType === zt && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff' }} />}
                   </View>
@@ -419,7 +420,7 @@ export default function CustodyClockScreen() {
         <View style={{ flexDirection: 'row', marginHorizontal: 16, marginBottom: 12, backgroundColor: colors.surface, borderRadius: 14, padding: 4, borderWidth: 0.5, borderColor: colors.separator, borderCurve: 'continuous' }}>
           {(['checkins', 'zones'] as const).map(tab => (
             <Pressable key={tab} onPress={() => setActiveTab(tab)}
-              style={{ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 11, backgroundColor: activeTab === tab ? brand.blue : 'transparent', borderCurve: 'continuous' }}>
+              style={pressFade({ flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 11, backgroundColor: activeTab === tab ? brand.blue : 'transparent', borderCurve: 'continuous' })}>
               <Text style={{ fontSize: 14, fontWeight: '700', color: activeTab === tab ? '#fff' : colors.secondaryLabel }}>
                 {tab === 'checkins' ? `Check-ins (${checkIns.length})` : `Zones (${zones.length})`}
               </Text>
