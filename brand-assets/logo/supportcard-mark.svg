@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 527 501" width="527" height="501" role="img" aria-label="SupportCard">
+  <title>SupportCard mark</title>
+  <!--
+    Vector rebuild of the SupportCard card mark.
+
+    Traced from assets/images/icon-original-lockup.png, where the mark existed
+    only as ~527x501 raster pixels — small enough that app icons had to upscale
+    it. This renders identically at any size.
+
+    Single colour via currentColor, so one file serves the white-on-blue icon,
+    a blue-on-light variant, and the Android monochrome layer.
+  -->
+  <defs>
+    <mask id="sc-knockouts">
+      <rect width="527" height="501" fill="#fff"/>
+      <!-- heart -->
+      <path d="M211.5,348
+               C155,301 110,265 110,224
+               C110,186 142,167 171,167
+               C195,167 208,185 211.5,203
+               C215,185 228,167 252,167
+               C281,167 313,186 313,224
+               C313,265 268,301 211.5,348 Z" fill="#000"/>
+      <!-- four squares, offset 2x2 -->
+      <rect x="374" y="345" width="41" height="41" rx="4" fill="#000"/>
+      <rect x="426" y="348" width="24" height="24" rx="3" fill="#000"/>
+      <rect x="390" y="411" width="24" height="24" rx="3" fill="#000"/>
+      <rect x="426" y="396" width="41" height="41" rx="4" fill="#000"/>
+    </mask>
+  </defs>
+
+  <g fill="currentColor" mask="url(#sc-knockouts)">
+    <!-- back card, tilted up to the right -->
+    <rect x="48" y="22" width="470" height="186" rx="26"
+          transform="rotate(-4.2 283 115)"/>
+    <!-- front card -->
+    <rect x="2" y="104" width="521" height="396" rx="30"/>
+  </g>
+</svg>
