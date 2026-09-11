@@ -66,7 +66,7 @@ export async function clearInvitedCoParent(): Promise<void> {
   await set(KEY_EMAIL, '');
 }
 
-const SIGNUP_URL = 'https://supportcard-prod.vercel.app';
+const SIGNUP_URL = 'https://supportcard.co.za';
 
 /** The message that goes into the share sheet. Functional, not salesy. */
 export function inviteMessage(coParentName: string): string {
