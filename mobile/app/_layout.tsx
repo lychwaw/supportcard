@@ -22,7 +22,14 @@ const theme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    background: brand.lightBg,
+    // The splash's blue, not the app's pale blue.
+    //
+    // This colour is painted behind every screen, including the gap between
+    // the splash hiding and the first screen drawing. It used to be
+    // brand.lightBg, which is the exact background the previous splash used,
+    // so that gap read as the old splash flashing back on every launch.
+    // Matching the splash makes the handoff continuous instead.
+    background: brand.blue,
     card: brand.card,
     primary: brand.blue,
     text: brand.dark,
