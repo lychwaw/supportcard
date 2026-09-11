@@ -111,7 +111,8 @@ function AuthGate({
 
 function AppShell({ session, needsOnboarding }: { session: Session | null; needsOnboarding: boolean | null }) {
   const colorScheme = useColorScheme();
-  usePushNotifications(); // register for push notifications once authenticated
+  // Only registers once there is a session. See the hook for why that matters.
+  usePushNotifications(session?.user?.id);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : theme}>

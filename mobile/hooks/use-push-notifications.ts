@@ -71,15 +71,31 @@ async function saveDeviceToken(token: string) {
   }
 }
 
-export function usePushNotifications() {
+/**
+ * @param userId  The signed-in user, or null/undefined when nobody is.
+ *
+ * Registration waits for a session, for two reasons. iOS gives an app exactly
+ * one permission prompt, and spending it on a stranger who has not seen the app
+ * yet wastes it: a refusal can only be undone in iOS Settings. And the token is
+ * saved against an account, so asking before sign-in used to grant permission
+ * and then throw the token away, leaving push silently dead until the next cold
+ * launch.
+ *
+ * Tap handling is set up regardless, since it needs no permission and costs
+ * nothing.
+ */
+export function usePushNotifications(userId: string | null | undefined) {
   const notificationListener = useRef<Notifications.EventSubscription | undefined>(undefined);
   const responseListener = useRef<Notifications.EventSubscription | undefined>(undefined);
 
   useEffect(() => {
+    if (!userId) return;
     registerForPushNotifications().then(token => {
       if (token) saveDeviceToken(token);
     });
+  }, [userId]);
 
+  useEffect(() => {
     // Notification received while app is in foreground
     notificationListener.current = Notifications.addNotificationReceivedListener(_notification => {
       // Badge/sound handled by setNotificationHandler above
