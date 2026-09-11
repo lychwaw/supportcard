@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
 import { useCurrency } from '@/hooks/use-currency';
 import { convertAmount, CURRENCY_SYMBOL, type Currency } from '@/lib/currency';
+import { reportError } from '@/lib/sentry';
 
 type ProfessionalLink = {
   id: string;
@@ -125,6 +126,9 @@ export default function ProfessionalPortalScreen() {
       setSavedNotesId(linkId);
       setTimeout(() => setSavedNotesId(curr => (curr === linkId ? null : curr)), 2000);
     } catch (e: any) {
+      // Reported, not just shown. This save silently did nothing for days
+      // because the only signal was a dialog the user could dismiss.
+      reportError(e, { feature: 'professional-notes-save' });
       Alert.alert('Could not save notes', e?.message ?? 'Please try again.');
     } finally {
       setSavingNotesId(null);

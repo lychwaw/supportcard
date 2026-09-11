@@ -11,6 +11,10 @@ import { brand } from '@/theme/colors';
 import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { initRevenueCat } from '@/lib/revenuecat';
 import { CurrencyProvider } from '@/context/currency-context';
+import { initSentry, setSentryUser } from '@/lib/sentry';
+
+// Before anything else, so an error during startup is still captured.
+initSentry();
 
 SplashScreen.preventAutoHideAsync();
 
@@ -194,6 +198,7 @@ export default function RootLayout() {
       setSession(session);
       if (session?.user?.id) {
         initRevenueCat(session.user.id);
+        setSentryUser(session.user.id);
         // Fire-and-forget: create any recurring expense requests that are due
         fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL}/api/recurring-expenses`, {
           method: 'POST',
@@ -213,8 +218,12 @@ export default function RootLayout() {
       setSession(session);
       if (session?.user?.id) {
         initRevenueCat(session.user.id);
+        setSentryUser(session.user.id);
         setNeedsOnboarding(await loadOnboardingState(session.user.id));
       } else {
+        // Clear on sign-out so a later crash isn't attributed to whoever was
+        // signed in previously — on a shared device that would be wrong twice.
+        setSentryUser(null);
         setNeedsOnboarding(false);
       }
     });
