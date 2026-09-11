@@ -106,7 +106,7 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#EBF4FF"
+          "backgroundColor": "#2B74D6"
         }
       ],
       "expo-status-bar",
