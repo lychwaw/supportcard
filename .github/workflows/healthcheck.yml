@@ -1,0 +1,35 @@
+name: Production health check
+
+# Runs against live production, not the repo — so it catches the case a build
+# pipeline cannot: Vercel keeps serving the last good deployment when a build
+# fails, so the app looks fine while new endpoints 404. That happened on
+# 2026-09-07 and went unnoticed for ~13 hours.
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # every 30 minutes
+  workflow_dispatch:          # and on demand from the Actions tab
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'              # re-check whenever the API itself changes
+      - 'scripts/healthcheck.mjs'
+
+jobs:
+  healthcheck:
+    name: Probe production
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # On a push, give Vercel time to finish deploying before probing —
+      # otherwise this races the deployment and reports a false failure.
+      - name: Wait for deployment
+        if: github.event_name == 'push'
+        run: sleep 90
+
+      - name: Run health check
+        run: node scripts/healthcheck.mjs
