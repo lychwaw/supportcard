@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { router } from 'expo-router';
 import {
   View, Text, Pressable, FlatList, useWindowDimensions,
-  StatusBar, Platform, type ViewToken,
+  StatusBar, Platform, useColorScheme, type ViewToken,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,6 +58,7 @@ const SLIDES: Slide[] = [
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const scheme = useColorScheme();
   const { width } = useWindowDimensions();
   const listRef = useRef<FlatList<Slide>>(null);
   const [index, setIndex] = useState(0);
@@ -129,7 +130,7 @@ export default function OnboardingScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
 
       {/* ── Skip ── */}
       <View style={{ paddingTop: insets.top + 8, paddingHorizontal: 20, flexDirection: 'row', justifyContent: 'flex-end' }}>

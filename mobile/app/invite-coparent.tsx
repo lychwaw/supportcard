@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react';
 import { router } from 'expo-router';
 import {
   View, Text, Pressable, TextInput, ScrollView, Share,
-  StatusBar, Platform, KeyboardAvoidingView,
+  StatusBar, Platform, KeyboardAvoidingView, useColorScheme,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -33,6 +33,7 @@ const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
 
 export default function InviteCoParentScreen() {
   const insets = useSafeAreaInsets();
+  const scheme = useColorScheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
@@ -64,7 +65,7 @@ export default function InviteCoParentScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle={scheme === 'dark' ? 'light-content' : 'dark-content'} />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
