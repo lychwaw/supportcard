@@ -247,12 +247,15 @@ export default function RootLayout() {
   // to the tour until it resolves, rather than holding the whole app back.
   //
   // If the splash timer fired before the session arrived, showing null here
-  // would leave a blank screen — so render the brand ground with a spinner
-  // instead. In practice this is visible only on a slow cold start.
+  // would leave a blank screen, so render a ground with a spinner instead.
+  //
+  // It has to be the splash's own blue. It used to be brand.lightBg, a pale
+  // blue left over from the previous branding, which made the handoff read as
+  // the old splash flashing back for a frame before the app appeared.
   if (session === undefined) {
     return (
-      <View style={{ flex: 1, backgroundColor: brand.lightBg, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color={brand.blue} />
+      <View style={{ flex: 1, backgroundColor: brand.blue, alignItems: 'center', justifyContent: 'center' }}>
+        <ActivityIndicator size="large" color="#fff" />
       </View>
     );
   }
