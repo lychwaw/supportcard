@@ -22,8 +22,16 @@ import * as WebBrowser from 'expo-web-browser';
 
 const FAILED_TITLE = 'Could not open link';
 
+// Some web addresses are really doorways into another app. iOS only hands them
+// over when they leave the app through Linking. Opened in the in-app browser,
+// apps.apple.com/account/subscriptions becomes a sign-in wall and a web page
+// instead of the native subscription sheet, and a Maps link stays a web map.
+const HANDOFF_HOSTS = ['apps.apple.com', 'maps.google.com', 'maps.apple.com'];
+
 function isWebUrl(url: string): boolean {
-  return /^https?:\/\//i.test(url);
+  if (!/^https?:\/\//i.test(url)) return false;
+  const host = url.replace(/^https?:\/\//i, '').split(/[/?#]/)[0].toLowerCase();
+  return !HANDOFF_HOSTS.includes(host);
 }
 
 /**
