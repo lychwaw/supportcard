@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { sendApnsToToken } from './_apns.js';
+import { sendApnsToToken, type ApnsPayload } from './_apns.js';
 import { handleCors } from './_cors.js';
 
 const getSupabaseClient = () => {
@@ -15,6 +15,31 @@ const extractBearer = (req: any): string | null => {
 };
 
 const formatZar = (amount: number) => `R${amount.toFixed(2)}`;
+
+/**
+ * Send to every token, and forget the ones Apple says are gone.
+ *
+ * Each reinstall issues a new device token and leaves the old row behind, so
+ * dead tokens pile up. Promise.all also meant one dead token rejected the whole
+ * send. allSettled delivers to the live ones regardless.
+ *
+ * Only 410 removes a row. Apple sends 410 when a token is no longer active, which
+ * is definitive. 400 BadDeviceToken is deliberately left alone: it is also what a
+ * sandbox/production mismatch looks like, and treating that as dead would wipe
+ * every token in the table after one misconfigured deploy.
+ */
+async function deliver(supabase: any, tokens: string[], payload: ApnsPayload): Promise<number> {
+  const results = await Promise.allSettled(tokens.map(t => sendApnsToToken(t, payload)));
+  const dead = tokens.filter((_, i) => {
+    const r = results[i];
+    return r.status === 'rejected' && (r.reason as any)?.status === 410;
+  });
+  if (dead.length > 0) {
+    const { error } = await supabase.from('push_devices').delete().in('device_token', dead);
+    if (error) console.error('push_devices cleanup failed:', error.message);
+  }
+  return results.filter(r => r.status === 'fulfilled').length;
+}
 
 async function handleRegister(req: any, res: any, supabase: any, authUser: any) {
   const { device_token, platform, environment } = req.body || {};
@@ -67,8 +92,8 @@ async function handleSend(req: any, res: any, supabase: any) {
     return;
   }
 
-  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, { title, body, data })));
-  res.status(200).json({ sent: tokens.length });
+  const sent = await deliver(supabase, tokens, { title, body, data });
+  res.status(200).json({ sent });
 }
 
 async function handleNotifyExpense(req: any, res: any, supabase: any, authUser: any) {
@@ -147,13 +172,13 @@ async function handleNotifyExpense(req: any, res: any, supabase: any, authUser: 
     return;
   }
 
-  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, {
+  const sent = await deliver(supabase, tokens, {
     title,
     body,
     data: { type: 'expense_request', expense_id: expense.id },
-  })));
+  });
 
-  res.status(200).json({ sent: tokens.length });
+  res.status(200).json({ sent });
 }
 
 async function handleNotifyLinked(req: any, res: any, supabase: any, authUser: any) {
@@ -189,32 +214,55 @@ async function handleNotifyLinked(req: any, res: any, supabase: any, authUser: a
     return;
   }
 
-  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, {
+  const sent = await deliver(supabase, tokens, {
     title: "You've been added as a co-parent",
     body: 'You can now message and collaborate with your co-parent on SupportCard.',
     data: { type: 'coparent-linked' },
-  })));
+  });
 
-  res.status(200).json({ sent: tokens.length });
+  res.status(200).json({ sent });
 }
 
+/**
+ * Notify the co-parent this is about, and nobody if that is unclear.
+ *
+ * This used to take whichever child the query returned first and notify that
+ * child's other parent. A family can have two co-parents from two
+ * relationships, and these notifications carry child names, document names and
+ * event dates, so the wrong pick put one family's details on an unrelated
+ * parent's lock screen.
+ *
+ * With a child name, only that child's other parent is eligible. Without one,
+ * the notification goes out only when there is exactly one co-parent. Several
+ * means we cannot know which family it belongs to, and saying nothing is the
+ * only answer that cannot leak.
+ */
 async function sendToCoParent(
   supabase: any, authUserId: string, title: string, body: string, data: Record<string, any>,
+  childName?: string,
 ): Promise<number> {
-  const { data: child } = await supabase
+  const { data: rows } = await supabase
     .from('children')
-    .select('parent_id, co_parent_id')
-    .or(`parent_id.eq.${authUserId},co_parent_id.eq.${authUserId}`)
-    .limit(1)
-    .maybeSingle();
-  if (!child) return 0;
-  const coParentId: string | null = child.parent_id === authUserId ? child.co_parent_id : child.parent_id;
-  if (!coParentId) return 0;
-  const { data: devices } = await supabase.from('push_devices').select('device_token').eq('user_id', coParentId);
+    .select('name, parent_id, co_parent_id')
+    .or(`parent_id.eq.${authUserId},co_parent_id.eq.${authUserId}`);
+  let children = (rows || []) as { name: string | null; parent_id: string; co_parent_id: string | null }[];
+
+  if (childName) {
+    const wanted = childName.trim().toLowerCase();
+    children = children.filter(c => (c.name ?? '').trim().toLowerCase() === wanted);
+  }
+
+  const others = Array.from(new Set(
+    children
+      .map(c => (c.parent_id === authUserId ? c.co_parent_id : c.parent_id))
+      .filter((id): id is string => !!id && id !== authUserId),
+  ));
+  if (others.length !== 1) return 0;
+
+  const { data: devices } = await supabase.from('push_devices').select('device_token').eq('user_id', others[0]);
   const tokens = ((devices || []) as any[]).map((d: any) => d.device_token).filter(Boolean);
   if (tokens.length === 0) return 0;
-  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, { title, body, data })));
-  return tokens.length;
+  return deliver(supabase, tokens, { title, body, data });
 }
 
 async function handleNotifyDocument(req: any, res: any, supabase: any, authUser: any) {
@@ -252,6 +300,7 @@ async function handleNotifyEmergency(req: any, res: any, supabase: any, authUser
     'Emergency profile updated',
     `The emergency profile for ${name} was updated`,
     { type: 'emergency' },
+    typeof child_name === 'string' && child_name ? child_name : undefined,
   );
   res.status(200).json({ sent });
 }
@@ -290,13 +339,13 @@ async function handleNotifyMessage(req: any, res: any, supabase: any, authUser: 
   const name = typeof sender_name === 'string' ? sender_name.slice(0, 60) : 'Co-parent';
   const preview = typeof message_preview === 'string' ? message_preview.slice(0, 100) : 'New message';
 
-  await Promise.all(tokens.map((token: string) => sendApnsToToken(token, {
+  const sent = await deliver(supabase, tokens, {
     title: name,
     body: preview,
     data: { type: 'message' },
-  })));
+  });
 
-  res.status(200).json({ sent: tokens.length });
+  res.status(200).json({ sent });
 }
 
 async function handleTest(req: any, res: any) {

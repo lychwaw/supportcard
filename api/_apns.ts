@@ -36,6 +36,13 @@ const buildJwtToken = async () => {
     .sign(privateKey);
 };
 
+/** Carries Apple's HTTP status, so callers can tell a dead token from an outage. */
+export class ApnsError extends Error {
+  constructor(public status: number, public reason: string) {
+    super(`APNs request failed: ${status} ${reason}`);
+  }
+}
+
 export type ApnsPayload = {
   title: string;
   body: string;
@@ -70,7 +77,7 @@ export const sendApnsToToken = async (deviceToken: string, payload: ApnsPayload)
 
   const responseText = await response.text();
   if (!response.ok) {
-    throw new Error(`APNs request failed: ${response.status} ${responseText}`);
+    throw new ApnsError(response.status, responseText);
   }
 
   return responseText;
