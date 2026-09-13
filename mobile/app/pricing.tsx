@@ -262,6 +262,7 @@ export default function PricingScreen() {
             <FeatureRow text="Up to 3 child profiles" accent />
             <FeatureRow text="150 calendar events / month" accent />
             <FeatureRow text="100 expense requests / month" accent />
+            <FeatureRow text="Unlimited stored documents" accent />
             <FeatureRow text="My SCAI included" accent />
             <Pressable
               onPress={() => handleCTA('plus')}
@@ -286,17 +287,23 @@ export default function PricingScreen() {
             <Ionicons name="shield-checkmark-outline" size={26} color="#F59E0B" />
           </View>
           <Text style={{ fontWeight: '700', fontSize: 30, color: colors.label, marginTop: 12, letterSpacing: -0.4 }}>Premium</Text>
-          <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Advanced records</Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>No limits</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 4 }}>
             <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p('supportcard_premium_monthly')}</Text>
             <Text style={{ color: colors.secondaryLabel, fontSize: 17 }}>/mo</Text>
           </View>
-          <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>The complete protection plan.</Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>Everything in Plus, with no caps.</Text>
           <Divider />
-          <FeatureRow text="Unlimited fair-use activity" />
-          <FeatureRow text="25 GB document storage" />
-          <FeatureRow text="Professional access" />
-          <FeatureRow text="Advanced My SCAI" />
+          {/*
+            Only what Premium genuinely adds over Plus. Storage size, professional
+            access and a more advanced My SCAI used to be listed here, but nothing
+            tracks storage, professional access is on every plan, and My SCAI is
+            identical on Plus. Add a line back when it becomes true.
+          */}
+          <FeatureRow text="Everything in Plus" />
+          <FeatureRow text="Unlimited child profiles" />
+          <FeatureRow text="Unlimited calendar events" />
+          <FeatureRow text="Unlimited expense requests" />
           <Pressable
             onPress={() => handleCTA('premium')}
             disabled={checkoutLoading === 'premium'}
@@ -310,7 +317,7 @@ export default function PricingScreen() {
           >
             {checkoutLoading === 'premium'
               ? <ActivityIndicator color="#F59E0B" />
-              : <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 15 }}>Protect Records</Text>}
+              : <Text style={{ color: '#F59E0B', fontWeight: '700', fontSize: 15 }}>Choose Premium</Text>}
           </Pressable>
         </View>
 
