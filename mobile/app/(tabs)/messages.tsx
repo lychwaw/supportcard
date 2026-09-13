@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  View, Text, TextInput, Pressable, FlatList,
+  View, Text, TextInput, Pressable, FlatList, ScrollView,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as FileSystem from 'expo-file-system/legacy';
 import { brand, colors } from '@/theme/colors';
 import { openExternalUrl } from '@/lib/open-link';
+import { pressScale } from '@/lib/press';
 import { supabase } from '@/lib/supabase';
 
 type Message = {
@@ -23,6 +24,8 @@ type ToneWarning = {
   message: string;
   rewrite: string | null;
 };
+
+type Partner = { id: string; firstName: string };
 
 async function analyzeTone(text: string): Promise<{ tone: string; rewrite: string | null } | null> {
   try {
@@ -46,8 +49,13 @@ export default function MessagesTabScreen() {
   const [isSending, setIsSending] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  // Everyone on the other side of the user's children. A parent with children
+  // from two relationships has two co-parents, and each is a separate
+  // conversation. This used to read only the first child and made the second
+  // co-parent unreachable.
+  const [partners, setPartners] = useState<Partner[]>([]);
   const [coParentId, setCoParentId] = useState<string | null>(null);
-  const [coParentName, setCoParentName] = useState<string | null>(null);
+  const [unreadFrom, setUnreadFrom] = useState<Set<string>>(new Set());
   const [toneWarning, setToneWarning] = useState<ToneWarning | null>(null);
   const [ready, setReady] = useState(false);
   const pendingTextRef  = useRef<string>('');
@@ -56,6 +64,45 @@ export default function MessagesTabScreen() {
   // without relying on stale state closures.
   const userIdRef       = useRef<string | null>(null);
   const coParentIdRef   = useRef<string | null>(null);
+
+  const coParentName = partners.find(p => p.id === coParentId)?.firstName ?? null;
+
+  const selectPartner = (id: string | null) => {
+    coParentIdRef.current = id;
+    setCoParentId(id);
+    if (id) setUnreadFrom(prev => { const next = new Set(prev); next.delete(id); return next; });
+  };
+
+  // Resolve every co-parent, keeping the current conversation open if that person
+  // is still linked. Returns true when the open conversation changed.
+  const resolvePartners = async (myId: string): Promise<boolean> => {
+    const { data: kids } = await supabase
+      .from('children' as any)
+      .select('parent_id, co_parent_id')
+      .or(`parent_id.eq.${myId},co_parent_id.eq.${myId}`);
+    const ids = Array.from(new Set(
+      ((kids as any[]) ?? [])
+        .map(k => (k.parent_id === myId ? k.co_parent_id : k.parent_id))
+        .filter((id): id is string => !!id && id !== myId),
+    ));
+
+    let list: Partner[] = [];
+    if (ids.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles' as any)
+        .select('id, full_name')
+        .in('id', ids);
+      const names = new Map(((profiles as any[]) ?? []).map(p => [p.id, p.full_name as string | null]));
+      list = ids.map(id => ({ id, firstName: names.get(id)?.split(' ')[0] || 'Co-parent' }));
+    }
+    setPartners(list);
+
+    const current = coParentIdRef.current;
+    const next = current && ids.includes(current) ? current : (ids[0] ?? null);
+    if (next === current) return false;
+    selectPartner(next);
+    return true;
+  };
 
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel>;
@@ -67,27 +114,7 @@ export default function MessagesTabScreen() {
       userIdRef.current = user.id;
       setUserId(user.id);
 
-      const { data: children } = await supabase
-        .from('children' as any)
-        .select('parent_id, co_parent_id')
-        .or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`)
-        .limit(1);
-
-      if (children && children.length > 0) {
-        const child = children[0] as any;
-        const partnerId = child.parent_id === user.id ? child.co_parent_id : child.parent_id;
-        if (partnerId) {
-          coParentIdRef.current = partnerId;
-          setCoParentId(partnerId);
-          const { data: profile } = await supabase
-            .from('profiles' as any)
-            .select('full_name')
-            .eq('id', partnerId)
-            .single();
-          setCoParentName((profile as any)?.full_name?.split(' ')[0] ?? null);
-        }
-      }
-
+      await resolvePartners(user.id);
       await loadMessages();
       setReady(true);
       channel = supabase
@@ -96,10 +123,19 @@ export default function MessagesTabScreen() {
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          // Only wake up for messages delivered TO this user — prevents reloading
-          // on every message between any two users in the database.
+          // Only wake up for messages delivered TO this user, not every message
+          // between any two users in the database.
           filter: `receiver_id=eq.${user.id}`,
-        }, () => loadMessages())
+        }, (payload: any) => {
+          const from = payload?.new?.sender_id as string | undefined;
+          // A message from someone other than the open conversation marks them
+          // unread on the switcher rather than silently vanishing.
+          if (from && from !== coParentIdRef.current) {
+            setUnreadFrom(prev => new Set(prev).add(from));
+            return;
+          }
+          loadMessages();
+        })
         .subscribe();
     })();
     return () => { channel?.unsubscribe(); };
@@ -111,34 +147,17 @@ export default function MessagesTabScreen() {
     FileSystem.writeAsStringAsync(path, JSON.stringify({ ts: new Date().toISOString() })).catch(() => {});
   }, []));
 
-  // Re-check co-parent every time the Messages tab comes into focus.
-  // Covers the case where family.tsx just linked a co-parent while this tab was mounted.
+  // Re-check co-parents every time the Messages tab comes into focus, which
+  // covers someone being linked on the Family screen while this tab was mounted.
   useFocusEffect(
     useCallback(() => {
       (async () => {
         const myId = userIdRef.current;
-        if (!myId) return; // Still loading auth — the mount effect will handle it
-        const { data: kids } = await supabase
-          .from('children' as any)
-          .select('parent_id, co_parent_id')
-          .or(`parent_id.eq.${myId},co_parent_id.eq.${myId}`)
-          .limit(1);
-        if (!kids?.length) return;
-        const child = kids[0] as any;
-        const partnerId: string | null = child.parent_id === myId ? child.co_parent_id : child.parent_id;
-        if (partnerId === coParentIdRef.current) return; // No change
-        coParentIdRef.current = partnerId;
-        setCoParentId(partnerId);
-        if (partnerId) {
-          const { data: profile } = await supabase
-            .from('profiles' as any)
-            .select('full_name')
-            .eq('id', partnerId)
-            .single();
-          setCoParentName((profile as any)?.full_name?.split(' ')[0] ?? null);
+        if (!myId) return; // Still loading auth; the mount effect handles it
+        const changed = await resolvePartners(myId);
+        if (changed) {
+          setMessages([]);
           await loadMessages();
-        } else {
-          setCoParentName(null);
         }
       })();
     }, [])
@@ -147,20 +166,32 @@ export default function MessagesTabScreen() {
   const loadMessages = async () => {
     const myId    = userIdRef.current;
     const theirId = coParentIdRef.current;
-    // No IDs yet — co-parent hasn't been resolved; don't load anything
-    if (!myId || !theirId) return;
+    if (!myId || !theirId) { setMessages([]); return; }
     const { data } = await supabase
       .from('messages' as any)
       .select('*, sender:sender_id(full_name)')
-      // Scoped to this conversation only — never returns other families' messages
+      // Scoped to this conversation only, never another family's messages
       .or(`and(sender_id.eq.${myId},receiver_id.eq.${theirId}),and(sender_id.eq.${theirId},receiver_id.eq.${myId})`)
       .order('created_at', { ascending: true })
       .limit(100);
+    // Switching conversations while this was loading means the result belongs to
+    // the previous person. Showing it would put their thread under the new name.
+    if (coParentIdRef.current !== theirId) return;
     setMessages((data as any) || []);
   };
 
+  const switchTo = (id: string) => {
+    if (id === coParentIdRef.current) return;
+    selectPartner(id);
+    setToneWarning(null);
+    setMessages([]);
+    loadMessages();
+  };
+
   const doSend = async (text: string) => {
-    if (!text.trim() || !coParentId) return;
+    // The ref, not state: the message must go to whoever is open right now.
+    const recipientId = coParentIdRef.current;
+    if (!text.trim() || !recipientId) return;
     setIsSending(true);
     setToneWarning(null);
     const { data: { user } } = await supabase.auth.getUser();
@@ -168,7 +199,7 @@ export default function MessagesTabScreen() {
       await supabase.from('messages' as any).insert({
         content: text.trim(),
         sender_id: user.id,
-        receiver_id: coParentId,
+        receiver_id: recipientId,
       });
 
       // Push notification to co-parent when app is backgrounded (best-effort).
@@ -185,7 +216,7 @@ export default function MessagesTabScreen() {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
           body: JSON.stringify({
             action: 'notify-message',
-            recipient_id: coParentId,
+            recipient_id: recipientId,
             sender_name: senderName,
             message_preview: text.trim().slice(0, 100),
           }),
@@ -287,6 +318,45 @@ export default function MessagesTabScreen() {
             </Pressable>
           </View>
         </View>
+
+        {/* One conversation per co-parent. Hidden for the usual single co-parent. */}
+        {partners.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: 14, marginHorizontal: -20 }}
+            contentContainerStyle={{ paddingHorizontal: 20, gap: 8 }}
+          >
+            {partners.map(p => {
+              const active = p.id === coParentId;
+              const unread = !active && unreadFrom.has(p.id);
+              return (
+                <Pressable
+                  key={p.id}
+                  onPress={() => switchTo(p.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                  accessibilityLabel={`Conversation with ${p.firstName}${unread ? ', new messages' : ''}`}
+                  style={pressScale({
+                    flexDirection: 'row', alignItems: 'center', gap: 8,
+                    paddingVertical: 7, paddingLeft: 7, paddingRight: 14,
+                    borderRadius: 20, borderCurve: 'continuous',
+                    backgroundColor: active ? brand.blue : colors.background,
+                    borderWidth: 0.5, borderColor: active ? brand.blue : colors.separator,
+                  })}
+                >
+                  <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center', backgroundColor: active ? 'rgba(255,255,255,0.22)' : brand.blue + '18' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: active ? '#fff' : brand.blue }}>
+                      {p.firstName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: active ? '#fff' : colors.label }}>{p.firstName}</Text>
+                  {unread && <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: brand.error }} />}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       <KeyboardAvoidingView
