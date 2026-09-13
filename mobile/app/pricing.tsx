@@ -295,15 +295,20 @@ export default function PricingScreen() {
           <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>Everything in Plus, with no caps.</Text>
           <Divider />
           {/*
-            Only what Premium genuinely adds over Plus. Storage size, professional
-            access and a more advanced My SCAI used to be listed here, but nothing
-            tracks storage, professional access is on every plan, and My SCAI is
-            identical on Plus. Add a line back when it becomes true.
+            Only what Premium genuinely adds over Plus. Storage size and
+            professional access used to be listed here, but nothing tracks storage
+            and professional access is on every plan. Add a line back when it
+            becomes true.
+
+            Advanced My SCAI is real: on Premium it remembers twice as much of the
+            conversation and has a higher daily allowance (SCAI_PLAN_LIMITS in
+            api/ai.ts).
           */}
           <FeatureRow text="Everything in Plus" />
           <FeatureRow text="Unlimited child profiles" />
           <FeatureRow text="Unlimited calendar events" />
           <FeatureRow text="Unlimited expense requests" />
+          <FeatureRow text="Advanced My SCAI" />
           <Pressable
             onPress={() => handleCTA('premium')}
             disabled={checkoutLoading === 'premium'}

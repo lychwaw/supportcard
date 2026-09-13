@@ -198,14 +198,28 @@ const SCAI_MODEL = process.env.ANTHROPIC_SCAI_MODEL || 'claude-haiku-4-5-2025100
 // SCAI cost — at 12 x 2000 chars the history was ~6,500 of the ~7,800 input
 // tokens per call. Six turns is ample for a task-oriented assistant that mostly
 // answers one-shot requests, and roughly halves the per-call input spend.
-const MAX_SCAI_HISTORY   = 6;
 const MAX_TOOL_ITERATIONS = 4;
+
+// What each paid plan gets from My SCAI. Premium's is genuinely more capable:
+// it remembers twice as much of the conversation, so it can follow a longer
+// back-and-forth, and it has a higher daily allowance.
+//
+// Memory is the cost driver above. Premium calls use roughly 7,800 input tokens
+// against about 4,500 on Plus. Worst case, someone using the entire allowance
+// every day for a month, on Haiku pricing: about $27 on Plus, about $54 on
+// Premium. Real usage is a small fraction of that.
+const SCAI_PLAN_LIMITS: Record<string, { history: number; perDay: number }> = {
+  plus:    { history: 6,  perDay: 150 },
+  premium: { history: 12, perDay: 200 },
+};
 const MAX_EXPENSE_AMOUNT  = 50_000; // Rand — guards against accidental/malicious huge requests
 
-const MY_SCAI_TIERS = new Set(['plus', 'premium']);
+const MY_SCAI_TIERS = new Set(Object.keys(SCAI_PLAN_LIMITS));
 
 // Mirrors normaliseTierId() in src/lib/subscriptions.ts.
-const normaliseTierForScai = (raw: string | null | undefined): string => {
+const normaliseTierForScai = (value: string | null | undefined): string => {
+  // Lowercased, so a plan stored as 'Premium' is not refused My SCAI outright.
+  const raw = (value ?? '').trim().toLowerCase();
   if (raw === 'family_plus') return 'plus';
   if (raw === 'legal' || raw === 'executive' || raw === 'professional') return 'premium';
   if (raw === 'free') return 'preview';
@@ -500,11 +514,27 @@ async function handleScaiChat(req: any, res: any, supabase: any, authUser: any, 
     return;
   }
 
+  // ── Tier gate ───────────────────────────────────────────────────────────────
+  // Before the rate limit, so the allowance can depend on the plan, and so a free
+  // user does not use up a daily slot on a request that is refused anyway.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_tier')
+    .eq('id', authUser.id)
+    .maybeSingle();
+
+  const tier = normaliseTierForScai(profile?.subscription_tier);
+  if (!MY_SCAI_TIERS.has(tier)) {
+    res.status(403).json({ error: 'My SCAI requires the Plus plan or higher.' });
+    return;
+  }
+  const planLimits = SCAI_PLAN_LIMITS[tier];
+
   // ── Rate limit (atomic DB increment) ───────────────────────────────────────
   const { data: allowed, error: rateErr } = await supabase.rpc('check_ai_action_rate_limit', {
     p_user_id: authUser.id,
     p_action: 'scai-chat',
-    p_max_per_day: 150,
+    p_max_per_day: planLimits.perDay,
   });
   // Fail closed — see the note in handleToneCheck. SCAI is the most expensive
   // of the three endpoints, so this is the one that matters most.
@@ -518,22 +548,9 @@ async function handleScaiChat(req: any, res: any, supabase: any, authUser: any, 
     return;
   }
 
-  // ── Tier gate ───────────────────────────────────────────────────────────────
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('subscription_tier')
-    .eq('id', authUser.id)
-    .maybeSingle();
-
-  const tier = normaliseTierForScai(profile?.subscription_tier);
-  if (!MY_SCAI_TIERS.has(tier)) {
-    res.status(403).json({ error: 'My SCAI requires the Plus plan or higher.' });
-    return;
-  }
-
   // ── Build + validate message history ───────────────────────────────────────
   const history = rawMessages
-    .slice(-MAX_SCAI_HISTORY)
+    .slice(-planLimits.history)
     .map((m: any) => ({
       role: m?.role === 'assistant' ? 'assistant' : 'user',
       content: typeof m?.content === 'string' ? m.content.slice(0, MAX_MESSAGE_LENGTH) : '',
