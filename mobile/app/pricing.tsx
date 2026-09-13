@@ -191,7 +191,6 @@ export default function PricingScreen() {
           <FeatureRow text="1 child profile" />
           <FeatureRow text="5 calendar events total" />
           <FeatureRow text="3 expense requests / month" />
-          <FeatureRow text="30 parent messages / month" />
           <FeatureRow text="3 stored documents" />
           <FeatureRow text="No My SCAI" />
           <Pressable
@@ -224,7 +223,6 @@ export default function PricingScreen() {
           <FeatureRow text="1 child profile" />
           <FeatureRow text="40 calendar events / month" />
           <FeatureRow text="20 expense requests / month" />
-          <FeatureRow text="500 parent messages / month" />
           <FeatureRow text="25 stored documents" />
           <FeatureRow text="No My SCAI" />
           <Pressable
@@ -264,8 +262,6 @@ export default function PricingScreen() {
             <FeatureRow text="Up to 3 child profiles" accent />
             <FeatureRow text="150 calendar events / month" accent />
             <FeatureRow text="100 expense requests / month" accent />
-            <FeatureRow text="2,500 parent messages / month" accent />
-            <FeatureRow text="5 PDF exports / month" accent />
             <FeatureRow text="My SCAI included" accent />
             <Pressable
               onPress={() => handleCTA('plus')}
@@ -297,10 +293,8 @@ export default function PricingScreen() {
           </View>
           <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>The complete protection plan.</Text>
           <Divider />
-          <FeatureRow text="2 co-parenting circles" />
           <FeatureRow text="Unlimited fair-use activity" />
           <FeatureRow text="25 GB document storage" />
-          <FeatureRow text="25 PDF exports / month" />
           <FeatureRow text="Professional access" />
           <FeatureRow text="Advanced My SCAI" />
           <Pressable
