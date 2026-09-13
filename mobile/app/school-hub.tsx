@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { supabase } from '@/lib/supabase';
+import { checkTierLimitBefore, handleTierLimit } from '@/lib/tier-limit';
 import { brand, colors } from '@/theme/colors';
 
 interface Child { id: string; name: string }
@@ -76,6 +77,7 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
   };
 
   const handleSave = useCallback(async () => {
+    if (!(await checkTierLimitBefore('legal_documents', { onUpgrade: onClose }))) return;
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -105,7 +107,10 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
         description: `${term} ${year} report card`,
         metadata: { term, year, child_id: childId, storage_path: filePath },
       });
-      if (error) throw error;
+      if (error) {
+        if (filePath) await supabase.storage.from('legal-docs').remove([filePath]).catch(() => {});
+        throw error;
+      }
       // Notify co-parent (best-effort)
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -118,11 +123,12 @@ function UploadReportModal({ visible, onClose, onSaved, children }: { visible: b
       setAsset(null);
       onSaved();
     } catch (e: any) {
+      if (handleTierLimit(e, { onUpgrade: onClose })) return;
       Alert.alert('Error', e?.message ?? 'Could not save report card.');
     } finally {
       setSaving(false);
     }
-  }, [term, year, childId, children, asset, onSaved]);
+  }, [term, year, childId, children, asset, onSaved, onClose]);
 
   const pillItems = [{ id: '__all__', label: 'All' }, ...children.map(c => ({ id: c.id, label: c.name }))];
 

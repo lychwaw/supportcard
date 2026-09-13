@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { usePermissions } from '@/hooks/use-permissions';
 import { pressFade, pressScale } from '@/lib/press';
 import { syncWindow } from '@/lib/apple-calendar';
+import { handleTierLimit } from '@/lib/tier-limit';
 import { router } from 'expo-router';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -121,7 +122,10 @@ export default function CalendarScreen() {
       }));
       const { error } = await supabase.from('calendar_events' as any).insert(rows);
       setSaving(false);
-      if (error) { Alert.alert('Error', error.message); return; }
+      if (error) {
+        if (!handleTierLimit(error, { onUpgrade: () => setShowAdd(false) })) Alert.alert('Error', error.message);
+        return;
+      }
       setShowAdd(false);
       loadEvents();
       // Notify co-parent (best-effort)

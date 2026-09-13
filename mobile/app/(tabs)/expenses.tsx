@@ -10,6 +10,7 @@ import { formatAmount, convertAmount, CURRENCY_SYMBOL, type Currency } from '@/l
 import { scanReceiptFromCamera, scanReceiptFromLibrary } from '@/lib/receipt-scanner';
 import { logPositiveAction, maybeAskForReview } from '@/lib/review';
 import { pressFade, pressScale } from '@/lib/press';
+import { handleTierLimit } from '@/lib/tier-limit';
 
 const CATEGORIES = ['School', 'Food', 'Clothing', 'Activities', 'Healthcare', 'Transportation', 'Other'];
 const CATEGORY_ICON: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -229,7 +230,10 @@ export default function ExpensesScreen() {
       status: 'pending', child_id: childId,
     });
     setSubmitting(false);
-    if (error) { setSubmitError(error.message); return; }
+    if (error) {
+      if (!handleTierLimit(error, { onUpgrade: () => setShowAdd(false) })) setSubmitError(error.message);
+      return;
+    }
     setShowAdd(false); setAmount(''); setDescription(''); setScannedImageUri(null); setSubmitError(null); setIsRecurring(false); setRecurringFrequency('monthly');
     loadRequests();
   };

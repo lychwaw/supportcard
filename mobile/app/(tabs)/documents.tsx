@@ -7,6 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as WebBrowser from 'expo-web-browser';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
+import { checkTierLimitBefore, handleTierLimit } from '@/lib/tier-limit';
 
 const DOC_TYPES = ['All', 'Legal', 'Medical', 'School', 'Financial', 'Other'];
 const DOC_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; color: string }> = {
@@ -37,6 +38,8 @@ export default function DocumentsScreen() {
   useEffect(() => { loadDocuments(); }, []);
 
   const handlePickAndUpload = async () => {
+    // Ask before the picker and the upload, so nobody uploads a file only to be refused.
+    if (!(await checkTierLimitBefore('legal_documents', { onUpgrade: () => setShowUpload(false) }))) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('Permission required', 'Please allow photo library access to upload documents.');
@@ -80,7 +83,10 @@ export default function DocumentsScreen() {
         description: uploadDesc.trim() || null,
         metadata: { storage_path: storagePath },
       });
-      if (dbErr) throw dbErr;
+      if (dbErr) {
+        await supabase.storage.from('legal-docs').remove([storagePath]).catch(() => {});
+        throw dbErr;
+      }
       // Notify co-parent (best-effort)
       supabase.auth.getSession().then(({ data: { session } }: any) => {
         if (!session) return;
@@ -95,6 +101,7 @@ export default function DocumentsScreen() {
       setUploadType('Other');
       loadDocuments();
     } catch (e: any) {
+      if (handleTierLimit(e, { onUpgrade: () => setShowUpload(false) })) return;
       Alert.alert('Upload failed', e?.message ?? 'Could not upload document.');
     } finally {
       setUploading(false);

@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { clearInvitedCoParent, getInvitedCoParent, type InvitedCoParent } from '@/lib/coparent-invite';
+import { handleTierLimit } from '@/lib/tier-limit';
 
 type Child = {
   id: string;
@@ -88,7 +89,10 @@ export default function FamilyScreen() {
     setAddingChild(true);
     const { error } = await supabase.from('children' as any).insert({ name, parent_id: userId, custody_split_pct: split });
     setAddingChild(false);
-    if (error) { Alert.alert('Error', error.message); return; }
+    if (error) {
+      if (!handleTierLimit(error, { onUpgrade: () => setShowAddChild(false) })) Alert.alert('Error', error.message);
+      return;
+    }
     setShowAddChild(false);
     setChildName('');
     setCustodySplit('50');

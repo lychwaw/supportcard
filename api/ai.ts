@@ -221,6 +221,25 @@ const EXPENSE_MONTHLY_LIMITS: Record<string, number | 'unlimited'> = {
   premium:   'unlimited',
 };
 
+// The database refuses an insert past the user's plan limit with
+// TIER_LIMIT:<resource>:<limit>:<tier> and a hint of monthly or total.
+// Turn that into something the assistant can say plainly, rather than a vague
+// "could not" that sends the user off to retry.
+const TIER_LIMIT_NOUN: Record<string, string> = {
+  calendar_events: 'calendar events',
+  expense_requests: 'expense requests',
+  children: 'child profiles',
+  legal_documents: 'stored documents',
+};
+function planLimitMessage(error: any): string | null {
+  const m = typeof error?.message === 'string' ? error.message.match(/TIER_LIMIT:([a-z_]+):(\d+):(\S+)/i) : null;
+  if (!m) return null;
+  const noun = TIER_LIMIT_NOUN[m[1]] ?? 'items';
+  const period = error?.hint === 'monthly' ? ' this month' : '';
+  const reset = error?.hint === 'monthly' ? ' The allowance resets on the 1st.' : '';
+  return `The user has reached their plan's limit of ${m[2]} ${noun}${period}. Nothing was created. They can upgrade in Plans & Pricing.${reset}`;
+}
+
 const EXPENSE_CATEGORIES = ['School', 'Food', 'Clothing', 'Activities', 'Healthcare', 'Transportation', 'Other'];
 
 function buildScaiSystemPrompt(): string {
@@ -386,7 +405,7 @@ async function executeScaiTool(
         .select('id')
         .single();
 
-      if (error || !data) return { success: false, error: 'Could not create the expense request.' };
+      if (error || !data) return { success: false, error: planLimitMessage(error) ?? 'Could not create the expense request.' };
       const currSym = expenseCurrency === 'USD' ? '$' : 'R';
       return { success: true, id: data.id, summary: `Created a ${category} expense request for ${currSym}${amount.toFixed(2)}.` };
     }
@@ -414,7 +433,7 @@ async function executeScaiTool(
         .select('id')
         .single();
 
-      if (error || !data) return { success: false, error: 'Could not add the calendar event.' };
+      if (error || !data) return { success: false, error: planLimitMessage(error) ?? 'Could not add the calendar event.' };
       return { success: true, id: data.id, summary: `Added "${eventType || 'Event'}" on ${eventDate} to the calendar.` };
     }
 
