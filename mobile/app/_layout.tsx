@@ -12,6 +12,7 @@ import { usePushNotifications } from '@/hooks/use-push-notifications';
 import { initRevenueCat } from '@/lib/revenuecat';
 import { CurrencyProvider } from '@/context/currency-context';
 import { initSentry, setSentryUser } from '@/lib/sentry';
+import { hasSignedInOnThisDevice, markSignedInOnThisDevice } from '@/lib/device-history';
 
 // Before anything else, so an error during startup is still captured.
 initSentry();
@@ -85,24 +86,48 @@ function AuthGate({
 }) {
   const router = useRouter();
   const segments = useSegments();
-  // Fire the onboarding redirect at most once per app launch. If the user quits
-  // mid-tour, onboarded_at is still NULL so they get it again next cold start.
-  const sentToOnboarding = useRef(false);
+  // The account the tour has already been shown to during this launch. It used
+  // to be a single once-per-launch flag, so signing out and signing in as a
+  // different account showed no tour at all. That is exactly what happens when
+  // a parent hands the phone to their co-parent to set up. If the user quits
+  // mid-tour, onboarded_at is still null so they get it again next cold start.
+  const onboardingShownFor = useRef<string | null>(null);
+
+  // Signed out on a device nobody has used before means a new person, who
+  // should land on sign-up rather than "Welcome back". Null while unknown.
+  const [knownDevice, setKnownDevice] = useState<boolean | null>(null);
+  useEffect(() => { hasSignedInOnThisDevice().then(setKnownDevice); }, []);
+
+  const userId = session?.user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    markSignedInOnThisDevice();
+    setKnownDevice(true);
+  }, [userId]);
 
   useEffect(() => {
     if (session === undefined) return;
     const inAuthGroup = segments[0] === '(auth)';
 
-    if (!session && !inAuthGroup) { router.replace('/(auth)'); return; }
+    if (!session) {
+      onboardingShownFor.current = null;
+      if (!inAuthGroup && knownDevice !== null) {
+        router.replace(knownDevice ? '/(auth)' : '/(auth)/signup');
+      }
+      return;
+    }
 
-    if (session && needsOnboarding && !sentToOnboarding.current) {
-      sentToOnboarding.current = true;
+    if (needsOnboarding === true && onboardingShownFor.current !== session.user.id) {
+      onboardingShownFor.current = session.user.id;
       router.replace('/onboarding');
       return;
     }
 
-    if (session && inAuthGroup && !needsOnboarding) router.replace('/(tabs)');
-  }, [session, segments, needsOnboarding]);
+    // Strictly false, not merely falsy. While the answer is still loading (null)
+    // after a sign-in, stay put rather than sending a new account into the app
+    // ahead of its tour.
+    if (inAuthGroup && needsOnboarding === false) router.replace('/(tabs)');
+  }, [session, segments, needsOnboarding, knownDevice]);
 
   return null;
 }
@@ -175,6 +200,8 @@ async function loadOnboardingState(userId: string): Promise<boolean> {
 export default function RootLayout() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [needsOnboarding, setNeedsOnboarding] = useState<boolean | null>(null);
+  // Whose onboarding state needsOnboarding currently describes.
+  const lastUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     // Load Ionicons from unpkg to bypass Vercel CDN cache corruption
@@ -222,6 +249,7 @@ export default function RootLayout() {
         }).catch(() => {});
         // Resolved in the background — awaiting this held the splash screen up
         // for as long as the profile query took.
+        lastUserIdRef.current = session.user.id;
         loadOnboardingState(session.user.id).then(setNeedsOnboarding);
       } else {
         setNeedsOnboarding(false);
@@ -234,8 +262,16 @@ export default function RootLayout() {
       if (session?.user?.id) {
         initRevenueCat(session.user.id);
         setSentryUser(session.user.id);
+        // A different account must not be routed on the previous account's
+        // answer. Clear it while the new one loads. Token refreshes for the same
+        // user skip this, so nothing flickers.
+        if (session.user.id !== lastUserIdRef.current) {
+          lastUserIdRef.current = session.user.id;
+          setNeedsOnboarding(null);
+        }
         setNeedsOnboarding(await loadOnboardingState(session.user.id));
       } else {
+        lastUserIdRef.current = null;
         // Clear on sign-out so a later crash isn't attributed to whoever was
         // signed in previously — on a shared device that would be wrong twice.
         setSentryUser(null);

@@ -316,9 +316,19 @@ export default function SignupScreen() {
         <Text style={{ fontSize: 28, fontWeight: '700', color: colors.label, letterSpacing: -0.5, marginBottom: 6 }}>
           Create account
         </Text>
-        <Text style={{ fontSize: 15, color: colors.secondaryLabel, marginBottom: 32, lineHeight: 22 }}>
+        <Text style={{ fontSize: 15, color: colors.secondaryLabel, marginBottom: 10, lineHeight: 22 }}>
           Co-parenting, made simple.
         </Text>
+        {/*
+          A fresh install opens here, so someone who already has an account on a
+          new phone needs the way to sign in before the form, not only below it.
+        */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 28 }}>
+          <Text style={{ fontSize: 14, color: colors.secondaryLabel }}>Already have an account? </Text>
+          <Pressable onPress={() => router.replace('/(auth)')} hitSlop={8}>
+            <Text style={{ fontSize: 14, fontWeight: '700', color: brand.blue }}>Sign in</Text>
+          </Pressable>
+        </View>
 
         {/* Social auth buttons */}
         <View style={{ gap: 12, marginBottom: 24 }}>
