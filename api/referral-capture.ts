@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { handleCors } from './_cors.js';
+import { referralSubscriptionActive } from './_referrals.js';
 
 const getSupabase = () => createClient(
   process.env.SUPABASE_URL!,
@@ -27,7 +28,7 @@ export default async function handler(req: any, res: any) {
   // Fetch the user's family_id for co-parent deduplication
   const { data: profile } = await supabase
     .from('profiles')
-    .select('family_id')
+    .select('family_id, subscription_tier')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -47,8 +48,19 @@ export default async function handler(req: any, res: any) {
   const result = data as string;
 
   switch (result) {
-    case 'ok':
+    case 'ok': {
+      // Codes can be entered for 7 days after signup, including after buying.
+      // The purchase event has already been and gone by then, so start the
+      // clock here or this referral could never qualify.
+      try {
+        await referralSubscriptionActive(
+          supabase, user.id, (profile as any)?.subscription_tier, 'code_entered_after_purchase');
+      } catch (e: any) {
+        // The referral itself is saved. The next renewal starts the clock anyway.
+        console.error('referral clock start failed:', e?.message);
+      }
       return res.status(200).json({ success: true });
+    }
     case 'invalid_code':
       return res.status(404).json({ error: 'Invalid referral code' });
     case 'expired':

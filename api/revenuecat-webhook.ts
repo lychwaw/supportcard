@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { handleCors } from './_cors.js';
+import { referralSubscriptionActive, referralSubscriptionEnded } from './_referrals.js';
 
 // RevenueCat entitlement IDs → our subscription_tier values
 const ENTITLEMENT_TO_TIER: Record<string, string> = {
@@ -16,12 +17,25 @@ const ACTIVE_EVENTS = new Set([
   'PRODUCT_CHANGE',
 ]);
 
-// Events that mean the subscription ended
-const LAPSED_EVENTS = new Set([
-  'CANCELLATION',
-  'EXPIRATION',
-  'BILLING_ISSUE',
-]);
+// Not every "bad" event ends access, and treating them as if they did took
+// away days a customer had already paid for.
+//
+//   CANCELLATION   Usually just auto-renew switched off. The customer keeps access
+//                  until the period ends, and EXPIRATION arrives then. Only a
+//                  refund (cancel_reason CUSTOMER_SUPPORT), or an expiry already in
+//                  the past, ends access now.
+//   BILLING_ISSUE  A payment failed and Apple is retrying. Access continues; if the
+//                  retries fail, EXPIRATION follows.
+//   EXPIRATION     Access has ended.
+//
+// Previously all three downgraded the customer to free on the spot and voided
+// their partner referral, even if they switched auto-renew back on.
+function accessHasEnded(event: any): boolean {
+  if (event.type === 'EXPIRATION') return true;
+  if (event.type !== 'CANCELLATION') return false;
+  if (event.cancel_reason === 'CUSTOMER_SUPPORT') return true;
+  return typeof event.expiration_at_ms === 'number' && event.expiration_at_ms <= Date.now();
+}
 
 const getSupabase = () => createClient(
   process.env.SUPABASE_URL!,
@@ -74,59 +88,22 @@ export default async function handler(req: any, res: any) {
           subscription_status: 'active',
         }).eq('id', userId);
 
-        // Write subscription_started_at on the first active event (INITIAL_PURCHASE)
-        // so the 90-day qualification window starts from the right moment.
-        if (eventType === 'INITIAL_PURCHASE') {
-          const { data: referral } = await supabase
-            .from('referrals')
-            .select('id, status')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-          if (referral && referral.status === 'pending') {
-            await supabase.from('referrals').update({
-              tier,
-              subscription_started_at: new Date().toISOString(),
-            }).eq('id', referral.id);
-
-            await supabase.from('referral_events').insert({
-              referral_id: referral.id,
-              event_type:  'subscription_started',
-              old_status:  'pending',
-              new_status:  'pending',
-              meta:        { tier, rc_event: eventType },
-            });
-          }
-        }
+        await referralSubscriptionActive(supabase, userId, tier, `revenuecat:${eventType}`);
       }
-    } else if (LAPSED_EVENTS.has(eventType)) {
+    } else if (accessHasEnded(event)) {
       await supabase.from('profiles').update({
         subscription_tier:   'preview',
         subscription_status: 'cancelled',
       }).eq('id', userId);
 
-      // Void any pending referral if the subscription lapses before 90 days
-      const { data: referral } = await supabase
-        .from('referrals')
-        .select('id, status')
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (referral && referral.status === 'pending') {
-        await supabase.from('referrals').update({
-          status:      'void',
-          void_reason: `subscription_lapsed:${eventType}`,
-        }).eq('id', referral.id);
-
-        await supabase.from('referral_events').insert({
-          referral_id: referral.id,
-          event_type:  'voided',
-          old_status:  'pending',
-          new_status:  'void',
-          meta:        { reason: eventType },
-        });
-      }
+      await referralSubscriptionEnded(supabase, userId, eventType, 'revenuecat');
+    } else if (eventType === 'BILLING_ISSUE') {
+      // Flag it, keep the plan. EXPIRATION removes access if Apple gives up.
+      await supabase.from('profiles').update({
+        subscription_status: 'past_due',
+      }).eq('id', userId);
     }
+    // CANCELLATION with access remaining: nothing changes until EXPIRATION.
 
     res.status(200).json({ received: true });
   } catch (err: any) {

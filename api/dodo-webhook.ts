@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { Webhook } from 'standardwebhooks';
+import { referralSubscriptionActive, referralSubscriptionEnded } from './_referrals.js';
 
 export const config = {
   api: {
@@ -103,6 +104,9 @@ export default async function handler(req: any, res: any) {
             dodo_customer_id: data.customer?.customer_id ?? null,
           } as any)
           .eq('id', userId);
+        // Website subscriptions never touched referrals, so a partner's client
+        // who paid on the web could never qualify.
+        await referralSubscriptionActive(supabase, userId, tier, `dodo:${type}`);
         break;
       }
 
@@ -115,6 +119,7 @@ export default async function handler(req: any, res: any) {
             subscription_status: 'cancelled',
           } as any)
           .eq('id', userId);
+        await referralSubscriptionEnded(supabase, userId, type, 'dodo');
         break;
       }
 
