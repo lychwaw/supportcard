@@ -70,6 +70,24 @@ export async function referralSubscriptionActive(
 ): Promise<void> {
   const tier = paidTier(rawTier);
   if (!tier) return;
+
+  // A partner-referral free month sets subscription_tier to 'premium', so it is
+  // indistinguishable from buying Premium by tier alone. Starting the clock on
+  // it would pay the partner for a client who never paid: the trial is 30 days,
+  // the clock is 90, so an installed app and no purchase still qualifies.
+  // status 'trialing' with a future end date is the one thing that separates
+  // them. A real purchase moves status to 'active' and the clock starts then.
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('subscription_status, referral_trial_ends_at')
+    .eq('id', userId)
+    .maybeSingle();
+  const p = profile as { subscription_status?: string | null; referral_trial_ends_at?: string | null } | null;
+  const onFreeTrial = (p?.subscription_status ?? '').toLowerCase() === 'trialing'
+    && !!p?.referral_trial_ends_at
+    && new Date(p.referral_trial_ends_at).getTime() > Date.now();
+  if (onFreeTrial) return;
+
   const referral = await findReferral(supabase, userId);
   if (!referral) return;
   const now = new Date().toISOString();
