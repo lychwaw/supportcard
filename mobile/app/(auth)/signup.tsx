@@ -17,6 +17,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/lib/supabase';
 import { savePendingReferral } from '@/lib/pending-referral';
+import { applyPendingReferral } from '@/lib/apply-referral';
 import { brand, colors } from '@/theme/colors';
 import { type Currency, CURRENCY_OPTIONS } from '@/lib/currency';
 
@@ -194,14 +195,14 @@ export default function SignupScreen() {
       setError(authError.message);
       return;
     }
-    // The code cannot be applied yet. /api/referral-capture needs a bearer
-    // token, and because this project confirms email addresses, signUp()
-    // returns session: null here. This used to be a fetch guarded on
-    // data.session, so it never ran once and every code typed at sign-up was
-    // silently discarded. Keep it and let the root layout apply it the moment
-    // a session exists, which is when the email is confirmed.
+    // Keep the code before trying to spend it, so it survives whatever
+    // happens next. signUp() returns a session when this project is not
+    // confirming email addresses, and none when it is; only the first case can
+    // apply the code here. The other is picked up by the root layout as soon as
+    // a session appears, rather than being dropped as it used to be.
     if (referralCode.trim()) {
       await savePendingReferral(referralCode);
+      if (data.session) void applyPendingReferral(data.session.access_token);
     }
     setSuccess(true);
   }

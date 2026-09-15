@@ -279,6 +279,9 @@ export default function RootLayout() {
       if (session?.user?.id) {
         initRevenueCat(session.user.id);
         setSentryUser(session.user.id);
+        // Also here, not only on the cold-launch path: a code held at sign-up
+        // must not wait for the app to be restarted before it is applied.
+        void applyPendingReferral(session.access_token);
         // A different account must not be routed on the previous account's
         // answer. Clear it while the new one loads. Token refreshes for the same
         // user skip this, so nothing flickers.
