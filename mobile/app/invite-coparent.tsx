@@ -140,6 +140,12 @@ export default function InviteCoParentScreen() {
                 placeholderTextColor={colors.secondaryLabel}
                 autoCapitalize="words"
                 autoCorrect={false}
+                // The trigger for the yellow field below. Left alone, iOS offers a
+                // contact here, and filling the name reaches into the email field
+                // underneath to fill that too. Disabling AutoFill on the email
+                // alone was not enough, because this is where it starts.
+                textContentType="none"
+                autoComplete="off"
                 returnKeyType="next"
                 style={{
                   backgroundColor: colors.surface, borderRadius: 14,
