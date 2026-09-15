@@ -156,6 +156,10 @@ function ReferralCodeModal({ visible, onClose }: { visible: boolean; onClose: ()
             onChangeText={v => { setCode(v.toUpperCase().replace(/\s/g, '')); setResult(null); }}
             autoCapitalize="characters"
             autoCorrect={false}
+            // Without this iOS treats a short uppercase field as a one-time code
+            // and covers it with a yellow AutoFill highlight.
+            textContentType="none"
+            autoComplete="off"
             maxLength={12}
             returnKeyType="done"
             onSubmitEditing={handleSubmit}

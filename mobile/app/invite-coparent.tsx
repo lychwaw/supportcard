@@ -162,7 +162,11 @@ export default function InviteCoParentScreen() {
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
-                textContentType="emailAddress"
+                // Not the user's own address, so AutoFill would offer the wrong
+                // value. It also paints the field yellow, and against white text
+                // in dark mode that reads as a field you cannot type into.
+                textContentType="none"
+                autoComplete="off"
                 returnKeyType="done"
                 onSubmitEditing={sendInvite}
                 style={{
