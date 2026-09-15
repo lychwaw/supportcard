@@ -110,6 +110,10 @@ function AuthGate({
   useEffect(() => {
     if (session === undefined) return;
     const inAuthGroup = segments[0] === '(auth)';
+    // "/" is the neutral screen the app opens on. It shows nothing, so staying
+    // there while an answer loads is correct; leaving it is what must happen
+    // once the answer arrives.
+    const atLanding = (segments as unknown as string[]).length === 0;
 
     if (!session) {
       onboardingShownFor.current = null;
@@ -127,8 +131,9 @@ function AuthGate({
 
     // Strictly false, not merely falsy. While the answer is still loading (null)
     // after a sign-in, stay put rather than sending a new account into the app
-    // ahead of its tour.
-    if (inAuthGroup && needsOnboarding === false) router.replace('/(tabs)');
+    // ahead of its tour. Waiting on the landing screen costs nothing now: it is
+    // blank and the splash's colour, so it reads as the splash still being up.
+    if ((inAuthGroup || atLanding) && needsOnboarding === false) router.replace('/(tabs)');
   }, [session, segments, needsOnboarding, knownDevice]);
 
   return null;
@@ -152,6 +157,7 @@ function AppShell({ session, needsOnboarding }: { session: Session | null; needs
         'minimal' shows the chevron alone, which is the iOS convention anyway.
       */}
       <Stack screenOptions={{ headerShown: false, headerBackButtonDisplayMode: 'minimal' }}>
+        <Stack.Screen name="index" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
