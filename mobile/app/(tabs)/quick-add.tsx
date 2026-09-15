@@ -187,7 +187,7 @@ export default function QuickAddScreen() {
         onClose={() => setShowCheckIn(false)}
         onSaved={() => {
           setShowCheckIn(false);
-          Alert.alert('Check-in logged', 'Your custody check-in has been saved.');
+          Alert.alert('Check-in logged', 'Your care check-in has been saved.');
         }}
       />
     </View>

@@ -26,7 +26,7 @@ import { inviteMessage, rememberInvitedCoParent } from '@/lib/coparent-invite';
  */
 
 const BENEFITS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
-  { icon: 'calendar-outline', text: 'Custody days and handovers update for both of you' },
+  { icon: 'calendar-outline', text: 'Care days and handovers update for both of you' },
   { icon: 'receipt-outline', text: 'Expenses get approved instead of argued about' },
   { icon: 'chatbubbles-outline', text: 'Messages are timestamped and on the record' },
 ];

@@ -74,7 +74,7 @@ export default function HomeScreen() {
   const [loading, setLoading]         = useState(true);
   const [refreshing, setRefreshing]   = useState(false);
   const [userName, setUserName]       = useState('');
-  const [custodyDays, setCustodyDays] = useState(0);
+  const [careDays, setCareDays] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [childrenCount, setChildrenCount] = useState(0);
   const [nextEvent, setNextEvent]     = useState<{ date: string; type: string } | null>(null);
@@ -92,7 +92,7 @@ export default function HomeScreen() {
       const lastRead = await getMsgsLastRead();
       const [
         profileRes, childrenRes, expenses, events, checkins,
-        messages, pendingRes, upcomingRes, custodyRes, unreadRes,
+        messages, pendingRes, upcomingRes, careRes, unreadRes,
       ] = await Promise.all([
         supabase.from('profiles' as any).select('full_name, id_verified').eq('id', user.id).single(),
         supabase.from('children' as any).select('id', { count: 'exact' }).or(`parent_id.eq.${user.id},co_parent_id.eq.${user.id}`),
@@ -104,7 +104,7 @@ export default function HomeScreen() {
         supabase.from('messages' as any).select('id,content,created_at').eq('sender_id', user.id).order('created_at', { ascending: false }).limit(5),
         supabase.from('expense_requests' as any).select('id', { count: 'exact' }).eq('requester_id', user.id).eq('status', 'pending'),
         supabase.from('calendar_events' as any).select('event_type,event_date').gte('event_date' as any, today).order('event_date' as any).limit(1),
-        supabase.from('calendar_events' as any).select('id', { count: 'exact' }).gte('event_date', monthStart).lte('event_date', monthEnd).ilike('event_type' as any, '%custody%'),
+        supabase.from('calendar_events' as any).select('id', { count: 'exact' }).gte('event_date', monthStart).lte('event_date', monthEnd).or('event_type.ilike.%care%,event_type.ilike.%custody%'),
         supabase.from('messages' as any).select('id', { count: 'exact', head: true }).eq('receiver_id', user.id).gt('created_at', lastRead),
       ]);
 
@@ -114,7 +114,7 @@ export default function HomeScreen() {
       setIdVerified((profileRes as any).data?.id_verified ?? false);
       setChildrenCount((childrenRes as any).count ?? 0);
       setPendingCount((pendingRes as any).count ?? 0);
-      setCustodyDays((custodyRes as any).count ?? 0);
+      setCareDays((careRes as any).count ?? 0);
 
       const upcoming = ((upcomingRes.data as any[]) ?? []);
       setNextEvent(upcoming[0] ? { date: upcoming[0].event_date, type: upcoming[0].event_type ?? 'Event' } : null);
@@ -145,7 +145,7 @@ export default function HomeScreen() {
         feed.push({
           id: `ci-${c.id}`, type: 'checkin',
           title: c.event_type === 'enter' ? 'Pickup' : c.event_type === 'exit' ? 'Drop-off' : 'Check-in',
-          subtitle: c.notes || 'Custody log', time: formatTime(c.created_at),
+          subtitle: c.notes || 'Care log', time: formatTime(c.created_at),
           section: isToday(c.created_at) ? 'today' : 'earlier',
         });
       }
@@ -169,7 +169,7 @@ export default function HomeScreen() {
 
   const todayItems   = items.filter(i => i.section === 'today');
   const earlierItems = items.filter(i => i.section === 'earlier');
-  const progress     = daysInMonth > 0 ? Math.min(custodyDays / daysInMonth, 1) : 0;
+  const progress     = daysInMonth > 0 ? Math.min(careDays / daysInMonth, 1) : 0;
   const monthName    = now.toLocaleDateString('en-ZA', { month: 'long' });
 
   return (
@@ -215,16 +215,16 @@ export default function HomeScreen() {
 
         {/* ID verification nudge hidden until KoraPay production keys active */}
 
-        {/* ── Custody hero card ── */}
+        {/* ── Care hero card ── */}
         <Pressable onPress={() => router.push('/(tabs)/calendar')}
           style={({ pressed }) => ({ marginHorizontal: 20, marginBottom: 14, transform: [{ scale: pressed ? 0.98 : 1 }] })}>
           <View style={{ borderRadius: 24, padding: 28, backgroundColor: '#1C3252', borderCurve: 'continuous' }}>
             <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: '600' }}>
-              Custody this month
+              Care days this month
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 8, gap: 6 }}>
               <Text style={{ color: '#fff', fontSize: 72, fontWeight: '700', letterSpacing: -3, lineHeight: 76, fontVariant: ['tabular-nums'] }}>
-                {custodyDays}
+                {careDays}
               </Text>
               <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 28, fontWeight: '600', marginBottom: 8 }}>
                 /{daysInMonth}
@@ -369,7 +369,7 @@ export default function HomeScreen() {
             </View>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Nothing yet</Text>
             <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 21 }}>
-              Log a custody check-in, add a calendar event, or send a message to get started
+              Log a care check-in, add a calendar event, or send a message to get started
             </Text>
           </View>
         )}

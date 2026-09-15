@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react-native';
 /**
  * Crash and error reporting.
  *
- * Configured conservatively on purpose. This app holds custody arrangements,
+ * Configured conservatively on purpose. This app holds care arrangements,
  * legal documents, medical details and private messages between separated
  * parents — a crash report that leaks any of that is worse than the crash.
  * Sentry's defaults are tuned for ordinary consumer apps, so several of them

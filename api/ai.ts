@@ -263,19 +263,19 @@ function buildScaiSystemPrompt(): string {
 Today's date is ${today}. Use this to resolve relative dates like "tomorrow", "next Friday", or "this weekend" before calling any tool.
 
 WHAT YOU CAN DO WITH TOOLS:
-You have three tools: create an expense reimbursement request, add a shared family calendar event, or log a custody check-in or drop-off note. Only call a tool when the user is clearly asking to take one of those actions. For everything else, give helpful advice in plain text.
+You have three tools: create an expense reimbursement request, add a shared family calendar event, or log a care check-in or drop-off note. Only call a tool when the user is clearly asking to take one of those actions. For everything else, give helpful advice in plain text.
 
 WHAT YOU CAN HELP WITH (no tools needed):
 Co-parenting advice. Practical, neutral guidance on communication, scheduling, conflict de-escalation, and co-parenting best practices. You are not a therapist or lawyer, but you can offer sensible, grounded suggestions.
 Legal document summaries. If the user pastes text from a parenting plan, court order, or agreement, summarise the key points in plain language. Always add that they should verify with their attorney before acting on anything.
 App feature guidance. You know the SupportCard app well. Here are its screens and what they do:
   Receipt Ledger: log, track and request reimbursement for shared child expenses. Expense requests you create go here.
-  Calendar: shared family calendar for custody days, school events, appointments.
-  Custody Clock: GPS-verified custody handoffs and time tracking. For verified handoffs, the user must open the Custody Clock screen directly.
+  Calendar: shared family calendar for care days, school events, appointments.
+  Care Clock: GPS-verified care handoffs and time tracking. For verified handoffs, the user must open the Care Clock screen directly.
   Messages: direct messaging with the co-parent, with AI tone-checking before sending.
   School Hub: school notices, teacher contacts, and school documents.
   Documents: upload and store legal and family documents.
-  Monthly Report: AI-generated summary of the month's expenses, events, and custody time.
+  Monthly Report: AI-generated summary of the month's expenses, events, and care time.
   Goals: shared financial goals for children's future.
   Contacts: family and emergency contacts.
   Professional Portal: if linked to a coach, mediator, or attorney, they can view relevant records here.
@@ -313,13 +313,13 @@ const SCAI_TOOLS = [
   },
   {
     name: 'add_calendar_event',
-    description: 'Add an event to the shared family calendar, e.g. a custody day, school event, or appointment.',
+    description: 'Add an event to the shared family calendar, e.g. a care day, school event, or appointment.',
     input_schema: {
       type: 'object',
       properties: {
         child_name: { type: 'string', description: "The child this event relates to. Omit for a family-wide event." },
         event_date: { type: 'string', description: 'ISO date in YYYY-MM-DD format.' },
-        event_type: { type: 'string', description: 'Short label, e.g. "Custody Day", "School Event", "Doctor Appointment".' },
+        event_type: { type: 'string', description: 'Short label, e.g. "Care Day", "School Event", "Doctor Appointment".' },
         notes: { type: 'string', description: 'Optional extra detail.' },
       },
       required: ['event_date'],
@@ -327,7 +327,7 @@ const SCAI_TOOLS = [
   },
   {
     name: 'log_custody_checkin',
-    description: 'Log a manual custody check-in, drop-off, or pickup note for a child. GPS-verified handoffs can only be logged from the Custody Clock page itself. This tool only records a text note.',
+    description: 'Log a manual care check-in, drop-off, or pickup note for a child. GPS-verified handoffs can only be logged from the Care Clock page itself. This tool only records a text note.',
     input_schema: {
       type: 'object',
       properties: {

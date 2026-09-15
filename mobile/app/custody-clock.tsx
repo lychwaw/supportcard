@@ -349,7 +349,7 @@ function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose
   );
 }
 
-export default function CustodyClockScreen() {
+export default function CareClockScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'checkins' | 'zones'>('checkins');
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
@@ -378,7 +378,7 @@ export default function CustodyClockScreen() {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleDeleteCheckIn = useCallback((id: string) => {
-    Alert.alert('Delete check-in?', 'This will permanently remove this custody record.', [
+    Alert.alert('Delete check-in?', 'This will permanently remove this care record.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => { await supabase.from('custody_checkins').delete().eq('id', id); loadData(); } },
     ]);
@@ -399,7 +399,7 @@ export default function CustodyClockScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: 'Custody Clock', headerTintColor: brand.blue, headerStyle: { backgroundColor: colors.surface as any } }} />
+      <Stack.Screen options={{ title: 'Care Clock', headerTintColor: brand.blue, headerStyle: { backgroundColor: colors.surface as any } }} />
       <View style={{ flex: 1, backgroundColor: colors.background }}>
 
         {/* ── Hero strip ── */}
@@ -442,7 +442,7 @@ export default function CustodyClockScreen() {
                 </View>
                 <Text style={{ fontWeight: '700', fontSize: 17, color: colors.label }}>No check-ins yet</Text>
                 <Text style={{ color: colors.secondaryLabel, fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 }}>
-                  Log a custody check-in to start tracking handoffs.
+                  Log a care check-in to start tracking handoffs.
                 </Text>
               </View>
             ) : checkIns.map(item => (
@@ -464,7 +464,7 @@ export default function CustodyClockScreen() {
                 </View>
                 <Text style={{ fontWeight: '700', fontSize: 17, color: colors.label }}>No zones set up yet</Text>
                 <Text style={{ color: colors.secondaryLabel, fontSize: 14, textAlign: 'center', paddingHorizontal: 40, lineHeight: 20 }}>
-                  Add zones like home addresses and schools to organise custody check-ins.
+                  Add zones like home addresses and schools to organise care check-ins.
                 </Text>
               </View>
             ) : zones.map(zone => (

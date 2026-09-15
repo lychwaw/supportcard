@@ -21,7 +21,7 @@ function QuickAddFab() {
     Alert.alert('Quick Add', 'What would you like to do?', [
       { text: 'Add Calendar Event', onPress: () => router.push('/(tabs)/calendar') },
       { text: 'New Expense Request', onPress: () => router.push('/(tabs)/expenses') },
-      { text: 'Custody Check-in', onPress: () => router.push('/custody-clock') },
+      { text: 'Care check-in', onPress: () => router.push('/custody-clock') },
       { text: 'Cancel', style: 'cancel' },
     ]);
   };

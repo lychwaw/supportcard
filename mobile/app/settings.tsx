@@ -714,7 +714,7 @@ export default function SettingsScreen() {
             </View>
             <Text style={{ fontSize: 18, fontWeight: '700', color: colors.label, textAlign: 'center' }}>Wipe family history?</Text>
             <Text style={{ fontSize: 14, color: colors.secondaryLabel, lineHeight: 21, textAlign: 'center' }}>
-              Permanently deletes all expenses, custody check-ins, zones, and calendar events.{'\n\n'}Children and co-parent links are kept. Cannot be undone.
+              Permanently deletes all expenses, care check-ins, zones, and calendar events.{'\n\n'}Children and co-parent links are kept. Cannot be undone.
             </Text>
             <Pressable onPress={doWipe} style={({ pressed }) => ({ backgroundColor: brand.error, borderRadius: 14, paddingVertical: 15, alignItems: 'center', transform: [{ scale: pressed ? 0.97 : 1 }] })}>
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 15 }}>Wipe History</Text>

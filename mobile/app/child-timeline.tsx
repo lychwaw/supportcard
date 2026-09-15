@@ -82,7 +82,7 @@ export default function ChildTimelineScreen() {
     const items: TimelineItem[] = [
       ...((expenses as any[]) || []).map((e: any): TimelineItem => ({ id: `expense-${e.id}`, kind: 'expense', title: e.description || e.category || 'Expense', subtitle: `${formatAmount(Number(e.amount ?? 0), (e.currency as Currency) ?? 'ZAR', currency, 2)} · ${(e.status || 'pending').toUpperCase()}`, createdAt: e.created_at, createdVia: e.created_via })),
       ...((events as any[]) || []).map((e: any): TimelineItem => ({ id: `event-${e.id}`, kind: 'event', title: e.event_type || 'Calendar Event', subtitle: e.notes || e.event_date || '', createdAt: e.created_at, createdVia: e.created_via })),
-      ...((checkins as any[]) || []).map((c: any): TimelineItem => ({ id: `checkin-${c.id}`, kind: 'checkin', title: c.event_type || 'Custody Check-in', subtitle: c.notes || '', createdAt: c.created_at, createdVia: c.created_via })),
+      ...((checkins as any[]) || []).map((c: any): TimelineItem => ({ id: `checkin-${c.id}`, kind: 'checkin', title: c.event_type || 'Care check-in', subtitle: c.notes || '', createdAt: c.created_at, createdVia: c.created_via })),
       ...((docs as any[]) || []).map((d: any): TimelineItem => ({ id: `doc-${d.id}`, kind: 'document', title: d.document_type || d.file_name || 'Document', subtitle: d.description || d.file_name || '', createdAt: d.created_at, createdVia: null })),
     ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 

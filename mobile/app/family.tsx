@@ -32,7 +32,7 @@ export default function FamilyScreen() {
 
   const [showAddChild, setShowAddChild] = useState(false);
   const [childName, setChildName] = useState('');
-  const [custodySplit, setCustodySplit] = useState('50');
+  const [careSplit, setCareSplit] = useState('50');
   const [addingChild, setAddingChild] = useState(false);
 
   const [showInvite, setShowInvite] = useState(false);
@@ -85,7 +85,7 @@ export default function FamilyScreen() {
   const handleAddChild = async () => {
     const name = childName.trim();
     if (!name) return;
-    const split = Math.max(0, Math.min(100, parseInt(custodySplit, 10) || 50));
+    const split = Math.max(0, Math.min(100, parseInt(careSplit, 10) || 50));
     setAddingChild(true);
     const { error } = await supabase.from('children' as any).insert({ name, parent_id: userId, custody_split_pct: split });
     setAddingChild(false);
@@ -95,7 +95,7 @@ export default function FamilyScreen() {
     }
     setShowAddChild(false);
     setChildName('');
-    setCustodySplit('50');
+    setCareSplit('50');
     load();
   };
 
@@ -335,9 +335,9 @@ export default function FamilyScreen() {
                         )}
                       </View>
 
-                      {/* Custody split bar */}
+                      {/* Care split bar */}
                       <Text style={{ fontSize: 11, fontWeight: '600', color: colors.secondaryLabel, marginBottom: 8 }}>
-                        Custody split
+                        Care split
                       </Text>
                       <View style={{ height: 8, backgroundColor: colors.background, borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
                         <View style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${myPct}%`, backgroundColor: brand.blue, borderRadius: 4 }} />
@@ -381,7 +381,7 @@ export default function FamilyScreen() {
       <Modal visible={showAddChild} animationType="slide" presentationStyle="formSheet" onRequestClose={() => setShowAddChild(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: insets.top + 12, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
-            <Pressable onPress={() => { setShowAddChild(false); setChildName(''); setCustodySplit('50'); }}>
+            <Pressable onPress={() => { setShowAddChild(false); setChildName(''); setCareSplit('50'); }}>
               <Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text>
             </Pressable>
             <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Add Child</Text>
@@ -406,19 +406,19 @@ export default function FamilyScreen() {
             </View>
             <View style={{ gap: 8 }}>
               <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>
-                Your custody % ({custodySplit}%)
+                Your care % ({careSplit}%)
               </Text>
               <TextInput
                 style={{ backgroundColor: colors.surface, borderRadius: 14, borderCurve: 'continuous', padding: 16, fontSize: 32, fontWeight: '700', color: colors.label, borderWidth: 0.5, borderColor: colors.separator, textAlign: 'center' }}
                 keyboardType="number-pad"
                 placeholder="50"
                 placeholderTextColor={colors.secondaryLabel}
-                value={custodySplit}
-                onChangeText={v => setCustodySplit(v.replace(/[^0-9]/g, ''))}
+                value={careSplit}
+                onChangeText={v => setCareSplit(v.replace(/[^0-9]/g, ''))}
                 maxLength={3}
               />
               <Text style={{ fontSize: 13, color: colors.secondaryLabel, textAlign: 'center' }}>
-                Co-parent gets {100 - (parseInt(custodySplit, 10) || 50)}%.
+                Co-parent gets {100 - (parseInt(careSplit, 10) || 50)}%.
               </Text>
             </View>
           </ScrollView>

@@ -21,10 +21,10 @@ function thirtyDaysAgo() {
 }
 function buildInsight(m: Metrics): string {
   if (m.events >= 5) return "You've been consistent with calendar events this month. Keep it up!";
-  if (m.checkins >= 3) return 'Great work logging custody check-ins. A strong record helps everyone.';
+  if (m.checkins >= 3) return 'Great work logging care check-ins. A strong record helps everyone.';
   if (m.expenses === 0) return 'Tip: Log expense requests to keep finances transparent for both parents.';
   if (m.messages === 0) return 'Tip: Messaging through the app creates a neutral, timestamped record.';
-  return 'Tip: Log custody check-ins regularly to build a stronger co-parenting record.';
+  return 'Tip: Log care check-ins regularly to build a stronger co-parenting record.';
 }
 
 export default function ParentingScoreboardScreen() {

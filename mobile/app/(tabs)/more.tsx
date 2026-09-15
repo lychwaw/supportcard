@@ -130,7 +130,7 @@ export default function MoreScreen() {
     {
       heading: 'Legal & Records',
       rows: [
-        { icon: 'location-outline',      iconColor: brand.blue, title: 'Custody Clock',       subtitle: 'Log check-ins & verified handoffs', route: '/custody-clock' },
+        { icon: 'location-outline',      iconColor: brand.blue, title: 'Care Clock',          subtitle: 'Log check-ins & verified handoffs', route: '/custody-clock' },
         { icon: 'document-text-outline', iconColor: brand.body, title: 'Compliance',          subtitle: 'Court orders & obligations',         route: '/compliance' },
         { icon: 'documents-outline',     iconColor: brand.body, title: 'Documents',           subtitle: 'Legal, school & medical files',      route: '/(tabs)/documents' },
         { icon: 'briefcase-outline',     iconColor: brand.teal, title: 'Professional Portal', subtitle: 'Lawyer & mediator access',           route: '/professional-portal' },

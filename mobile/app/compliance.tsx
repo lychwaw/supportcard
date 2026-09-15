@@ -30,7 +30,7 @@ function computeStats(orders: CourtOrder[], logs: ComplianceLog[]) {
   return { activeCount, nextLabel, rateLabel };
 }
 
-const EVENT_TYPES = ['custody_exchange','expense_approved','court_order_met','school_pickup','medical_visit','other'];
+const EVENT_TYPES = ['care_exchange','expense_approved','court_order_met','school_pickup','medical_visit','other'];
 
 export default function ComplianceScreen() {
   const insets = useSafeAreaInsets();
@@ -39,7 +39,7 @@ export default function ComplianceScreen() {
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [logText, setLogText] = useState('');
-  const [logEventType, setLogEventType] = useState('custody_exchange');
+  const [logEventType, setLogEventType] = useState('care_exchange');
   const [logSaving, setLogSaving] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [orderTitle, setOrderTitle] = useState('');
@@ -191,7 +191,7 @@ export default function ComplianceScreen() {
                     <Ionicons name="bar-chart-outline" size={24} color={brand.teal} />
                   </View>
                   <Text style={{ fontWeight: '700', fontSize: 15, color: colors.label }}>No compliance events logged</Text>
-                  <Text style={{ color: colors.secondaryLabel, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>Events like custody exchanges and expense approvals are automatically logged.</Text>
+                  <Text style={{ color: colors.secondaryLabel, fontSize: 13, textAlign: 'center', lineHeight: 19 }}>Events like care exchanges and expense approvals are automatically logged.</Text>
                 </View>
               ) : (
                 <View style={{ gap: 8 }}>

@@ -14,7 +14,7 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 const SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-const EVENT_TYPES = ['Custody Day','School Event','Doctor Appointment','Pickup','Drop-off','Holiday','Other'];
+const EVENT_TYPES = ['Care Day','School Event','Doctor Appointment','Pickup','Drop-off','Holiday','Other'];
 
 type CalendarEvent = {
   id: string; event_date: string; event_type: string | null;
@@ -400,7 +400,7 @@ export default function CalendarScreen() {
             <View style={{ backgroundColor: brand.blue + '12', borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
               <Ionicons name="hardware-chip-outline" size={14} color={brand.blue} style={{ marginTop: 1 }} />
               <Text style={{ fontSize: 12, color: colors.secondaryLabel, flex: 1 }}>
-                Say "My SCAI, add a custody day on Friday" to create events hands-free.
+                Say "My SCAI, add a care day on Friday" to create events hands-free.
               </Text>
             </View>
           </ScrollView>

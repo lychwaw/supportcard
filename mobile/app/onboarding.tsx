@@ -31,7 +31,7 @@ const SLIDES: Slide[] = [
     icon: 'calendar-outline',
     tint: brand.blue,
     title: 'One shared\nschedule',
-    body: 'Custody days, pickups, handovers and school events, visible to both parents and always up to date.',
+    body: 'Care days, pickups, handovers and school events, visible to both parents and always up to date.',
   },
   {
     key: 'scai',

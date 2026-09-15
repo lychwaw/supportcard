@@ -230,10 +230,10 @@ export default function MonthlyReportScreen() {
               </View>
               <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label, textAlign: 'center' }}>Select a month and generate your report</Text>
               <Text style={{ fontSize: 14, color: colors.secondaryLabel, textAlign: 'center', lineHeight: 20 }}>
-                Your AI co-parenting assistant will summarise expenses, events, and custody check-ins, then suggest ways to improve next month.
+                Your AI co-parenting assistant will summarise expenses, events, and care check-ins, then suggest ways to improve next month.
               </Text>
               <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 14, gap: 6, width: '100%', borderWidth: 0.5, borderColor: brand.blue + '20' }}>
-                {['Expense requests and totals', 'Calendar events logged', 'Custody check-ins', 'Suggestions for next month'].map(line => (
+                {['Expense requests and totals', 'Calendar events logged', 'Care check-ins', 'Suggestions for next month'].map(line => (
                   <Text key={line} style={{ fontSize: 13, color: colors.label, lineHeight: 20 }}>· {line}</Text>
                 ))}
               </View>
