@@ -15,6 +15,7 @@ import { initSentry, setSentryUser } from '@/lib/sentry';
 import { hasSignedInOnThisDevice, markSignedInOnThisDevice } from '@/lib/device-history';
 import { hasCompletedOnboarding, rememberOnboardingCompleted, forgetOnboardingCompleted } from '@/lib/onboarding-cache';
 import { applyPendingReferral } from '@/lib/apply-referral';
+import { maybeWarnTrialEnding } from '@/lib/trial-reminder';
 
 // Before anything else, so an error during startup is still captured.
 initSentry();
@@ -105,6 +106,10 @@ function AuthGate({
     if (!userId) return;
     markSignedInOnThisDevice();
     setKnownDevice(true);
+    // A free month that vanishes without warning is the worst moment of the
+    // experience and the best moment to ask for the sale. Silent for anyone
+    // who is not on a referral trial, which is almost everybody.
+    void maybeWarnTrialEnding(userId, () => router.push('/pricing'));
   }, [userId]);
 
   useEffect(() => {
