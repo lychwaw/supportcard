@@ -36,6 +36,22 @@ function formatCurrency(val: number, sym: string): string {
   return `${sym}${val.toFixed(2)}`;
 }
 
+/**
+ * Forces every amount in the generated report to carry the right symbol.
+ *
+ * The currency is given to the model in the prompt, but a report is built to be
+ * shared, including with a court, so a rand figure written as dollars is not
+ * something to leave to the model remembering an instruction. This is the
+ * guarantee; the prompt is only the request.
+ *
+ * Rewrites only a symbol immediately before a number, so ordinary prose and any
+ * mention of a currency without a figure are left alone.
+ */
+function withCorrectCurrency(text: string, sym: string): string {
+  if (!text || sym === '$') return text;
+  return text.replace(/\$(?=\s?\d)/g, sym);
+}
+
 export default function MonthlyReportScreen() {
   const insets = useSafeAreaInsets();
   const { currency } = useCurrency();
@@ -94,7 +110,8 @@ export default function MonthlyReportScreen() {
           setReportText('__error__');
         } else {
           const json = await response.json();
-          setReportText(json?.reply ?? json?.content ?? json?.choices?.[0]?.message?.content ?? '');
+          setReportText(withCorrectCurrency(
+            json?.reply ?? json?.content ?? json?.choices?.[0]?.message?.content ?? '', sym));
           logPositiveAction(); // got a real report out — counts toward a rating ask
         }
       } catch {
