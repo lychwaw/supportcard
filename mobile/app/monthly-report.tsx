@@ -73,7 +73,10 @@ export default function MonthlyReportScreen() {
 
       setStats({ totalAmount, eventsCount: events.length, checkinsCount: checkins.length });
 
-      const prompt = `Generate a concise, neutral monthly co-parenting summary for ${monthName} ${year}. Data: ${JSON.stringify({ expenses_count: expenses.length, total_requested: totalAmount.toFixed(2), events_count: events.length, checkins_count: checkins.length })}. Include: spending summary, activity summary, and 1-2 constructive suggestions for next month. Keep it under 200 words. Positive, neutral tone.`;
+      // The amount used to go over as a bare number, so the model wrote it as
+      // dollars while the tile beside it showed rands. The report is meant to be
+      // shared, and a South African record quoting $ is wrong twice over.
+      const prompt = `Generate a concise, neutral monthly co-parenting summary for ${monthName} ${year}. Data: ${JSON.stringify({ expenses_count: expenses.length, total_requested: totalAmount.toFixed(2), currency, currency_symbol: sym, events_count: events.length, checkins_count: checkins.length })}. Write every amount with the symbol ${sym} immediately before the number, for example ${sym}0.00. Never use a different currency symbol. Include: spending summary, activity summary, and 1-2 constructive suggestions for next month. Keep it under 200 words. Positive, neutral tone.`;
 
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
