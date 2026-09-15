@@ -13,6 +13,8 @@ import { initRevenueCat } from '@/lib/revenuecat';
 import { CurrencyProvider } from '@/context/currency-context';
 import { initSentry, setSentryUser } from '@/lib/sentry';
 import { hasSignedInOnThisDevice, markSignedInOnThisDevice } from '@/lib/device-history';
+import { hasCompletedOnboarding, rememberOnboardingCompleted, forgetOnboardingCompleted } from '@/lib/onboarding-cache';
+import { applyPendingReferral } from '@/lib/apply-referral';
 
 // Before anything else, so an error during startup is still captured.
 initSentry();
@@ -191,7 +193,11 @@ async function loadOnboardingState(userId: string): Promise<boolean> {
       new Promise<null>(resolve => setTimeout(() => resolve(null), 4000)),
     ]);
     if (!result || result.error) return false;
-    return !result.data?.onboarded_at;
+    const needs = !result.data?.onboarded_at;
+    // Remember the answer so the next launch can route without waiting on this.
+    if (needs) void forgetOnboardingCompleted(userId);
+    else void rememberOnboardingCompleted(userId);
+    return needs;
   } catch {
     return false;
   }
@@ -250,7 +256,18 @@ export default function RootLayout() {
         // Resolved in the background — awaiting this held the splash screen up
         // for as long as the profile query took.
         lastUserIdRef.current = session.user.id;
-        loadOnboardingState(session.user.id).then(setNeedsOnboarding);
+        // Local first: if this device has already seen this account finish its
+        // tour, routing can happen now instead of one network round trip from
+        // now. Without this the splash lifted mid-query and the sign-in screen
+        // showed to someone who was already signed in.
+        const uid = session.user.id;
+        // A code typed at sign-up waits here until there is a session to spend
+        // it on. No-op when there is nothing stored.
+        void applyPendingReferral(session.access_token);
+        hasCompletedOnboarding(uid).then(done => {
+          if (done) setNeedsOnboarding(prev => (prev === null ? false : prev));
+        });
+        loadOnboardingState(uid).then(setNeedsOnboarding);
       } else {
         setNeedsOnboarding(false);
       }

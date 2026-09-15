@@ -16,6 +16,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import * as WebBrowser from 'expo-web-browser';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import { supabase } from '@/lib/supabase';
+import { savePendingReferral } from '@/lib/pending-referral';
 import { brand, colors } from '@/theme/colors';
 import { type Currency, CURRENCY_OPTIONS } from '@/lib/currency';
 
@@ -193,19 +194,14 @@ export default function SignupScreen() {
       setError(authError.message);
       return;
     }
-    // Fire-and-forget referral capture — non-blocking, failure is silent
-    // The user has 7 days post-signup to enter a code so this also runs
-    // in the settings screen later. Here we just capture it if provided at signup.
-    if (referralCode.trim() && data.session) {
-      const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'https://supportcard-prod.vercel.app';
-      fetch(`${apiBase}/api/referral-capture`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${data.session.access_token}`,
-        },
-        body: JSON.stringify({ code: referralCode.trim().toUpperCase() }),
-      }).catch(() => {});
+    // The code cannot be applied yet. /api/referral-capture needs a bearer
+    // token, and because this project confirms email addresses, signUp()
+    // returns session: null here. This used to be a fetch guarded on
+    // data.session, so it never ran once and every code typed at sign-up was
+    // silently discarded. Keep it and let the root layout apply it the moment
+    // a session exists, which is when the email is confirmed.
+    if (referralCode.trim()) {
+      await savePendingReferral(referralCode);
     }
     setSuccess(true);
   }

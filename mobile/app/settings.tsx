@@ -338,7 +338,7 @@ function InviteProfessionalModal({ visible, onClose, onInvited }: { visible: boo
           {!token ? (
             <>
               <Text style={{ fontSize: 13, color: colors.secondaryLabel, lineHeight: 19 }}>
-                Enter your professional's email. They'll receive an invite code to enter in their SupportCard app to access your family records.
+                Enter your professional's email. We'll generate an invite code for you to send them, which they enter in their SupportCard app to access your family records.
               </Text>
               <View style={{ gap: 8 }}>
                 <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondaryLabel }}>Professional's Email</Text>
