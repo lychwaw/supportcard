@@ -52,3 +52,11 @@ app-store-screenshots/appstore-*/
 app-store-screenshots/slides/
 app-store-screenshots/.render/
 app-store-screenshots/*.jpeg
+
+# Google Play credentials. The service account key can publish to your Play
+# listing and the FCM file identifies your Firebase project. This repo is
+# public, so neither may ever be committed.
+google-service-account.json
+mobile/google-service-account.json
+google-services.json
+mobile/google-services.json
