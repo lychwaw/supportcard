@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bluebird Screenshots</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:       #2B74D6;
+  --blue-mid:   #1A5DB5;
+  --blue-light: #EBF4FF;
+  --blue-pale:  #C3DAFB;
+  --dark:       #0D1C2E;
+  --body:       #6B7A8D;
+  --white:      #FFFFFF;
+  --teal:       #0EA968;
+  --sep:        #E4ECF5;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #D6E8FF;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  padding-bottom: 40px;
+}
+
+/* ─── Top controls bar ────────────────────────────────────────── */
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 14px 24px;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--sep);
+}
+
+.toolbar h1 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark);
+  letter-spacing: -0.01em;
+}
+
+.nav-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sep);
+  background: white;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  color: var(--dark);
+  transition: all 0.15s;
+  user-select: none;
+}
+.nav-btn:hover { background: var(--blue-light); border-color: var(--blue-pale); }
+
+.slide-counter {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--body);
+  min-width: 48px;
+  text-align: center;
+}
+
+/* ─── Slide stage ─────────────────────────────────────────────── */
+/* Each slide is sized to iPhone 15 Pro Max screenshot: 1290 × 2796.
+   We display it at 34% scale (≈ 439 × 951) so it fits on screen.
+   To export at full resolution: set .slide scale to 1 and capture with
+   a browser screenshot tool or print to PDF. */
+
+.stage {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 24px 20px;
+  width: 100%;
+}
+
+.slide-wrapper {
+  position: relative;
+  width: 1290px;
+  height: 2796px;
+  transform-origin: top center;
+  /* Scale set by JS — default shown so browsers without JS still render */
+  transform: scale(0.34);
+  border-radius: 66px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.6),
+    0 40px 120px rgba(13,28,46,0.28),
+    0 12px 40px rgba(43,116,214,0.18);
+}
+
+/* Height placeholder so the page doesn't collapse */
+.stage-height-sizer {
+  width: 1px;
+  /* Updated by JS */
+  height: 951px;
+  pointer-events: none;
+}
+
+/* Hide all slides except active */
+.slide { display: none; width: 1290px; height: 2796px; background: white; flex-direction: column; }
+.slide.active { display: flex; }
+
+/* ─── SLIDE ANATOMY ───────────────────────────────────────────── */
+
+/* TOP: gradient header with headline */
+.s-head {
+  flex-shrink: 0;
+  background: linear-gradient(165deg, var(--blue-light) 0%, #D6E8FF 60%, var(--blue-pale) 100%);
+  padding: 140px 96px 88px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative blue circle in header */
+.s-head::before {
+  content: '';
+  position: absolute;
+  right: -120px; top: -80px;
+  width: 560px; height: 560px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(43,116,214,0.12) 0%, transparent 70%);
+}
+.s-head::after {
+  content: '';
+  position: absolute;
+  left: -60px; bottom: -100px;
+  width: 360px; height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(43,116,214,0.08) 0%, transparent 70%);
+}
+
+.s-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--blue);
+  color: white;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 14px 36px;
+  border-radius: 100px;
+  width: fit-content;
+}
+
+.s-badge .dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.5); }
+
+.s-title {
+  font-size: 112px;
+  font-weight: 800;
+  color: var(--dark);
+  line-height: 1.08;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
+  position: relative;
+  z-index: 1;
+}
+
+.s-sub {
+  font-size: 52px;
+  font-weight: 400;
+  color: var(--body);
+  line-height: 1.45;
+  position: relative;
+  z-index: 1;
+}
+
+/* MIDDLE: white area with phone screenshot */
+.s-body {
+  flex: 1;
+  background: white;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 64px 48px 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle background pattern */
+.s-body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 80%, rgba(43,116,214,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(14,169,104,0.03) 0%, transparent 50%);
+}
+
+.phone-frame {
+  width: 680px;
+  border-radius: 88px;
+  background: var(--dark);
+  padding: 20px;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.1) inset,
+    0 60px 200px rgba(13,28,46,0.22),
+    0 20px 60px rgba(43,116,214,0.14);
+  position: relative;
+  z-index: 1;
+}
+
+.phone-inner {
+  border-radius: 72px;
+  overflow: hidden;
+  background: var(--blue-light);
+  position: relative;
+}
+
+/* Dynamic Island */
+.phone-inner::before {
+  content: '';
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 140px; height: 44px;
+  background: var(--dark);
+  border-radius: 22px;
+  z-index: 10;
+}
+
+.phone-inner img {
+  width: 100%;
+  display: block;
+}
+
+/* BOTTOM: brand footer strip */
+.s-foot {
+  flex-shrink: 0;
+  background: white;
+  border-top: 2px solid var(--sep);
+  padding: 40px 96px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.brand-icon {
+  width: 72px; height: 72px;
+  background: var(--blue);
+  border-radius: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 40px;
+}
+
+.brand-name {
+  font-size: 44px;
+  font-weight: 800;
+  color: var(--dark);
+  letter-spacing: -0.02em;
+}
+
+.brand-tag {
+  font-size: 28px;
+  color: var(--body);
+  font-weight: 400;
+  margin-top: 4px;
+}
+
+.feature-chips {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--blue-light);
+  border: 1.5px solid var(--blue-pale);
+  border-radius: 100px;
+  padding: 14px 28px;
+  font-size: 28px;
+  font-weight: 600;
+  color: var(--blue);
+}
+
+.chip .icon { font-size: 32px; }
+
+/* ─── Dot indicator ───────────────────────────────────────────── */
+.dot-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.d {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--blue-pale);
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+.d.active {
+  background: var(--blue);
+  width: 40px;
+  border-radius: 7px;
+}
+
+/* ─── Thumbnail strip ─────────────────────────────────────────── */
+.thumbs {
+  display: flex;
+  gap: 10px;
+  padding: 0 24px 8px;
+  overflow-x: auto;
+  width: 100%;
+  max-width: 520px;
+  scrollbar-width: none;
+}
+.thumbs::-webkit-scrollbar { display: none; }
+
+.thumb {
+  flex-shrink: 0;
+  width: 40px; height: 70px;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.15s;
+  background: var(--blue-light);
+}
+.thumb.active { border-color: var(--blue); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── Export hint ─────────────────────────────────────────────── */
+.hint {
+  font-size: 11px;
+  color: var(--body);
+  text-align: center;
+  padding: 0 16px 4px;
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Toolbar ──────────────────────────────────────────────────── -->
+<div class="toolbar">
+  <button class="nav-btn" id="prev">‹</button>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+    <h1>Bluebird — App Store Screenshots</h1>
+    <div class="thumbs" id="thumbs"></div>
+  </div>
+  <button class="nav-btn" id="next">›</button>
+</div>
+
+<div class="hint">Open in Chrome → right-click each slide → "Screenshot element" (1290 × 2796 px)</div>
+
+<!-- ─── Stage ────────────────────────────────────────────────────── -->
+<div class="stage">
+  <div class="stage-height-sizer" id="sizer"></div>
+  <div class="slide-wrapper" id="slideWrapper">
+
+    <!-- ── Slide 1: Home ───────────────────────────────────────── -->
+    <div class="slide active" id="s0">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Dashboard<span class="dot"></span></div>
+        <div class="s-title">Everything<br>in one place.</div>
+        <div class="s-sub">Your co-parenting hub — expenses, calendar, messages and more, beautifully organised.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/01_home.png" alt="Home screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">✓</span> Free to start</div>
+          <div class="chip"><span class="icon">🔒</span> Secure</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 2: Expenses ──────────────────────────────────── -->
+    <div class="slide" id="s1">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Expenses<span class="dot"></span></div>
+        <div class="s-title">Track every<br>rand, every<br>time.</div>
+        <div class="s-sub">Submit and approve child support expenses — no spreadsheets, no arguments.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/02_expenses.png" alt="Expenses screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">💳</span> ZAR & USD</div>
+          <div class="chip"><span class="icon">📊</span> Reports</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 3: Calendar ──────────────────────────────────── -->
+    <div class="slide" id="s2">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Calendar<span class="dot"></span></div>
+        <div class="s-title">Custody,<br>crystal<br>clear.</div>
+        <div class="s-sub">A shared schedule both parents can trust — no more confusion over who has the kids.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/03_calendar.png" alt="Calendar screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">📅</span> Shared</div>
+          <div class="chip"><span class="icon">🔔</span> Reminders</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 4: My SCAI ───────────────────────────────────── -->
+    <div class="slide" id="s3">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>AI Assistant<span class="dot"></span></div>
+        <div class="s-title">AI built for<br>co-parents.</div>
+        <div class="s-sub">Smart, instant guidance — from legal questions to parenting advice, always at hand.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/04_my_scai.png" alt="My SCAI screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">✦</span> SCAI AI</div>
+          <div class="chip"><span class="icon">⚡</span> Instant</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 5: SCAI Chat ─────────────────────────────────── -->
+    <div class="slide" id="s4">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>AI Chat<span class="dot"></span></div>
+        <div class="s-title">Ask anything.<br>Get clarity.</div>
+        <div class="s-sub">SCAI understands South African family law and your unique situation.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/05_my_scai_chat.png" alt="SCAI chat screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">🇿🇦</span> SA Law</div>
+          <div class="chip"><span class="icon">💬</span> 24 / 7</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 6: Monthly Report ────────────────────────────── -->
+    <div class="slide" id="s5">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Reports<span class="dot"></span></div>
+        <div class="s-title">Court-ready<br>in one tap.</div>
+        <div class="s-sub">Professional monthly summaries generated automatically — perfect for attorneys and court submissions.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/06_monthly_report.png" alt="Monthly report screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">📄</span> PDF Export</div>
+          <div class="chip"><span class="icon">⚖️</span> Legal-grade</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 7: Pricing ───────────────────────────────────── -->
+    <div class="slide" id="s6">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Pricing<span class="dot"></span></div>
+        <div class="s-title">Plans that<br>fit your life.</div>
+        <div class="s-sub">Simple, transparent pricing — start free, upgrade when you're ready, cancel any time.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/07_pricing.png" alt="Pricing screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">🆓</span> Free plan</div>
+          <div class="chip"><span class="icon">✨</span> Premium</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 8: Parenting Scoreboard ─────────────────────── -->
+    <div class="slide" id="s7">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Scoreboard<span class="dot"></span></div>
+        <div class="s-title">Measure<br>what matters.</div>
+        <div class="s-sub">Objective co-parenting insights that help both parents do better for their children.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/08_parenting_scoreboard.png" alt="Parenting scoreboard screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">📈</span> Insights</div>
+          <div class="chip"><span class="icon">🏆</span> Scores</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 9: Family ────────────────────────────────────── -->
+    <div class="slide" id="s8">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Family<span class="dot"></span></div>
+        <div class="s-title">Your family,<br>organised.</div>
+        <div class="s-sub">Connect children, link your co-parent, and invite professionals — all in one secure place.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/09_family.png" alt="Family screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">👨‍👧</span> Family</div>
+          <div class="chip"><span class="icon">👩‍⚕️</span> Pros</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Slide 10: Messages ─────────────────────────────────── -->
+    <div class="slide" id="s9">
+      <div class="s-head">
+        <div class="s-badge"><span class="dot"></span>Messages<span class="dot"></span></div>
+        <div class="s-title">Communicate<br>on record.</div>
+        <div class="s-sub">Secure, timestamped messages between co-parents — a clear record that protects your children.</div>
+      </div>
+      <div class="s-body">
+        <div class="phone-frame">
+          <div class="phone-inner">
+            <img src="slides/10_messages.png" alt="Messages screen" />
+          </div>
+        </div>
+      </div>
+      <div class="s-foot">
+        <div class="brand-lockup">
+          <div class="brand-icon">🐦</div>
+          <div>
+            <div class="brand-name">Bluebird</div>
+            <div class="brand-tag">Child support, made clearer.</div>
+          </div>
+        </div>
+        <div class="feature-chips">
+          <div class="chip"><span class="icon">🔒</span> Encrypted</div>
+          <div class="chip"><span class="icon">🕐</span> Timestamped</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /slide-wrapper -->
+</div><!-- /stage -->
+
+<!-- ─── Dot nav ──────────────────────────────────────────── -->
+<div class="dot-row" id="dots"></div>
+
+<script>
+const TOTAL = 10;
+let current = 0;
+
+const slides    = document.querySelectorAll('.slide');
+const dotsEl    = document.getElementById('dots');
+const thumbsEl  = document.getElementById('thumbs');
+const wrapper   = document.getElementById('slideWrapper');
+const sizer     = document.getElementById('sizer');
+const prevBtn   = document.getElementById('prev');
+const nextBtn   = document.getElementById('next');
+
+/* ── Scale so slides fit viewport width ── */
+function applyScale() {
+  const vw = Math.min(window.innerWidth, 900);
+  const padding = 48;
+  const scale = (vw - padding) / 1290;
+  wrapper.style.transform = `scale(${scale})`;
+  sizer.style.height = Math.round(2796 * scale) + 'px';
+}
+applyScale();
+window.addEventListener('resize', applyScale);
+
+/* ── Build dot + thumb elements ── */
+const slideNames = ['Home','Expenses','Calendar','My SCAI','SCAI Chat','Monthly Report','Pricing','Scoreboard','Family','Messages'];
+const slideImgs  = ['01_home','02_expenses','03_calendar','04_my_scai','05_my_scai_chat','06_monthly_report','07_pricing','08_parenting_scoreboard','09_family','10_messages'];
+
+slideNames.forEach((name, i) => {
+  const d = document.createElement('button');
+  d.className = 'd' + (i === 0 ? ' active' : '');
+  d.title = name;
+  d.addEventListener('click', () => goTo(i));
+  dotsEl.appendChild(d);
+
+  const t = document.createElement('div');
+  t.className = 'thumb' + (i === 0 ? ' active' : '');
+  t.title = name;
+  t.innerHTML = `<img src="slides/${slideImgs[i]}.png" alt="${name}" />`;
+  t.addEventListener('click', () => goTo(i));
+  thumbsEl.appendChild(t);
+});
+
+function goTo(n) {
+  slides[current].classList.remove('active');
+  dotsEl.children[current].classList.remove('active');
+  thumbsEl.children[current].classList.remove('active');
+  current = (n + TOTAL) % TOTAL;
+  slides[current].classList.add('active');
+  dotsEl.children[current].classList.add('active');
+  thumbsEl.children[current].classList.add('active');
+  thumbsEl.children[current].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+}
+
+prevBtn.addEventListener('click', () => goTo(current - 1));
+nextBtn.addEventListener('click', () => goTo(current + 1));
+
+/* ── Keyboard nav ── */
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') goTo(current + 1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   goTo(current - 1);
+});
+
+/* ── Touch swipe ── */
+let tx = 0;
+wrapper.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+wrapper.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - tx;
+  if (Math.abs(dx) > 40) goTo(current + (dx < 0 ? 1 : -1));
+}, { passive: true });
+</script>
+</body>
+</html>

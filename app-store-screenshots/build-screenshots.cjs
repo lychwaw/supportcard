@@ -18,13 +18,13 @@ const path = require('path');
 
 const ROOT = process.env.SC_ROOT || __dirname;
 const SRC_DIR = path.join(ROOT, 'upload');
-const OUT_DIR = path.join(ROOT, 'appstore-1284x2778');
+const OUT_DIR = path.join(ROOT, process.env.SC_OUT || ('appstore-' + (process.env.SC_W || 1284) + 'x' + (process.env.SC_H || 2778)));
 const WORK_DIR = path.join(ROOT, '.render');
 
 const EDGE = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
 
-const W = 1284;
-const H = 2778;
+const W = Number(process.env.SC_W || 1284);
+const H = Number(process.env.SC_H || 2778);
 
 // Copy is deliberately plain. No em dashes, and every line says what the
 // screen does rather than how it feels.
@@ -32,7 +32,7 @@ const SLIDES = [
   {
     file: '01_home',
     title: 'Your co-parenting<br>hub.',
-    sub: 'Custody days, pending requests and today\u2019s schedule. All there the moment you open the app.',
+    sub: 'Care days, pending requests and today\u2019s schedule. All there the moment you open the app.',
   },
   {
     file: '02_expenses',
@@ -41,7 +41,7 @@ const SLIDES = [
   },
   {
     file: '03_calendar',
-    title: 'Custody,<br>crystal clear.',
+    title: 'Care days,<br>crystal clear.',
     sub: 'One shared schedule for pickups, handovers and school events. No more guessing.',
   },
   {
@@ -57,7 +57,7 @@ const SLIDES = [
   {
     file: '06_monthly_report',
     title: 'Court-ready<br>in one tap.',
-    sub: 'A complete monthly summary of spend, custody and communication, ready to share.',
+    sub: 'A complete monthly summary of spend, care and communication, ready to share.',
   },
   {
     file: '07_pricing',
