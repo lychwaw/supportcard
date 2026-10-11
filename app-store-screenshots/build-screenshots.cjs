@@ -118,9 +118,7 @@ html,body{width:${W}px;height:${H}px;overflow:hidden;background:#2B74D6}
              0 50px 130px rgba(8,30,60,.42),
              0 18px 50px rgba(8,30,60,.3)}
 .screen{position:relative;border-radius:80px;overflow:hidden;background:#F2F2F7}
-.screen::after{content:"";position:absolute;top:23px;left:50%;transform:translateX(-50%);
-  width:187px;height:54px;background:#0D1C2E;border-radius:27px;z-index:3}
-.screen img{width:100%;display:block}
+.screen img{display:block;width:100%;margin-top:-14%}
 </style></head><body>
 <div class="slide">
   <span class="orb orb-a"></span><span class="orb orb-b"></span>
