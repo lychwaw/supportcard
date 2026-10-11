@@ -10,7 +10,7 @@ import { brand, colors } from '@/theme/colors';
 import { supabase } from '@/lib/supabase';
 import { useCurrency } from '@/hooks/use-currency';
 import { CURRENCY_OPTIONS } from '@/lib/currency';
-import { purchaseWithRevenueCat, restoreRevenueCatPurchases } from '@/lib/revenuecat';
+import { purchaseWithRevenueCat, restoreRevenueCatPurchases, storeAvailable } from '@/lib/revenuecat';
 import { openExternalUrl } from '@/lib/open-link';
 
 function FeatureRow({ text, accent }: { text: string; accent?: boolean }) {
@@ -59,14 +59,28 @@ export default function PricingScreen() {
   const handleCTA = async (tier: string, free?: boolean) => {
     if (free) { router.replace('/(tabs)'); return; }
 
+    // Until this platform's store is configured, say so plainly. The previous
+    // behaviour threw 'Subscription service not ready', which reads as a fault.
+    if (!storeAvailable()) {
+      Alert.alert(
+        'Plans are coming soon',
+        'Paid plans are not available on this device yet. Preview is free and has everything you need to get started.',
+      );
+      return;
+    }
+
     setCheckoutLoading(tier);
     try {
-      if (Platform.OS === 'ios') {
+      if (Platform.OS === 'ios' || Platform.OS === 'android') {
+        // Google requires Play Billing for digital subscriptions and refuses an
+        // app that sends people to another processor, so Android must never
+        // reach the Dodo branch below. RevenueCat talks to Play Billing on
+        // Android and StoreKit on iOS.
         await purchaseWithRevenueCat(tier);
         await syncTier();
         router.replace('/(tabs)');
       } else {
-        // Web — use Dodo checkout
+        // Web only — Dodo checkout
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           Alert.alert('Sign in required', 'Please sign in to subscribe.');
@@ -326,8 +340,8 @@ export default function PricingScreen() {
           </Pressable>
         </View>
 
-        {/* Restore Purchases — required by Apple */}
-        {Platform.OS === 'ios' && (
+        {/* Restore Purchases — required by Apple, and correct on Play too */}
+        {storeAvailable() && (
           <Pressable onPress={handleRestore} style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1, alignItems: 'center', paddingVertical: 8 })}>
             <Text style={{ color: colors.secondaryLabel, fontSize: 14 }}>Restore Purchases</Text>
           </Pressable>
