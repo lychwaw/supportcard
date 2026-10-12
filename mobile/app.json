@@ -16,8 +16,8 @@
         "googleMapsApiKey": ""
       },
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "SupportCard uses your location to verify custody handoffs and log check-ins at specific locations.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "SupportCard uses your location to log custody check-ins.",
+        "NSLocationWhenInUseUsageDescription": "SupportCard records where you are when you log a care check-in, so both parents have a clear record of handovers.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "SupportCard records where you are when you log a care check-in, so both parents have a clear record of handovers.",
         "NSCameraUsageDescription": "SupportCard uses your camera to upload receipts and documents.",
         "NSPhotoLibraryUsageDescription": "SupportCard accesses your photo library to attach images to expense requests and documents.",
         "NSPhotoLibraryAddUsageDescription": "SupportCard saves exported court records to your photo library.",
@@ -26,8 +26,8 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "NSCalendarsUsageDescription": "SupportCard adds your custody days, pickups and school events to a calendar on this device so they show up in the Calendar app.",
-        "NSCalendarsFullAccessUsageDescription": "SupportCard adds your custody days, pickups and school events to a calendar on this device so they show up in the Calendar app."
+        "NSCalendarsUsageDescription": "SupportCard adds your care days, pickups and school events to a calendar on this device so they show up in the Calendar app.",
+        "NSCalendarsFullAccessUsageDescription": "SupportCard adds your care days, pickups and school events to a calendar on this device so they show up in the Calendar app."
       },
       "privacyManifests": {
         "NSPrivacyAccessedAPITypes": [
@@ -90,7 +90,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "SupportCard uses your location to verify custody handoffs and log check-ins.",
+          "locationWhenInUsePermission": "SupportCard records where you are when you log a care check-in, so both parents have a clear record of handovers.",
           "isIosBackgroundLocationEnabled": false
         }
       ],
@@ -116,7 +116,7 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "SupportCard adds your custody days, pickups and school events to a calendar on this device so they show up in the Calendar app."
+          "calendarPermission": "SupportCard adds your care days, pickups and school events to a calendar on this device so they show up in the Calendar app."
         }
       ],
       "@sentry/react-native"

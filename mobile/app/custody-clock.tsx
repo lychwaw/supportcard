@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import * as Location from 'expo-location';
+import { requestLocationWithDisclosure } from '@/lib/location-disclosure';
 import { supabase } from '@/lib/supabase';
 import { brand, colors } from '@/theme/colors';
 import { openExternalUrl } from '@/lib/open-link';
@@ -133,7 +134,7 @@ function AddCheckInModal({ visible, onClose, onSaved, childList }: { visible: bo
     if (!val) { setLat(null); setLng(null); setLocationState('idle'); return; }
     setLocationState('loading');
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const status = await requestLocationWithDisclosure();
       if (status !== 'granted') { setLocationState('failed'); return; }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setLat(pos.coords.latitude); setLng(pos.coords.longitude); setLocationState('captured');
@@ -259,7 +260,7 @@ function AddZoneModal({ visible, onClose, onSaved }: { visible: boolean; onClose
     if (!val) { setLat(null); setLng(null); setLocationState('idle'); return; }
     setLocationState('loading');
     try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
+      const status = await requestLocationWithDisclosure();
       if (status !== 'granted') { setLocationState('failed'); return; }
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setLat(pos.coords.latitude); setLng(pos.coords.longitude); setLocationState('captured');
