@@ -196,17 +196,17 @@ export default function PricingScreen() {
             <Ionicons name="gift-outline" size={26} color={brand.blue} />
           </View>
           <Text style={{ fontWeight: '700', fontSize: 30, color: colors.label, marginTop: 12, letterSpacing: -0.4 }}>Preview</Text>
-          <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Tiny trial access</Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Free, for one child</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 4 }}>
             <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>Free</Text>
           </View>
-          <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>For testing the basics.</Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>Share a calendar, settle expenses, keep a record.</Text>
           <Divider />
-          <FeatureRow text="1 child profile" />
-          <FeatureRow text="5 calendar events total" />
-          <FeatureRow text="3 expense requests / month" />
-          <FeatureRow text="3 stored documents" />
-          <FeatureRow text="No My SCAI" />
+          <FeatureRow text="Shared calendar and messages" />
+          <FeatureRow text="Contact log, for contact you were denied" />
+          <FeatureRow text="Invite your mediator or attorney" />
+          <FeatureRow text="1 child, 5 events, 3 expense requests" />
+          <FeatureRow text="No monthly report or My SCAI" />
           <Pressable
             onPress={() => handleCTA('preview', true)}
             style={({ pressed }) => ({
@@ -227,18 +227,17 @@ export default function PricingScreen() {
             <Ionicons name="calendar-outline" size={26} color={brand.blue} />
           </View>
           <Text style={{ fontWeight: '700', fontSize: 30, color: colors.label, marginTop: 12, letterSpacing: -0.4 }}>Essential</Text>
-          <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Basic capped use</Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 14, marginTop: 3 }}>Room for a real month</Text>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 4 }}>
             <Text style={{ fontWeight: '700', fontSize: 46, color: colors.label, letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p('supportcard_essential_monthly')}</Text>
             <Text style={{ color: colors.secondaryLabel, fontSize: 17 }}>/mo</Text>
           </View>
-          <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>For simple structure without AI.</Text>
+          <Text style={{ color: colors.secondaryLabel, fontSize: 15, marginTop: 4 }}>Everything in Preview, without running out.</Text>
           <Divider />
-          <FeatureRow text="1 child profile" />
-          <FeatureRow text="40 calendar events / month" />
-          <FeatureRow text="20 expense requests / month" />
+          <FeatureRow text="Everything in Preview" />
+          <FeatureRow text="40 events and 20 expense requests a month" />
           <FeatureRow text="25 stored documents" />
-          <FeatureRow text="No My SCAI" />
+          <FeatureRow text="No monthly report or My SCAI" />
           <Pressable
             onPress={() => handleCTA('essential')}
             disabled={checkoutLoading === 'essential'}
@@ -266,18 +265,18 @@ export default function PricingScreen() {
               <Ionicons name="flash" size={26} color="#fff" />
             </View>
             <Text style={{ fontWeight: '700', fontSize: 30, color: '#fff', marginTop: 12, letterSpacing: -0.4 }}>Plus</Text>
-            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, marginTop: 3 }}>Advanced features</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 14, marginTop: 3 }}>The monthly report</Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: 14, gap: 6, flexWrap: 'wrap' }}>
               <Text style={{ fontWeight: '700', fontSize: 46, color: '#fff', letterSpacing: -1, fontVariant: ['tabular-nums'] }}>{p('supportcard_plus_monthly')}</Text>
               <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 17 }}>/mo</Text>
             </View>
-            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, marginTop: 4 }}>The smart co-parenting system.</Text>
+            <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 15, marginTop: 4 }}>A month of care, spending and contact, in one document.</Text>
             <Divider light />
-            <FeatureRow text="Up to 3 child profiles" accent />
-            <FeatureRow text="150 calendar events / month" accent />
-            <FeatureRow text="100 expense requests / month" accent />
+            <FeatureRow text="Monthly report of care, spending and contact" accent />
+            <FeatureRow text="My SCAI, the AI assistant" accent />
+            <FeatureRow text="Up to 3 children" accent />
+            <FeatureRow text="150 events and 100 expense requests a month" accent />
             <FeatureRow text="Unlimited stored documents" accent />
-            <FeatureRow text="My SCAI included" accent />
             <Pressable
               onPress={() => handleCTA('plus')}
               disabled={checkoutLoading === 'plus'}
