@@ -30,6 +30,22 @@ function endOfMonth(year: number, month: number): string {
 function startOfMonth(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-01`;
 }
+/**
+ * The first day of the following month, used as an EXCLUSIVE upper bound.
+ *
+ * created_at is a timestamptz. Comparing it to a bare date with lte() means
+ * lte('2026-10-31'), which Postgres reads as 2026-10-31 00:00:00 — so every
+ * expense, check-in and contact entry made during the last day of the month
+ * was silently missing from the report. Not an edge case: the 31st is a day
+ * like any other, and the report is sold as a complete account of the month.
+ *
+ * event_date is a plain DATE, so an inclusive lte() is correct there and it
+ * still uses endOfMonth.
+ */
+function startOfNextMonth(year: number, month: number): string {
+  const d = new Date(year, month + 1, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+}
 function formatCurrency(val: number, sym: string): string {
   if (val >= 1_000_000) return `${sym}${(val / 1_000_000).toFixed(1)}M`;
   if (val >= 1_000) return `${sym}${(val / 1_000).toFixed(1)}k`;
@@ -77,16 +93,17 @@ export default function MonthlyReportScreen() {
       const { year, month } = selectedOption;
       const start = startOfMonth(year, month);
       const end = endOfMonth(year, month);
+      const nextStart = startOfNextMonth(year, month);
       const monthName = MONTH_NAMES[month];
 
       const [expensesRes, eventsRes, checkinsRes, complianceRes] = await Promise.all([
-        supabase.from('expense_requests').select('amount, currency, category, status').gte('created_at', start).lte('created_at', end),
-        supabase.from('calendar_events' as any).select('event_type, event_date').gte('created_at' as any, start).lte('created_at' as any, end),
-        supabase.from('custody_checkins').select('event_type, notes').gte('created_at', start).lte('created_at', end),
+        supabase.from('expense_requests').select('amount, currency, category, status').gte('created_at', start).lt('created_at', nextStart),
+        supabase.from('calendar_events' as any).select('event_type, event_date').gte('event_date' as any, start).lte('event_date' as any, end),
+        supabase.from('custody_checkins').select('event_type, notes').gte('created_at', start).lt('created_at', nextStart),
         // The contact log. A month where a parent could not reach their child
         // is the single most important thing a report can say, and it was not
         // in here at all.
-        supabase.from('compliance_logs' as any).select('event_type').gte('created_at', start).lte('created_at', end),
+        supabase.from('compliance_logs' as any).select('event_type').gte('created_at', start).lt('created_at', nextStart),
       ]);
 
       const expenses = (expensesRes.data as Array<{ amount: number; currency: Currency; category: string; status: string }>) ?? [];

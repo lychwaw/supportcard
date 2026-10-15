@@ -121,12 +121,20 @@ export default function ComplianceScreen() {
   }, [orderTitle, orderRef, orderDueDate, orderStatus, loadData]);
 
   const handleLogEvent = useCallback(async () => {
-    if (!logText.trim()) return;
+    // The event type and the time it was recorded ARE the record. Requiring a
+    // note first meant a parent who had just been refused contact had to
+    // compose prose before the app would accept it, which is the opposite of
+    // the two taps this is for. Only "Other" needs explaining, because without
+    // a note it says nothing at all.
+    if (logEventType === 'other' && !logText.trim()) {
+      Alert.alert('Add a note', 'Describe what happened, or pick a specific event type.');
+      return;
+    }
     setLogSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
-      const { error } = await (supabase.from('compliance_logs' as any) as any).insert({ user_id: user.id, event_type: logEventType, description: logText.trim(), source: 'manual' });
+      const { error } = await (supabase.from('compliance_logs' as any) as any).insert({ user_id: user.id, event_type: logEventType, description: logText.trim() || null, source: 'manual' });
       if (error) throw error;
       setShowLogModal(false); setLogText(''); loadData();
     } catch (e: any) {
@@ -317,7 +325,7 @@ export default function ComplianceScreen() {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: colors.background }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, backgroundColor: colors.surface, borderBottomWidth: 0.5, borderBottomColor: colors.separator }}>
             <Pressable onPress={() => setShowLogModal(false)}><Text style={{ color: brand.blue, fontSize: 16 }}>Cancel</Text></Pressable>
-            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Log Compliance Event</Text>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: colors.label }}>Log an event</Text>
             <Pressable onPress={handleLogEvent} disabled={logSaving}>
               {logSaving ? <ActivityIndicator color={brand.blue} /> : <Text style={{ color: brand.blue, fontSize: 16, fontWeight: '600' }}>Save</Text>}
             </Pressable>
