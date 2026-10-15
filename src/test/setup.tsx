@@ -44,6 +44,17 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// jsdom implements neither of these, and Radix reaches for both: useSize()
+// constructs a ResizeObserver, and any Select or Dialog calls scrollIntoView on
+// the focused item. Without them every test that opens a Radix panel throws a
+// ReferenceError that has nothing to do with the component under test.
+global.ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView = vi.fn();
+
 // Mock localStorage
 Object.defineProperty(window, 'localStorage', {
   value: {

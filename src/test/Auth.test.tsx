@@ -1,4 +1,5 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi } from 'vitest';
 import Auth from '../pages/Auth';
 
@@ -35,18 +36,19 @@ describe('Auth Component', () => {
   it('shows OAuth buttons', () => {
     render(<Auth />);
     
-    expect(screen.getByText('Continue with Google')).toBeInTheDocument();
-    expect(screen.getByText('Continue with Apple')).toBeInTheDocument();
+    expect(screen.getByText('Google')).toBeInTheDocument();
+    expect(screen.getByText('Apple')).toBeInTheDocument();
   });
 
-  it('shows country selection in signup', () => {
+  it('shows the signup fields', async () => {
     render(<Auth />);
     
-    // Click on signup tab
-    fireEvent.click(screen.getByText('Sign Up'));
+    await userEvent.click(screen.getByRole('tab', { name: 'Sign Up' }));
     
-    expect(screen.getByText('Country')).toBeInTheDocument();
-    expect(screen.getByText('ID Number')).toBeInTheDocument();
+    expect(screen.getByText('Account Type')).toBeInTheDocument();
+    expect(screen.getByText('Full Name')).toBeInTheDocument();
+    expect(screen.getByText('Age')).toBeInTheDocument();
+    expect(screen.getByText('Your Role')).toBeInTheDocument();
   });
 
   it('validates required fields', async () => {
