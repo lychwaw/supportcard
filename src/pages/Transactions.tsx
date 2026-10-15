@@ -116,7 +116,7 @@ const Transactions = () => {
         .select(`
           *,
           children:child_id(id, name),
-          profiles:logged_by(id, full_name)
+          profiles:profiles!logged_by(id, full_name)
         `)
         .eq('user_id', user.id)
         .order('transaction_date', { ascending: false });

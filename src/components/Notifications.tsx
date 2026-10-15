@@ -88,8 +88,7 @@ export const Notifications = () => {
       // Fetch pending expense requests
       const { data: expenseRequests } = await supabase
         .from('expense_requests')
-        .select('id, amount, category, description, status, created_at')
-        .or(`requester_id.eq.${user.id}`)
+        .select('id, amount, category, description, status, created_at, requester_id')
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(5);

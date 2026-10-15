@@ -60,3 +60,6 @@ google-service-account.json
 mobile/google-service-account.json
 google-services.json
 mobile/google-services.json
+
+# Supabase CLI local state (linked project ref, version cache)
+supabase/.temp/

@@ -23,7 +23,7 @@ export interface CountryConfig {
   minLength: number;
   maxLength: number;
   pattern: RegExp;
-  ageCalculation: (id: string) => { age: number; dateOfBirth: string; gender?: 'male' | 'female' };
+  ageCalculation: (id: string) => { age: number; dateOfBirth: string; gender?: 'male' | 'female' | 'unknown' };
   validateChecksum?: (id: string) => boolean;
 }
 
