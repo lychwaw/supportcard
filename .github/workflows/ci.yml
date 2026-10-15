@@ -42,7 +42,6 @@ jobs:
           exit 1
 
       - name: Type-check frontend
-        continue-on-error: true
         run: npx tsc --noEmit -p tsconfig.app.json
 
       - name: Build
@@ -58,4 +57,4 @@ jobs:
           fi
 
       - name: Run tests
-        run: npm test -- --run 2>/dev/null || echo "No tests configured yet"
+        run: npm test -- --run

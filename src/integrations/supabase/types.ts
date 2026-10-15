@@ -1515,10 +1515,16 @@ export type Database = {
           id_verified_at: string | null
           is_founder: boolean
           onboarded_at: string | null
+          parent_passcode_hash: string | null
+          parent_passcode_hint: string | null
           parent_role: string | null
+          passcode_failed_attempts: number | null
+          passcode_locked_until: string | null
+          passcode_updated_at: string | null
           phone: string | null
           preferred_currency: string | null
           referral_trial_ends_at: string | null
+          require_child_passcode: boolean | null
           role: string | null
           subscription_status: string | null
           subscription_tier: string | null
@@ -1541,10 +1547,16 @@ export type Database = {
           id_verified_at?: string | null
           is_founder?: boolean
           onboarded_at?: string | null
+          parent_passcode_hash?: string | null
+          parent_passcode_hint?: string | null
           parent_role?: string | null
+          passcode_failed_attempts?: number | null
+          passcode_locked_until?: string | null
+          passcode_updated_at?: string | null
           phone?: string | null
           preferred_currency?: string | null
           referral_trial_ends_at?: string | null
+          require_child_passcode?: boolean | null
           role?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
@@ -1567,10 +1579,16 @@ export type Database = {
           id_verified_at?: string | null
           is_founder?: boolean
           onboarded_at?: string | null
+          parent_passcode_hash?: string | null
+          parent_passcode_hint?: string | null
           parent_role?: string | null
+          passcode_failed_attempts?: number | null
+          passcode_locked_until?: string | null
+          passcode_updated_at?: string | null
           phone?: string | null
           preferred_currency?: string | null
           referral_trial_ends_at?: string | null
+          require_child_passcode?: boolean | null
           role?: string | null
           subscription_status?: string | null
           subscription_tier?: string | null
