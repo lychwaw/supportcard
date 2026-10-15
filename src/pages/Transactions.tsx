@@ -585,7 +585,9 @@ const Transactions = () => {
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
                           {!canEdit && (
-                            <Lock className="w-4 h-4 text-muted-foreground" title="Cannot edit parent transactions" />
+                            <span title="Cannot edit parent transactions">
+                              <Lock className="w-4 h-4 text-muted-foreground" aria-label="Cannot edit parent transactions" />
+                            </span>
                           )}
                           {canEdit && (
                             <>
