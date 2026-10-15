@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "schema:drift": "node scripts/schema-drift.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
