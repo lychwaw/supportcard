@@ -181,7 +181,6 @@ function AppShell({ session, needsOnboarding }: { session: Session | null; needs
         <Stack.Screen name="school-hub" options={{ headerShown: true }} />
         <Stack.Screen name="emergency-child-profile" options={{ headerShown: true }} />
         <Stack.Screen name="monthly-report" options={{ headerShown: true }} />
-        <Stack.Screen name="id-verification" options={{ headerShown: true, gestureEnabled: false, headerBackVisible: false }} />
       </Stack>
       </CurrencyProvider>
     </ThemeProvider>

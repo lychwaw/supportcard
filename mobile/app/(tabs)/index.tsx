@@ -213,8 +213,6 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* ID verification nudge hidden until KoraPay production keys active */}
-
         {/* ── Care hero card ── */}
         <Pressable onPress={() => router.push('/(tabs)/calendar')}
           style={({ pressed }) => ({ marginHorizontal: 20, marginBottom: 14, transform: [{ scale: pressed ? 0.98 : 1 }] })}>

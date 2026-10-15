@@ -13,7 +13,7 @@ These keys were exposed in git commit `bfbe8cb`. Rotate them regardless of wheth
 | Secret | Where to rotate |
 |---|---|
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API → Reset service role key |
-| `KORAPAY_SECRET_KEY` | dashboard.korapay.com → API Keys → Revoke & reissue |
+| `KORAPAY_SECRET_KEY` | dashboard.korapay.com → API Keys → Revoke & reissue (removed from code but leaked) |
 | `APNS_PRIVATE_KEY` | developer.apple.com → Certificates → Revoke & re-download .p8 |
 | `APPLE_MAPKIT_PRIVATE_KEY` | developer.apple.com → MapKit JS key → Revoke & re-issue |
 | Yoco keys | Yoco dashboard → Developer Settings → Revoke (removed from code but leaked) |
@@ -39,8 +39,6 @@ Add every variable below to Vercel (Settings → Environment Variables → Produ
 | `DODO_PRODUCT_ID_PLUS` | Dodo dashboard → Products (live mode) |
 | `DODO_PRODUCT_ID_PLUS_FOUNDER` | Dodo dashboard → Products (live mode) |
 | `DODO_PRODUCT_ID_PREMIUM` | Dodo dashboard → Products (live mode) |
-| `KORAPAY_PUBLIC_KEY` | KoraPay dashboard → production key |
-| `KORAPAY_SECRET_KEY` | KoraPay dashboard → production key (after rotation) |
 | `APNS_KEY_ID` | `DN87GS89S8` (or updated if re-issued) |
 | `APNS_TEAM_ID` | `28FLFDM932` |
 | `APNS_BUNDLE_ID` | `co.za.supportcard.app` |

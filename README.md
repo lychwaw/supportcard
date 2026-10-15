@@ -8,7 +8,7 @@ A co-parenting coordination platform — schedules, expenses, communication, and
 
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase dashboard → Project Settings → API → reset service role key
 - `YOCO_SECRET_KEY` / `YOCO_WEBHOOK_SECRET` — Yoco has been removed from this codebase (replaced by Dodo Payments), but the leaked keys were real — revoke them at the Yoco dashboard → Developer settings regardless
-- `KORAPAY_SECRET_KEY` — KoraPay dashboard → API Keys
+- `KORAPAY_SECRET_KEY` — KoraPay has been removed from this codebase, but the leaked key was real — revoke it at the KoraPay dashboard → API Keys regardless
 - `APNS_PRIVATE_KEY` — Apple Developer portal → Certificates, Identifiers & Profiles → revoke and re-issue the key
 - `APPLE_MAPKIT_PRIVATE_KEY` — Apple Developer portal → MapKit JS key
 
@@ -57,7 +57,6 @@ Create `.env` in the project root (never commit it — it's gitignored).
 | `DODO_PAYMENTS_WEBHOOK_SECRET` | Verifies Dodo webhook signatures (Standard Webhooks / `standardwebhooks` package) |
 | `DODO_PAYMENTS_ENVIRONMENT` | `test_mode` or `live_mode` |
 | `DODO_PRODUCT_ID_ESSENTIAL`, `DODO_PRODUCT_ID_PLUS`, `DODO_PRODUCT_ID_PLUS_FOUNDER`, `DODO_PRODUCT_ID_PREMIUM` | Product IDs created in the Dodo dashboard, one per paid tier (Plus has a second product for the Founder Offer price) |
-| `KORAPAY_SECRET_KEY` | KoraPay secret key — used only for South African ID (SAID) identity verification, not payments |
 | `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY`, `APNS_ENV` | Apple Push Notification credentials |
 | `APPLE_TEAM_ID`, `APPLE_MAPKIT_KEY_ID`, `APPLE_MAPKIT_PRIVATE_KEY` | MapKit JS server-side token signing |
 | `APP_BASE_URL` | Public base URL used to build Dodo checkout success/cancel redirect links |

@@ -1,5 +1,5 @@
 // Shared CORS helper for browser-facing API routes.
-// Webhook handlers (dodo-webhook, korapay-webhook) are server-to-server and
+// Webhook handlers (dodo-webhook, revenuecat-webhook) are server-to-server and
 // should NOT use this — they reject unexpected origins at the signature level.
 
 const ALLOWED_ORIGINS = new Set([

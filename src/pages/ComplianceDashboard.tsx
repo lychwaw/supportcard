@@ -13,7 +13,6 @@ import { FileDown, Shield, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import SubscriptionGate from '@/components/SubscriptionGate';
-import { IdVerification } from '@/components/IdVerification';
 
 interface ComplianceScore {
   id: string;
@@ -160,10 +159,9 @@ const ComplianceDashboard = () => {
           <Shield className="w-8 h-8 text-primary" />
           <div>
             <h1 className="text-3xl font-bold">Compliance</h1>
-            <p className="text-muted-foreground">Identity verification and compliance analytics</p>
+            <p className="text-muted-foreground">Compliance analytics</p>
           </div>
         </div>
-        <IdVerification />
         <SubscriptionGate
           title="Compliance analytics are a Premium feature"
           description="Upgrade to Premium to access compliance reporting."
@@ -256,8 +254,6 @@ const ComplianceDashboard = () => {
           </Button>
         </div>
       </div>
-
-      <IdVerification />
 
       {children.length === 0 ? (
         <Card>
