@@ -61,7 +61,10 @@ export default function MonthlyReportScreen() {
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [reportText, setReportText] = useState<string | null>(null);
-  const [stats, setStats] = useState<{ totalAmount: number; eventsCount: number; checkinsCount: number } | null>(null);
+  const [stats, setStats] = useState<{
+    totalAmount: number; eventsCount: number; checkinsCount: number;
+    contactAttempts: number; contactDenied: number;
+  } | null>(null);
 
   const selectedOption = monthOptions[selectedIdx];
 
@@ -76,10 +79,14 @@ export default function MonthlyReportScreen() {
       const end = endOfMonth(year, month);
       const monthName = MONTH_NAMES[month];
 
-      const [expensesRes, eventsRes, checkinsRes] = await Promise.all([
+      const [expensesRes, eventsRes, checkinsRes, complianceRes] = await Promise.all([
         supabase.from('expense_requests').select('amount, currency, category, status').gte('created_at', start).lte('created_at', end),
         supabase.from('calendar_events' as any).select('event_type, event_date').gte('created_at' as any, start).lte('created_at' as any, end),
         supabase.from('custody_checkins').select('event_type, notes').gte('created_at', start).lte('created_at', end),
+        // The contact log. A month where a parent could not reach their child
+        // is the single most important thing a report can say, and it was not
+        // in here at all.
+        supabase.from('compliance_logs' as any).select('event_type').gte('created_at', start).lte('created_at', end),
       ]);
 
       const expenses = (expensesRes.data as Array<{ amount: number; currency: Currency; category: string; status: string }>) ?? [];
@@ -87,12 +94,19 @@ export default function MonthlyReportScreen() {
       const checkins = checkinsRes.data ?? [];
       const totalAmount = expenses.reduce((s, e) => s + convertAmount(Number(e.amount) || 0, e.currency ?? 'ZAR', currency), 0);
 
-      setStats({ totalAmount, eventsCount: events.length, checkinsCount: checkins.length });
+      const compliance = (complianceRes.data as Array<{ event_type: string }> | null) ?? [];
+      const contactAttempts = compliance.filter(c => c.event_type === 'contact_attempted').length;
+      const contactDenied   = compliance.filter(c => c.event_type === 'contact_denied').length;
+
+      setStats({
+        totalAmount, eventsCount: events.length, checkinsCount: checkins.length,
+        contactAttempts, contactDenied,
+      });
 
       // The amount used to go over as a bare number, so the model wrote it as
       // dollars while the tile beside it showed rands. The report is meant to be
       // shared, and a South African record quoting $ is wrong twice over.
-      const prompt = `Generate a concise, neutral monthly co-parenting summary for ${monthName} ${year}. Data: ${JSON.stringify({ expenses_count: expenses.length, total_requested: totalAmount.toFixed(2), currency, currency_symbol: sym, events_count: events.length, checkins_count: checkins.length })}. Write every amount with the symbol ${sym} immediately before the number, for example ${sym}0.00. Never use a different currency symbol. Include: spending summary, activity summary, and 1-2 constructive suggestions for next month. Keep it under 200 words. Positive, neutral tone.`;
+      const prompt = `Generate a concise, neutral monthly co-parenting summary for ${monthName} ${year}. Data: ${JSON.stringify({ expenses_count: expenses.length, total_requested: totalAmount.toFixed(2), currency, currency_symbol: sym, events_count: events.length, checkins_count: checkins.length, contact_attempts: contactAttempts, contact_denied: contactDenied })}. Write every amount with the symbol ${sym} immediately before the number, for example ${sym}0.00. Never use a different currency symbol. Include: spending summary, activity summary, a contact summary, and 1-2 constructive suggestions for next month. For contact, state the figures plainly and do not characterise anyone's behaviour or motives: say how many attempts were logged and how many were recorded as denied, and nothing about who was at fault. If both figures are zero, say contact was not logged this month rather than implying there was none. Keep it under 200 words. Positive, neutral tone.`;
 
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
@@ -214,6 +228,14 @@ export default function MonthlyReportScreen() {
                   { value: formatCurrency(stats.totalAmount, sym), label: 'Total Expenses', color: '#F59E0B' },
                   { value: String(stats.eventsCount), label: 'Events', color: brand.blue },
                   { value: String(stats.checkinsCount), label: 'Check-ins', color: brand.teal },
+                  // Shown only when there is something to show. A permanent 'Denied 0'
+                  // tile would invite a parent to fill it, which is not what this is for.
+                  ...(stats.contactAttempts > 0 || stats.contactDenied > 0
+                    ? [{ value: String(stats.contactAttempts), label: 'Contact logged', color: '#F59E0B' }]
+                    : []),
+                  ...(stats.contactDenied > 0
+                    ? [{ value: String(stats.contactDenied), label: 'Denied', color: brand.error }]
+                    : []),
                 ].map(chip => (
                   <View key={chip.label} style={{ flex: 1, backgroundColor: chip.color + '12', borderRadius: 12, borderCurve: 'continuous', padding: 12, alignItems: 'center', gap: 4 }}>
                     <Text style={{ fontSize: 17, fontWeight: '700', color: chip.color, fontVariant: ['tabular-nums'] }}>{chip.value}</Text>
@@ -253,7 +275,7 @@ export default function MonthlyReportScreen() {
                 Your AI co-parenting assistant will summarise expenses, events, and care check-ins, then suggest ways to improve next month.
               </Text>
               <View style={{ backgroundColor: brand.blue + '08', borderRadius: 14, borderCurve: 'continuous', padding: 14, gap: 6, width: '100%', borderWidth: 0.5, borderColor: brand.blue + '20' }}>
-                {['Expense requests and totals', 'Calendar events logged', 'Care check-ins', 'Suggestions for next month'].map(line => (
+                {['Expense requests and totals', 'Calendar events logged', 'Care check-ins', 'Contact attempts and denials', 'Suggestions for next month'].map(line => (
                   <Text key={line} style={{ fontSize: 13, color: colors.label, lineHeight: 20 }}>· {line}</Text>
                 ))}
               </View>

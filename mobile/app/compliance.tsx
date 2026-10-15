@@ -30,7 +30,35 @@ function computeStats(orders: CourtOrder[], logs: ComplianceLog[]) {
   return { activeCount, nextLabel, rateLabel };
 }
 
-const EVENT_TYPES = ['care_exchange','expense_approved','court_order_met','school_pickup','medical_visit','other'];
+// Contact leads the list. A parent who could not reach their child wants to
+// record it now, in two taps, not hunt through a menu. The rest follow.
+const EVENT_TYPES = [
+  'contact_attempted', 'contact_denied',
+  'care_exchange', 'expense_approved', 'court_order_met',
+  'school_pickup', 'medical_visit', 'other',
+] as const;
+
+// Stored values stay machine-readable; these are what a person reads.
+const EVENT_LABEL: Record<string, string> = {
+  contact_attempted: 'Tried to make contact',
+  contact_denied:    'Contact denied',
+  care_exchange:     'Care exchange',
+  expense_approved:  'Expense approved',
+  court_order_met:   'Court order met',
+  school_pickup:     'School pickup',
+  medical_visit:     'Medical visit',
+  other:             'Other',
+};
+const labelFor = (type: string) => EVENT_LABEL[type] ?? type.replace(/_/g, ' ');
+
+// A denied contact is not a tick. Showing every entry with a green check made
+// the log read as though everything had gone fine, which is the opposite of
+// what someone recording a refusal needs to see.
+const EVENT_ICON: Record<string, { icon: 'close-circle' | 'call-outline' | 'checkmark-circle'; colour: string }> = {
+  contact_denied:    { icon: 'close-circle',     colour: '#EF4444' },
+  contact_attempted: { icon: 'call-outline',     colour: '#F59E0B' },
+};
+const iconFor = (type: string) => EVENT_ICON[type] ?? { icon: 'checkmark-circle' as const, colour: '#22C55E' };
 
 export default function ComplianceScreen() {
   const insets = useSafeAreaInsets();
@@ -39,7 +67,7 @@ export default function ComplianceScreen() {
   const [loading, setLoading] = useState(true);
   const [showLogModal, setShowLogModal] = useState(false);
   const [logText, setLogText] = useState('');
-  const [logEventType, setLogEventType] = useState('care_exchange');
+  const [logEventType, setLogEventType] = useState<string>('contact_attempted');
   const [logSaving, setLogSaving] = useState(false);
   const [showAddOrderModal, setShowAddOrderModal] = useState(false);
   const [orderTitle, setOrderTitle] = useState('');
@@ -198,11 +226,11 @@ export default function ComplianceScreen() {
                   {logs.map(log => (
                     <View key={log.id} style={{ backgroundColor: colors.surface, borderRadius: 16, borderCurve: 'continuous', padding: 14, borderWidth: 0.5, borderColor: colors.separator }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#22C55E18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
-                          <Ionicons name="checkmark-circle" size={18} color="#22C55E" />
+                        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: iconFor(log.event_type).colour + '18', alignItems: 'center', justifyContent: 'center', borderCurve: 'continuous' }}>
+                          <Ionicons name={iconFor(log.event_type).icon} size={18} color={iconFor(log.event_type).colour} />
                         </View>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ fontWeight: '700', fontSize: 14, color: colors.label }}>{log.event_type.replace(/_/g, ' ')}</Text>
+                          <Text style={{ fontWeight: '700', fontSize: 14, color: colors.label }}>{labelFor(log.event_type)}</Text>
                           {log.description ? <Text style={{ color: colors.secondaryLabel, fontSize: 13, marginTop: 1 }}>{log.description}</Text> : null}
                         </View>
                         <Text style={{ color: colors.secondaryLabel, fontSize: 12 }}>{formatDate(log.created_at)}</Text>
@@ -303,7 +331,7 @@ export default function ComplianceScreen() {
                     <Pressable key={type} onPress={() => setLogEventType(type)}
                       style={({ pressed }) => ({ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: logEventType === type ? 0 : 0.5, borderColor: colors.separator, backgroundColor: logEventType === type ? brand.blue : colors.surface, transform: [{ scale: pressed ? 0.95 : 1 }] })}>
                       <Text style={{ fontSize: 13, fontWeight: '700', color: logEventType === type ? '#fff' : colors.secondaryLabel }}>
-                        {type.replace(/_/g, ' ')}
+                        {labelFor(type)}
                       </Text>
                     </Pressable>
                   ))}
